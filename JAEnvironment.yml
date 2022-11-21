@@ -282,8 +282,8 @@ Environment:
      ### If all code is kept on a single folder on SCM, put '' for below definitions so that
      ###   artifacts are downloaded from SCM to LocalRespositoryHome (no sub-directories maintained) to
      ###   separate common code/scripts and customization files per component or per OS type
-     LocalRepositoryCommon: Common
-     LocalRepositoryCustom: Custom
+     LocalRepositoryCommon: AppsCommon
+     LocalRepositoryCustom: AppsCustom
      ### suggest to define this per OS type under OS section. If all components are similar for a given platform,
      ###   can define the common path below.
      ### root path on target host where the contents of Common and Custom files will be copied

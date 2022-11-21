@@ -77,10 +77,10 @@ def JAReadEnvironmentConfig(
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to integer and store
     #  in defaultParameters{}
     integerParameters = [
-        'SitePrefixLength', 'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert',
+        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays',
         'DueInDaysForLicence', 'HealIntervalInSec', 'HealAfterTimeInSec', 
         'RandomizationWindowForHealthInSec', 'RandomizationWindowForOtherInSec',
-        'RandomizationWindowForTaskInSec', 'FileRetencyDurationInDays'
+        'RandomizationWindowForTaskInSec', 'SitePrefixLength'
         ]
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to float and store
     #  in defaultParameters{}
@@ -92,6 +92,36 @@ def JAReadEnvironmentConfig(
         ]
 
     returnStatus = True
+
+    ### first check whether profile is present in current working directory
+    localReposistoryCustom = ''
+    if os.path.exists("JAAudit.profile") :
+        with open("JAAudit.profile", "r") as file:
+            while True:
+                line = file.readline()
+                if not line:
+                    break
+                line = line.rstrip()
+                fieldParts = re.findall(r'LocalRepositoryCustom:(\s+)(.+)', line)
+                if len(fieldParts) > 1:
+                    localReposistoryCustom = fieldParts[1]
+
+                    ### localReposistoryCustom is available, environment file may be under that folder.
+                    ###   if present, update file to that location
+                    tempFileName = '{0}/{1}'.format(localReposistoryCustom, fileName)
+
+                    if os.path.exits(tempFileName) == True:
+                        fileName = tempFileName     
+                    break
+            file.close()
+    elif os.path.exists('./Custom/{0}'.format(fileName)):
+        ### use the file in ./Custom/ if present
+        fileName = './Custom/{0}'.format(fileName)
+
+    elif os.path.exists(fileName) == None:
+        print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./Custom directory.\n\
+            Get the file from SCM, place it in 'LocalRepositoryCustom' directory or default locatoin ./Custom directory\n".format(fileName))
+        return False
 
     # use limited yaml reader when yaml is not available
     if yamlModulePresent == True:
@@ -242,6 +272,8 @@ def JAReadEnvironmentConfig(
     else:
         if 'LocalRespositoryHome' in defaultParameters:
             reportsFilePath = defaultParameters['LocalRespositoryHome'] + "/Reports"
+        else:
+            reportsFilePath = ''
     if os.path.exists(reportsFilePath) == False:
         try:
             os.mkdir(reportsFilePath)
@@ -258,6 +290,13 @@ def JAReadEnvironmentConfig(
         print(errorMsg)
         JAGlobalLib.LogMsg(errorMsg, auditLogFileName, True, True)
 
-
+    ### write the LocalRepositoryCustom value to JAAudit.profile 
+    if 'LocalRepositoryCustom' in defaultParameters:
+        localReposistoryCustom = defaultParameters['LocalRepositoryCustom']
+    else:
+        localReposistoryCustom = "Custom"
+    with open("JAAudit.profile", "w") as file:
+        file.write("LocalRepositoryCustom: {0}".format(localReposistoryCustom))
+        file.close()
     return returnStatus
     

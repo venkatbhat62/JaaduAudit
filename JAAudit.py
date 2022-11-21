@@ -213,11 +213,11 @@ def JAHelp():
         The subsystem name  can be OS, DB, App, OSS, Vendor etc.
         Defaut subsystem is 'App'.
     
-    [-p <repositoryName>] - platform name to be sent to SCM host while doing rsync or wget so that
-        platform specific files are downloaded to current host. This platform name is also used
+    [-p <repositoryName>] - repository name to be sent to SCM host while doing rsync or wget so that
+        platform specific files are downloaded to current host. This repository name is also used
         while uploading the file to SCM so that the file is placed under platform specific path on SCM host.
-        The directory or folder path on SCM is computed using <WebServerMain>/<platform>/<hostname> and
-            <WebServerAlt>/<platform>/<hostname>
+        The directory or folder path on SCM is computed using <WebServerMain>/<repository>/<hostname> and
+            <WebServerAlt>/<repository>/<hostname>
         Default value is picked up from environment configuration file for the current host.
 
     [-k <SCMHostName>] - SCM hostname used for upload and download operations.

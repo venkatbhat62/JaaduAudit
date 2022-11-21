@@ -25,35 +25,50 @@ OS:
   SunOS:
     CommandCurl: /usr/bin/curl
     CommandWget: ../exe/wget
-    CommandTelnet: ../exe/telnet
-    ### add current working directory to path
-    LD_LIBRARY_PATH: ./
-    ### add current working directory to path
-    PATH: ./
+    CommandConnCheck: ../exe/telnet
     CommandToGetOSType: uname
     CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
+    ### add current working directory to path
+    LD_LIBRARY_PATH: ./
+    ### add current working directory to path
+    PATH: ./
 
   Linux:
-    CommandTelnet: telnet
+    CommandConnCheck: nc
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
   Windows:
-    CommandTelnet: Test-NetConnection
+    ### power shell command to check connectivity 
+    ### C:\Program Files\PowerShell\7\pwsh
+    CommandConnCheck: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection'
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
-    CommandChmod: ICACLS "yogasana manthra.pdf" /grant "users:(RWX)" /c
+    ### ICACLS <fileName> /grant "users:(RWX)" /c
+    CommandChmod: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command ICACLS'
+    ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
+    CommandRsync: ''
+    ### wget command with option to ignore cert check
+    CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
+    ### root path on target host where the contents of Common and Custom files will be copied
+    ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+    LocalRespositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
+    LogFilePath: 'C:\Users\${username}\documents\github\jaaduAudit\Logs'
+    ReportsPath: 'C:\Users\${username}\documents\github\jaaduAudit\Reports'
 
   All:
     ### default applies to all OS versions
     CommandCurl: curl
-    ### rsync command to get artifacts from KITS to local host if rsync is to be used
+    ### rsync command to get artifacts from SCM to local host if rsync is to be used
     CommandRsync: 'rsync --exclude=".*.swp" --exclude="*/"  -avrL --progress --ignore-errors -e "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTime=10"'
-    ### wget command used to get artifacts from KITS to local host
+    ### wget command used to get artifacts from SCM to local host
     CommandWget: wget
+    ### files to copy from current directory to JAAudit.PrevVersion before getting latest files from SCM
+    ###   update this list to find delta or see the changes in newer files downloaded
+    FilesToCompareAfterSync: '*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd'
 
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
@@ -76,146 +91,147 @@ Component:
   ###    TestAppPlatform1APP.yml, TaskAppPlatform1APP.yml
   ###    ^^^^                     ^^^^
   APPWin:
-    ### if the current hostname match to below spec, it is considered of component type APP
-    HostName: (LAPTOP-QOCNVF0T)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppAppsWindowsAPP.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (LAPTOP-QOCNVF0T)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsWindows/DMAPP.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsWindows/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
-    ### datamask for this component
-    DataMaskSpec: AppsWindows/DMAPP.yml
-    ### fetch latest files from WebServer like KITSHostName1 + RepositoryCustom,
-    ###   this component has component specific path on KITS host where artifacts are maintained
-    RepositoryCustom: AppsWindows/
 
   APPLinux:
-    ### if the current hostname match to below spec, it is considered of component type APP
-    HostName: (...)(d|t|u|p)(app)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppAppsLinuxAPP.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (...)(d|t|u|p)(app)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsLinux/DMAPP.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsLinux/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
-    ### datamask for this component
-    DataMaskSpec: AppsLinux/DMAPP.yml
-    ### fetch latest files from WebServer like KITSHostName1 + RepositoryCustom,
-    ###   this component has component specific path on KITS host where artifacts are maintained
-    RepositoryCustom: AppsLinux/
 
   CS:
-    ### if the current hostname match to below spec, it is considered of component type APP
-    HostName: (...)(d|t|u|p)(cs)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppAppsLinuxCS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (...)(d|t|u|p)(cs)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsLinux/DMCS.yml
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
-    ### datamask for this component
-    DataMaskSpec: AppsLinux/DMCS.yml
 
   DB:
-    ### if the current hostname match to below spec, it is considered of component type DB
-    HostName: (...)(d|t|u|p)(db)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppPlatform1DB.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
+    ### if the current hostname match to below spec, it is considered of component type DB
+    HostName: (...)(d|t|u|p)(db)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMDB.yml
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
-    ### datamask for this component
-    DataMaskSpec: Platform1/DMDB.yml
 
   FS:
-    ### if the current hostname match to below spec, it is considered of component type FS
-    HostName: (...)(d|t|u|p)(fs)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppPlatform1FS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type FS
+    HostName: (...)(d|t|u|p)(fs)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMFS.yml
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
-    ### datamask for this component
-    DataMaskSpec: Platform1/DMFS.yml
 
   MGT:
-    ### if the current hostname match to below spec, it is considered of component type MGT
-    HostName: (...)(d|t|u|p)(mgt)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppPlatform1MGT.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type MGT
+    HostName: (...)(d|t|u|p)(mgt)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMMGT.yml
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
-    ### datamask for this component
-    DataMaskSpec: Platform1/DMMGT.yml
 
   WS:
-    ### if the current hostname match to below spec, it is considered of component type WS
-    HostName: (...)(d|t|u|p)(ws)
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppPlatform1WS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type WS
+    HostName: (...)(d|t|u|p)(ws)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMWS.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsPlatform1/WS/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
-    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
-    ### datamask for this component
-    DataMaskSpec: Platform1/DMWS.yml
-    ### fetch latest files from WebServer like KITSHostName1 + RepositoryCustom,
-    ###   this component has component specific path on KITS host where artifacts are maintained
-    RepositoryCustom: Platform1/WS/
 
 Environment:
    Dev:
      # specify hostname in regular expression 
      HostName: ((...)(d)(...)([0-9][0-9]))|(LAPTOP-QOCNVF0T)
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
      OperationSync: 0.5
+     SCMPortRsync: 22
+     SCMPortHTTPS: 443
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
    Test:
-     HostName: (...)(t)(...)([0-9][0-9])
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
-     OperationSync: 0.5
      ### keep  logs and result files for 7 days 
      FileRetencyDurationInDays: 7
+     HostName: (...)(t)(...)([0-9][0-9])
+     OperationSync: 0.5
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
    UAT:
      HostName: (...)(u)(...)([0-9][0-9])
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
      ### will use the OperationSync value under ALL, thus, not specifying a value for UAT environment separately
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
    Prod1:
+     ### keep  logs and result files for 14 days 
+     FileRetencyDurationInDays: 14
      HostName: (...)(p1)(...)([0-9][0-9])
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
      OperationSync: 0
-     ### keep  logs and result files for 14 days 
-     FileRetencyDurationInDays: 14
-     ###
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
    Prod2:
-     HostName: (...)(p2)(...)([0-9][0-9])
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
-     OperationSync: 0
      ### keep  logs and result files for 14 days 
      FileRetencyDurationInDays: 14
+     HostName: (...)(p2)(...)([0-9][0-9])
+     OperationSync: 0
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
      
    ## Keep definition for 'All' environment at the end.
    ##  this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
@@ -223,17 +239,6 @@ Environment:
    ##  and that variable is defined under 'All', value under 'All' will be picked up
    ##  if variable is already defined under environment before, value under 'All' will be ignored.
    All:
-     ### Common code & config for all applications / platforms. 
-     ### This word will be appended to KITSHostName to derive the URL to be used in wget command to 
-     ### fetch latest files from WebServer like KITSHostName1 + RepositoryCommon
-     RepositoryCommon: Common/
-     ### Custom code & config repository for current application / platform or component of a platform
-     ### This word will be appended to KITSHostName to derive the URL to be used in wget command to 
-     ### fetch latest files from WebServer like KITSHostName1 + RepositoryCustom
-     RepositoryCustom: Platform1/
-     ### datamask spec at application level
-     DataMaskSpec: Platform1/DMDefault.yml
-
      ### debug level 0, no debug, 1 to 4, 4 being max details
      DebugLevel: 3
      ### delta time for stats operation in min, process log lines with timestamp within below min from current time
@@ -247,7 +252,7 @@ Environment:
      ### resulting diff command with this option
      ###   diff diffOptions sourceFile referenceFile
      DiffOptions: -w
-     ### disable cert warning while doing curl or wget with KITSHostName
+     ### disable cert warning while doing curl or wget with SCMHostName
      DisableWarnings: True
      ### by default, display cert due in message within 30 days of cert expiry when cert operation is run
      DueInDaysForCert: 30
@@ -271,6 +276,22 @@ Environment:
      ###    Stopped - no action taken, system is under maintenance
      ###    Running - heal enabled, HealAfterTime is not used
      HealStatusFileName: ../bin/AppStatus.txt
+
+     ### local folders on target host where common and custom respositories from SCM are synced to.
+     ###  these are sub-directories under JAAudit install path.
+     ### If all code is kept on a single folder on SCM, put '' for below definitions so that
+     ###   artifacts are downloaded from SCM to LocalRespositoryHome (no sub-directories maintained) to
+     ###   separate common code/scripts and customization files per component or per OS type
+     LocalRepositoryCommon: Common
+     LocalRepositoryCustom: Custom
+     ### suggest to define this per OS type under OS section. If all components are similar for a given platform,
+     ###   can define the common path below.
+     ### root path on target host where the contents of Common and Custom files will be copied
+     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+     LocalRespositoryHome: ''
+
+     ### max wait time in seconds for individual task to complete
+     MaxWaitTime: 600
 
      ### Define default operations intervals in hours
      ### 168 hours = 7 days
@@ -313,10 +334,31 @@ Environment:
      ###  this is to stagger the execution across many hosts at random to avoid any overload condition
      ###  value in seconds, defaults to 600
      RandomizationWindowInSec: 1
-     
-     ### rsync user name on KITS host to retrieve the artifacts from KITS to local host
+
+     ### port for rsync, and HTTPS (for curl, wget operations) on SCM (content management system)
+     SCMPortRsync: 22
+     SCMPortHTTPS: 443
+
+     ### Common code & config for all applications / platforms. 
+     ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
+     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCommon
+     SCMRepositoryCommon: AppsCommon/
+     ### Custom code & config repository for current application / platform or component of a platform
+     ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
+     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom
+     SCMRepositoryCustom: AppsPlatform1/
+
+     ### rsync user name on SCM host to retrieve the artifacts from SCM to local host
      ### Comment this line or set to None if rsync is not used
-     RsyncUserName: havembha
+     SCMRsyncUserName: havembha
+
+     ### web server to pull the latest code & config from and to post the artifacts collected
+     ###  can use single name if load balancer based FQDN is availabe
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+
+     ### datamask spec at application level, to be used on SCM while uploading a file
+     SCMDataMaskSpec: AppsPlatform1/DMDefault.yml
 
      ### default location to upload file on WebServer - local, replicate, support
      ###   local - file uploaded is kept on that web server only, not replicated to other WebServer, 
@@ -327,12 +369,9 @@ Environment:
      ###   support - file uploaded is kept on that web server in a folder that can be accessed by support team
      ###       to download the file to user's host and process that file further 
      ###       support folder on webserver allows browsing capability and allows file download
-     UploadLocation: local
+     SCMUploadLocation: local
+
      ### 
      ### do not verify web server certificate, defaults to True
      VerifyCertificate: False
-     ### web server to pull the latest code & config from and to post the artifacts collected
-     ###  can use single name if load balancer based FQDN is availabe
-     KITSHostName1: https://192.168.1.169:443/
-     KITSHostName2: https://192.168.1.169:443/
 
