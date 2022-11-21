@@ -1,0 +1,377 @@
+# Environment audit spec 
+# Author: havembha@gmail.com,  2022/04/23
+# Format
+###
+### you may use https://regex101.com/ to  test the regular expression definitions on log lines to parse
+###
+---
+LogFilePath: ./
+### platform name or application name covering all components covered by this environment spec
+### have one environment spec file per platform or application to manage many platforms/ application of an organization
+Platform:
+  Name: Platform1
+
+### Parameter name needs to be unique across all sections - OS, Component, and Environment
+### Parameters can be defined under OS, Component or Environment.
+### Parameter value can be redefined in other sections to override previous value.
+### Parameters under OS will be read first, under Component next and under Environment last.
+### While reading parameters under Component, if a value is present under specific component, 
+###   it will be stored as latest desired value, overriding the value previously defined under OS
+### While reading parameters under Environment, if a value is present under specific environment, 
+###   it will be stored as latest desired value, overriding the value previously defined under OS or Component
+### In all cases (OS, Component, Environment sections), value under 'All' will be stored 
+###   if the value is not yet stored before in any prior section.
+OS:
+  SunOS:
+    CommandCurl: /usr/bin/curl
+    CommandWget: ../exe/wget
+    CommandConnCheck: ../exe/telnet
+    CommandToGetOSType: uname
+    CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
+    ### use below command to change the file permission so that scripts can be executed after getting those from
+    ###  WebServer using wget (wget does not retain original file permission on WebServer)
+    CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
+    ### add current working directory to path
+    LD_LIBRARY_PATH: ./
+    ### add current working directory to path
+    PATH: ./
+
+  Linux:
+    CommandConnCheck: nc
+    ### use below command to change the file permission so that scripts can be executed after getting those from
+    ###  WebServer using wget (wget does not retain original file permission on WebServer)
+    CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
+  Windows:
+    ### power shell command to check connectivity 
+    ### C:\Program Files\PowerShell\7\pwsh
+    CommandConnCheck: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection'
+    ### use below command to change the file permission so that scripts can be executed after getting those from
+    ###  WebServer using wget (wget does not retain original file permission on WebServer)
+    ### ICACLS <fileName> /grant "users:(RWX)" /c
+    CommandChmod: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command ICACLS'
+    ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
+    CommandRsync: ''
+    ### wget command with option to ignore cert check
+    CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
+    ### root path on target host where the contents of Common and Custom files will be copied
+    ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+    LocalRespositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
+    LogFilePath: 'C:\Users\${username}\documents\github\jaaduAudit\Logs'
+    ReportsPath: 'C:\Users\${username}\documents\github\jaaduAudit\Reports'
+
+  All:
+    ### default applies to all OS versions
+    CommandCurl: curl
+    ### rsync command to get artifacts from SCM to local host if rsync is to be used
+    CommandRsync: 'rsync --exclude=".*.swp" --exclude="*/"  -avrL --progress --ignore-errors -e "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTime=10"'
+    ### wget command used to get artifacts from SCM to local host
+    CommandWget: wget
+    ### files to copy from current directory to JAAudit.PrevVersion before getting latest files from SCM
+    ###   update this list to find delta or see the changes in newer files downloaded
+    FilesToCompareAfterSync: '*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd'
+
+Component:
+  ### using regular expression syntax, specify how to find component name of the application of platform
+  ###  so that component specific variable values can be derived run time
+  ### AppConfig naming convention - <SubsystemName><repositoryName><ComponentName>.yml[.<AppVersion>] where
+  ###   <SubsystemName> - App for main application, DB for Database configurations, OS for OS configurations
+  ###   <repositoryName>  - keep this same as platform name defined before for this environment
+  ###   <ComponentName> - abbreviated component name
+  ###   [.<AppVersion>] - this application version will be appended run time to derive the config file to be used
+  ###           based on current application release installed on that host.
+  ###        Command specified under CommandToGetAppVersion will be used run time to derive the application version
+  ###        If command is not specified under CommandToGetAppVersion, or version returned is TBD, 
+  ###           AppVersion will not be appended to derive full name.
+  ### Operations specific configuration file has operation name prefixed to above AppConfig file name
+  ### Example:
+  ###    ConnAppPlatform1APP.yml, CertAppPlatform1APP.yml, HealAppPlatform1APP.yml, HealthAppPlatform1APP.yml 
+  ###    ^^^^                     ^^^^                     ^^^^^                    ^^^^^^
+  ###    LogStatsAppPlatform1APP.yml, OSStatsAppPlatform1APP.yml, StatsAppPlatform1APP.yml
+  ###    ^^^^^^^^                     ^^^^^^^                     ^^^^^
+  ###    TestAppPlatform1APP.yml, TaskAppPlatform1APP.yml
+  ###    ^^^^                     ^^^^
+  APPWin:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppAppsWindowsAPP.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (LAPTOP-QOCNVF0T)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsWindows/DMAPP.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsWindows/
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  APPLinux:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppAppsLinuxAPP.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (...)(d|t|u|p)(app)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsLinux/DMAPP.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsLinux/
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  CS:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppAppsLinuxCS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (...)(d|t|u|p)(cs)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsLinux/DMCS.yml
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  DB:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppPlatform1DB.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
+    ### if the current hostname match to below spec, it is considered of component type DB
+    HostName: (...)(d|t|u|p)(db)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMDB.yml
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  FS:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppPlatform1FS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type FS
+    HostName: (...)(d|t|u|p)(fs)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMFS.yml
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  MGT:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppPlatform1MGT.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type MGT
+    HostName: (...)(d|t|u|p)(mgt)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMMGT.yml
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  WS:
+    ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
+    ###  when the file is sent via email or placed in some doc respository without any platform/application association
+    AppConfig: AppPlatform1WS.yml
+    ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
+    CommandToGetAppVersion: echo TBD
+    ### if the current hostname match to below spec, it is considered of component type WS
+    HostName: (...)(d|t|u|p)(ws)
+    ### datamask for this component
+    SCMDataMaskSpec: AppsPlatform1/DMWS.yml
+    ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
+    ###   this component has component specific path on SCM host where artifacts are maintained
+    SCMRepositoryCustom: AppsPlatform1/WS/
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+Environment:
+   Dev:
+     # specify hostname in regular expression 
+     HostName: ((...)(d)(...)([0-9][0-9]))|(LAPTOP-QOCNVF0T)
+     OperationSync: 0.5
+     SCMPortRsync: 22
+     SCMPortHTTPS: 443
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+   Test:
+     ### keep  logs and result files for 7 days 
+     FileRetencyDurationInDays: 7
+     HostName: (...)(t)(...)([0-9][0-9])
+     OperationSync: 0.5
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+   UAT:
+     HostName: (...)(u)(...)([0-9][0-9])
+     ### will use the OperationSync value under ALL, thus, not specifying a value for UAT environment separately
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+   Prod1:
+     ### keep  logs and result files for 14 days 
+     FileRetencyDurationInDays: 14
+     HostName: (...)(p1)(...)([0-9][0-9])
+     OperationSync: 0
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+   Prod2:
+     ### keep  logs and result files for 14 days 
+     FileRetencyDurationInDays: 14
+     HostName: (...)(p2)(...)([0-9][0-9])
+     OperationSync: 0
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+     
+   ## Keep definition for 'All' environment at the end.
+   ##  this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+   ##  assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+   ##  and that variable is defined under 'All', value under 'All' will be picked up
+   ##  if variable is already defined under environment before, value under 'All' will be ignored.
+   All:
+     ### debug level 0, no debug, 1 to 4, 4 being max details
+     DebugLevel: 3
+     ### delta time for stats operation in min, process log lines with timestamp within below min from current time
+     DeltaTimeForStatsInMin: 10
+
+     ### diff options while comparing text files, if application is sensitive about space, DO NOT ignore space
+     ###  -a - do text difference
+     ###  -w - ignore all while space
+     ###  -b - ignore amount of white space
+     ###  -E - ignore tab
+     ### resulting diff command with this option
+     ###   diff diffOptions sourceFile referenceFile
+     DiffOptions: -w
+     ### disable cert warning while doing curl or wget with SCMHostName
+     DisableWarnings: True
+     ### by default, display cert due in message within 30 days of cert expiry when cert operation is run
+     DueInDaysForCert: 30
+     ### by default, display license due in message within 30 days of cert expiry when license operation is run
+     DueInDaysForLicence: 30
+
+     ### heal operation related definitions
+     ### healInterval in seconds
+     ###    take heal action within this interval with max action count not exceeding the HealCount specified for that command
+     ###    for example, if healInterval is 7200 or 2 hours, HealCount = 3, process will be restarted 3 times
+     ###    within 2 hours. 
+     HealIntervalInSec: 7200
+     ### HealAfterTime in seconds
+     ###    heal action will be performed after this time is elapsed from detecting the condition first
+     ###    this is to ensure normal stop/install/start operations does not trigger heal action
+     ###    if a process is down for long time and HealStatusFileName is not defined/ not present, 
+     ###      heal action will kick in
+     HealAfterTimeInSec: 14400
+     ### HealStatusFileName
+     ###    If this file is present, heal action depends on value within this file.
+     ###    Stopped - no action taken, system is under maintenance
+     ###    Running - heal enabled, HealAfterTime is not used
+     HealStatusFileName: ../bin/AppStatus.txt
+
+     ### local folders on target host where common and custom respositories from SCM are synced to.
+     ###  these are sub-directories under JAAudit install path.
+     ### If all code is kept on a single folder on SCM, put '' for below definitions so that
+     ###   artifacts are downloaded from SCM to LocalRespositoryHome (no sub-directories maintained) to
+     ###   separate common code/scripts and customization files per component or per OS type
+     LocalRepositoryCommon: Common
+     LocalRepositoryCustom: Custom
+     ### suggest to define this per OS type under OS section. If all components are similar for a given platform,
+     ###   can define the common path below.
+     ### root path on target host where the contents of Common and Custom files will be copied
+     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+     LocalRespositoryHome: ''
+
+     ### max wait time in seconds for individual task to complete
+     MaxWaitTime: 600
+
+     ### Define default operations intervals in hours
+     ### 168 hours = 7 days
+     ### 0.5 hours - use this value to run the operation every hour when the JaaduAudit is set to run every hour from crontab
+     ###     specifying less than one hour so that any deviation in actual crontab execution will not impact.
+     ### run certificate check
+     OperationCert: 168
+     ### run connectivity check
+     OperationConn: 168
+     ### while running connectivity check, whether to check OS connectivity 
+     OperationConnOS: 168
+     ### Compare application environment to default backup directory
+     OperationCompare: 168
+     ### perform heal operation, 0 is to disable by default
+     OperationHeal: 0
+     ### collect health
+     OperationHealth: 0.5
+     ### collect software inventory
+     OperationInventory: 168
+     ### collect license info
+     OperationLicense: 168
+     ### collect Application performance stats
+     OperationPerfStatsApp: 0.5
+     ### collect OS performance stats
+     OperationPerfStatsOS: 0.5
+     ### take backup of current application environment and OS environment
+     OperationSave: 168
+     ### parse logs, collect pass, fail, event count
+     OperationStats: 0.5
+     ### continuous deployment, get code & config from web server based on specified duration in number of hours
+     ### sync is disabled by default
+     OperationSync: 0
+     ### run tasks, disabled by default
+     OperationTask: 0
+     ### run self-test
+     OperationTest: 0.5
+     ### upload collected data to WebServer
+     OperationUpload: 0.5
+
+     ###  this is to stagger the execution across many hosts at random to avoid any overload condition
+     ###  value in seconds, defaults to 600
+     RandomizationWindowInSec: 1
+
+     ### port for rsync, and HTTPS (for curl, wget operations) on SCM (content management system)
+     SCMPortRsync: 22
+     SCMPortHTTPS: 443
+
+     ### Common code & config for all applications / platforms. 
+     ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
+     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCommon
+     SCMRepositoryCommon: AppsCommon/
+     ### Custom code & config repository for current application / platform or component of a platform
+     ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
+     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom
+     SCMRepositoryCustom: AppsPlatform1/
+
+     ### rsync user name on SCM host to retrieve the artifacts from SCM to local host
+     ### Comment this line or set to None if rsync is not used
+     SCMRsyncUserName: havembha
+
+     ### web server to pull the latest code & config from and to post the artifacts collected
+     ###  can use single name if load balancer based FQDN is availabe
+     SCMHostName1: 192.168.1.169
+     SCMHostName2: 192.168.1.169
+
+     ### datamask spec at application level, to be used on SCM while uploading a file
+     SCMDataMaskSpec: AppsPlatform1/DMDefault.yml
+
+     ### default location to upload file on WebServer - local, replicate, support
+     ###   local - file uploaded is kept on that web server only, not replicated to other WebServer, 
+     ###       typically used to keep files of prod and non-prod seperate
+     ###   replicate - replicate files to other WebServer or to WebServer in other environment like prod to non-prod
+     ###         use replicate to place prod environment files to replicate areas so that users with non-prod access
+     ###        can also access the prod environment files 
+     ###   support - file uploaded is kept on that web server in a folder that can be accessed by support team
+     ###       to download the file to user's host and process that file further 
+     ###       support folder on webserver allows browsing capability and allows file download
+     SCMUploadLocation: local
+
+     ### 
+     ### do not verify web server certificate, defaults to True
+     VerifyCertificate: False
+
