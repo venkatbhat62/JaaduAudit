@@ -20,9 +20,70 @@ import subprocess
 import signal
 from collections import defaultdict
 import JAGlobalLib
+import JAOperationCompare
 
-def GetAllFilesFromSCM(
-    wgetCommand:str,
+def GetAllFilesFromSCMUsingRsync(
+    rsyncCommand:str, 
+    OSType:str, OSName:str, OSVersion:str, debugLevel:int):
+
+    """
+    This function uses rsync to fetch files from SCM to local host.
+    Using the rsync log file, it makes a list of updated files and returns it
+
+    Parameters passed
+        rsyncCommand - entire rsync command except the log file option. 
+
+    Returned Values
+        resturnStatus  - True if success, False on failure to fetch a file
+        fileNames - names of the files fetched
+        errorMsg - error message up on error
+
+    """
+    returnStatus= True
+    fileNames = []
+    errorMsg = ''
+
+    import tempfile
+
+    rsyncOutputFileName ="JAAudit.rsync.{0}".format( os.getpid() )
+
+    ### compute full wget command with option to write the contents to output file
+    if OSType == "Windows":
+        ### TBD this is not tested yet
+        rsyncOutputFileOption = "-OutFile"
+    else:
+        ### Redhat 5 and above support --log-file  option
+        rsyncOutputFileOption = "--log-file"
+
+    tempRsyncCommand = "{0} {1} {2}".format(
+            rsyncCommand, rsyncOutputFileOption, rsyncOutputFileName )
+
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+        tempRsyncCommand, debugLevel)
+
+    if returnResult == False:
+        returnStatus = False
+        errorMsg = "ERROR GetAllFilesFromSCMUsingRsync() unable to get file list from SCM, rsync command:{0}, return response:{1}, error:{2}".format(
+            tempRsyncCommand, returnOutput, errorMsg    )
+        print(errorMsg)
+        return returnStatus, fileNames, errorMsg
+    
+    ### process index output to extract file names
+    with open( rsyncOutputFileName, "r") as file:
+        headerLines = True
+        while True:
+            errorMsg = ''
+            line = file.readline()
+            if not line:
+                break
+
+        file.close()
+        os.remove(rsyncOutputFileName)
+
+    return returnStatus, fileNames, errorMsg
+
+def GetAllFilesFromSCMUsingWget(
+    wgetCommand:str, 
     OSType:str, OSName:str, OSVersion:str, debugLevel:int):
     """
     This function first executes given wget command to get index dump from SCM (source code management) server
@@ -47,14 +108,19 @@ def GetAllFilesFromSCM(
 
     wgetOutputFileName ="JAAudit.wget.{0}".format( os.getpid() )
 
-    
-    ### iwr options used 
-    ###   | Select-Object -ExpandProperty Content | Out-File JAAudit.wget.
+    ### compute full wget command with option to write the contents to output file
+    if OSType == "Windows":
+        ### iwr options used 
+        wgetOutputFileOption = "-OutFile"
+    else:
+        ### all unix/linux flavors support -o <outputFile> option
+        wgetOutputFileOption = "-o"
 
-    tempWgetCommand = "{0} -OutFile {1}".format(
-            wgetCommand, wgetOutputFileName )
+    tempWgetCommand = "{0} {1} {2}".format(
+            wgetCommand, wgetOutputFileOption, wgetOutputFileName )
+
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-        tempWgetCommand, OSType, OSName, OSVersion, debugLevel)
+        tempWgetCommand, debugLevel)
 
     if returnResult == False:
         returnStatus = False
@@ -80,7 +146,7 @@ def GetAllFilesFromSCM(
                 ### each line has separate file name
                 ### <tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="JAAudit.py">JAAudit.py</a></td><td align="right">2022-11-19 15:23  </td><td align="right"> 34K</td><td>&nbsp;</td></tr>
                 ###                                                                            ^^^^^^^^^^ <-- name                              ^^^^^^^^^^^^^^^^ <-- time stamp                          
-                ###     <------------- 0 -------------------------------------------><------ 1 ---------------------------------><---------------- 2 -------------------->
+                ###     <------------- 0 -------------------------------------------><------ 1 ---------------------------------><---------------- 2 --------------------><------------------ 3 --->
                 fileInfo = line.split("</td><td")
                 if len(fileInfo) < 2 :
                     continue
@@ -113,10 +179,11 @@ def GetAllFilesFromSCM(
 
                         ### fetch the file if needed
                         if fetchSCMFile == True:
-                            tempWgetCommand = "{0}{1} -OutFile {2}".format(
-                                    wgetCommand, fileNameToFetch, fileNameToFetch )
+                            tempWgetCommand = "{0}{1} {2} {3}".format(
+                                    wgetCommand, fileNameToFetch, wgetOutputFileOption, fileNameToFetch )
+
                             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                                tempWgetCommand, OSType, OSName, OSVersion, debugLevel)
+                                tempWgetCommand, debugLevel)
 
                             if returnResult == False:
                                 returnStatus = False
@@ -148,6 +215,8 @@ def JAOperationSync(
 
     returnStatus = True
 
+    downloadedFileInfo = {}
+
     ### If not interactive mode, check whether it is time to run sync based on last sync run time.
     if interactiveMode == False:
         returnStatus = JAGlobalLib.JAIsItTimeToRunOperation(
@@ -162,44 +231,44 @@ def JAOperationSync(
         ### run sync
 
         ### prepare save directories for Common, Custom files
-        if 'LocalRespositoryHome' in defaultParameters:
-            localRespositoryHome = defaultParameters['LocalRespositoryHome']
+        if 'LocalRepositoryHome' in defaultParameters:
+            localRepositoryHome = defaultParameters['LocalRepositoryHome']
             try:
-                localRespositoryHome = os.path.expandvars(localRespositoryHome)
-                os.chdir(localRespositoryHome)
+                localRepositoryHome = os.path.expandvars(localRepositoryHome)
+                os.chdir(localRepositoryHome)
             except OSError as err:
                 errorMessage = ("ERROR JAOperationSync() Not able to change directory to {0}, OS Error:{1}".format(
-                     localRespositoryHome, err   ))
+                     localRepositoryHome, err   ))
                 print(errorMessage)
                 return False, errorMessage 
         else:
-            localRespositoryHome = os.getcwd()
+            localRepositoryHome = os.getcwd()
 
-        if 'LocalRespositoryCommon' in defaultParameters:
-            localRespositoryCommon = defaultParameters['LocalRespositoryCommon']
-            if os.path.exists(localRespositoryCommon) == False:
+        if 'LocalRepositoryCommon' in defaultParameters:
+            localRepositoryCommon = defaultParameters['LocalRepositoryCommon']
+            if os.path.exists(localRepositoryCommon) == False:
                 try:
-                    os.mkdir(localRespositoryCommon)
+                    os.mkdir(localRepositoryCommon)
                 except OSError as err:
                     errorMessage = ("ERROR JAOperationSync() Not able to create directory to {0}, OS Error:{1}".format(
-                        localRespositoryCommon, err   ))
+                        localRepositoryCommon, err   ))
                     print(errorMessage)
                     return False, errorMessage 
         else:
-            localRespositoryCommon = ''
+            localRepositoryCommon = ''
 
-        if 'LocalRespositoryCustom' in defaultParameters:
-            localRespositoryCustom = defaultParameters['LocalRespositoryCustom']
-            if os.path.exists(localRespositoryCustom) == False:
+        if 'LocalRepositoryCustom' in defaultParameters:
+            localRepositoryCustom = defaultParameters['LocalRepositoryCustom']
+            if os.path.exists(localRepositoryCustom) == False:
                 try:
-                    os.mkdir(localRespositoryCustom)
+                    os.mkdir(localRepositoryCustom)
                 except OSError as err:
                     errorMessage = ("ERROR JAOperationSync() Not able to create directory to {0}, OS Error:{1}".format(
-                        localRespositoryCustom, err   ))
+                        localRepositoryCustom, err   ))
                     print(errorMessage)
                     return False, errorMessage 
         else:
-            localRespositoryCustom = ''
+            localRepositoryCustom = ''
 
         ### make a list of files to copy to save directory 
         if 'FilesToCompareAfterSync' in defaultParameters:
@@ -208,51 +277,66 @@ def JAOperationSync(
             ### no custom definition in environment definition, use default list
             filesToCompareAfterSync = "*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd"
 
+        ### create Common and Custom directories if not present yet
+        prevVersionFolder = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCommon)
+        if os.path.exists(prevVersionFolder) == False:
+            os.mkdir(prevVersionFolder)
+        prevVersionFolder = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCustom)
+        if os.path.exists(prevVersionFolder) == False:
+            os.mkdir(prevVersionFolder)
+            
+
         ### copy code/config contents to Common.PrevVersion, Custom.PrevVersion directories
         ###    so that downloaded contents can be compared to previous contents and display the delta
         if OSType == "Windows":
+            import glob
+            import shutil
+            sourceDirCommon = "{0}/{1}".format(localRepositoryHome, localRepositoryCommon)
+            destinationDirCommon = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCommon)
+            sourceDirCustom = "{0}/{1}".format(localRepositoryHome, localRepositoryCustom)
+            destinationDirCustom = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCustom)
             ### copy files one type at a time
             fileNames = filesToCompareAfterSync.split(' ')
             for fileName in fileNames:
+                globString = r"{0}/{1}".format(sourceDirCommon, fileName)
                 ### copy files from Common to .PrevVersion
-                copyCommand = "cp {0}/{1}/{2} {3}/{4}.PrevVersion".format( 
-                        localRespositoryHome, localRespositoryCommon, fileName,
-                        localRespositoryHome, localRespositoryCommon)
-                JAGlobalLib.JAExecuteCommand(copyCommand, OSType, OSName, OSVersion, debugLevel)
+                for file in glob.glob(globString):
+                    print(file)
+                    shutil.copy(file, destinationDirCommon)
 
-                if localRespositoryCustom != '':
+                if localRepositoryCustom != '':
+                    globString = r"{0}/{1}".format(sourceDirCustom, fileName)
                     ### copy files from Custom to .PrevVersion
-                    copyCommand = "cp {0}/{1}/{2} {3}/{4}.PrevVersion".format( 
-                        localRespositoryHome, localRespositoryCustom, fileName,
-                        localRespositoryHome, localRespositoryCustom)
-                    JAGlobalLib.JAExecuteCommand(copyCommand, OSType, OSName, OSVersion, debugLevel)
+                    for file in glob.glob(globString):
+                        print(file)
+                        shutil.copy(file, destinationDirCustom)
 
         else:    
             ### firt copy contents under Common
             if OSType == "SunOS":
                 copyCommand = "cp -p {0}/{1}/{2} {3}/{4}.PrevVersion 2>/dev/null".format(
-                        localRespositoryHome, localRespositoryCommon,filesToCompareAfterSync, 
-                        localRespositoryHome, localRespositoryCommon)
+                        localRepositoryHome, localRepositoryCommon,filesToCompareAfterSync, 
+                        localRepositoryHome, localRepositoryCommon)
 
             elif OSType == 'Linux':
                 copyCommand = "cp -ua {0}/{1}/{2} {3}/{4}.PrevVersion 2>/dev/null".format(
-                        localRespositoryHome, localRespositoryCommon,filesToCompareAfterSync, 
-                        localRespositoryHome, localRespositoryCommon)
+                        localRepositoryHome, localRepositoryCommon,filesToCompareAfterSync, 
+                        localRepositoryHome, localRepositoryCommon)
                 
-            JAGlobalLib.JAExecuteCommand(copyCommand, OSType, OSName, OSVersion, debugLevel)
+            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel)
 
             ### next copy contents under Custom
             if OSType == "SunOS":
                 copyCommand = "cp -p {0}/{1}/{2} {3}/{4}.PrevVersion 2>/dev/null".format(
-                        localRespositoryHome, localRespositoryCustom,filesToCompareAfterSync, 
-                        localRespositoryHome, localRespositoryCustom)
+                        localRepositoryHome, localRepositoryCustom,filesToCompareAfterSync, 
+                        localRepositoryHome, localRepositoryCustom)
 
             elif OSType == 'Linux':
                 copyCommand = "cp -ua {0}/{1}/{2} {3}/{4}.PrevVersion 2>/dev/null".format(
-                        localRespositoryHome, localRespositoryCustom,filesToCompareAfterSync, 
-                        localRespositoryHome, localRespositoryCustom)
+                        localRepositoryHome, localRepositoryCustom,filesToCompareAfterSync, 
+                        localRepositoryHome, localRepositoryCustom)
                 
-            JAGlobalLib.JAExecuteCommand(copyCommand, OSType, OSName, OSVersion, debugLevel)
+            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel)
 
         if 'CommandRsync' in defaultParameters:
             commandRsync = defaultParameters['CommandRsync']
@@ -270,8 +354,16 @@ def JAOperationSync(
             return False, errorMessage
 
         ### use rsync or wget, derive command to sync common contents, and execute command
-        if localRespositoryCommon != '':
-            os.chdir("{0}/{1}".format(localRespositoryHome,localRespositoryCommon))
+        if localRepositoryCommon != '':
+            if OSType == "Windows":
+                tempDirectory = "{0}\{1}".format(localRepositoryHome,localRepositoryCommon)
+            else:
+                tempDirectory = "{0}/{1}".format(localRepositoryHome,localRepositoryCommon)
+
+            os.chdir(tempDirectory)
+            if debugLevel > 1:
+                errorMsg = "DEBUG-2 JAOperationSync() common directory:{0}, pwd:{1}".format(tempDirectory, os.getcwd())
+                print(errorMsg)
         if commandRsync != '':
             syncCommand = "{0} {1}@{2}:/{3}".format(defaultParameters['CommandRsync'],
                             defaultParameters['SCMRsyncUserName'],
@@ -280,12 +372,10 @@ def JAOperationSync(
                             )
             if debugLevel > 2:
                 print("DEBUG-2 JAOperationSync() syncCommand:{0}".format(syncCommand))
-            
-            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+
+            ### can't get all files in one go, have to get those one by one
+            returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingRsync(
                 syncCommand, OSType, OSName, OSVersion, debugLevel)
-            if returnResult == False:
-                print("ERROR Error executing syncCommand:{0}, command output: {1}, errorMsg:{2}".format(
-                    returnResult, returnOutput, errorMsg  ))
 
         elif commandWget != '':
             syncCommand = "{0} https://{1}:{2}/{3}/".format( 
@@ -298,19 +388,35 @@ def JAOperationSync(
             if debugLevel > 2:
                 print("DEBUG-2 JAOperationSync() syncCommand:{0}".format(syncCommand))
 
-            if OSType == "Windows":
-                ### can't get all files in one go, have to get those one by one
-                returnResult, returnOutput, errorMsg = GetAllFilesFromSCM(
-                    syncCommand, OSType, OSName, OSVersion, debugLevel)
-            else:
-                returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(syncCommand, OSType, OSName, OSVersion, debugLevel)
-                if returnResult == False:
-                    print("ERROR Error executing syncCommand:{0}, command output: {1}, errorMsg:{2}".format(
-                        returnResult, returnOutput, errorMsg  ))
+            ### can't get all files in one go, have to get those one by one
+            returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
+                syncCommand, OSType, OSName, OSVersion, debugLevel)
+
+        if returnResult == True:
+            ### If file is NEW, print that file name as NEW file.
+            ### If existing file, print differences between PrevVersion and current version of the file
+            for fileName in fileNames:
+                currentFileName = '{0}/{1}/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
+                previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
+                if os.path.exists(previousFileName ):
+                    JAOperationCompare.JAOperationCompareFiles( 
+                            currentFileName, previousFileName, 
+                            defaultParameters['BinaryFileTypes'],
+                            interactiveMode, debugLevel)
+                else:
+                    print("INFO  downloaded new file from SCM:{0}".format( currentFileName))
 
         ### use rsync or wget, derive command to sync custom contents, and execute command
-        if localRespositoryCommon != '':
-            os.chdir("{0}/{1}".format(localRespositoryHome,localRespositoryCustom))
+        if localRepositoryCustom != '':
+            if OSType == "Windows":
+                tempDirectory = "{0}\{1}".format(localRepositoryHome,localRepositoryCustom)
+            else:
+                tempDirectory = "{0}/{1}".format(localRepositoryHome,localRepositoryCustom)
+
+            os.chdir(tempDirectory)
+            if debugLevel > 1:
+                errorMsg = "DEBUG-2 JAOperationSync() custom directory:{0}, pwd:{1}".format(tempDirectory, os.getcwd())
+                print(errorMsg)
 
         if commandRsync != '':
             syncCommand = "{0} {1}@{2}:/{3}".format(defaultParameters['CommandRsync'],
@@ -321,11 +427,10 @@ def JAOperationSync(
             if debugLevel > 2:
                 print("DEBUG-2 JAOperationSync() syncCommand:{0}".format(syncCommand))
             
-            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            ### can't get all files in one go, have to get those one by one
+            returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingRsync(
                 syncCommand, OSType, OSName, OSVersion, debugLevel)
-            if returnResult == False:
-                print("ERROR Error executing syncCommand:{0}, command output: {1}, errorMsg:{2}".format(
-                    returnResult, returnOutput, errorMsg  ))
+
         elif commandWget != '':
             syncCommand = "{0} https://{1}:{2}/{3}/".format( 
                     defaultParameters['CommandWget'],
@@ -337,16 +442,24 @@ def JAOperationSync(
             if debugLevel > 2:
                 print("DEBUG-2 JAOperationSync() syncCommand:{0}".format(syncCommand))
             
-            if OSType == "Windows":
-                ### can't get all files in one go, have to get those one by one
-                returnResult, fileNames, errorMsg = GetAllFilesFromSCM(
-                    syncCommand, OSType, OSName, OSVersion, debugLevel )
-            else:
-                returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                    syncCommand, OSType, OSName, OSVersion, debugLevel)
-                if returnResult == False:
-                    print("ERROR Error executing syncCommand:{0}, command output: {1}, errorMsg:{2}".format(
-                        returnResult, returnOutput, errorMsg ))
+            ### can't get all files in one go, have to get those one by one
+            returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
+                syncCommand, OSType, OSName, OSVersion, debugLevel )
+
+        if returnResult == True:
+            ### If file is NEW, print that file name as NEW file.
+            ### If existing file, print differences between PrevVersion and current version of the file
+            for fileName in fileNames:
+                currentFileName = '{0}{/1}/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
+                previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
+                if os.path.exists(previousFileName ):
+                    JAOperationCompare.JAOperationCompareFiles( 
+                            currentFileName, previousFileName, 
+                            defaultParameters['BinaryFileTypes'],
+                            interactiveMode, debugLevel)
+                else:
+                    print("INFO  downloaded new file from SCM:{0}", currentFileName)
+
 
     if errorMsg != '':
         print("ERROR JAOperationSync() Sync failed with error:{0}".format(errorMsg))

@@ -44,35 +44,39 @@ def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParam
                 defaultParameters[myKey] = myValue
     return True
 
-"""
-This function reads environment config file
-
-# Parameter name needs to be unique across all sections - OS, Component, and Environment
-# Parameters can be defined under OS, Component or Environment.
-# Parameter value can be redefined in other sections to override previous value.
-# Parameters under OS will be read first, under Component next and under Environment last.
-# While reading parameters under Component, if a value is present under specific component, 
-#   it will be stored as latest desired value, overriding the value previously defined under OS
-# While reading parameters under Environment, if a value is present under specific environment, 
-#   it will be stored as latest desired value, overriding the value previously defined under OS or Component
-# In all cases (OS, Component, Environment sections), value under 'All' will be stored 
-#   if the value is not yet stored before in any prior section.
-
-Parameters passed: 
-    config file name - yml file name containing parameter spec
-    defaultParameters dictionary to update with values read
-    yamlModulePresent = True or False
-    debugLevel - 0 to 3, 3 being max
-    auditLogFileName - log file to log messages
-    thisHostName - current host name, used to match the hostname spec
-    OSType - current host's OS type
-
-Returned value
-    True if success, False if file could not be read
-
-"""
 def JAReadEnvironmentConfig( 
     fileName, defaultParameters, yamlModulePresent, debugLevel, auditLogFileName, thisHostName, OSType):
+    """
+    This function reads environment config file
+    If JAAudit.profile exists, the environment file location is read from that file.
+    If JAAudit.profile does not exist, and environment file is read from ./AppsCustom direcotry if present
+
+    # Parameter name needs to be unique across all sections - OS, Component, and Environment
+    # Parameters can be defined under OS, Component or Environment.
+    # Parameter value can be redefined in other sections to override previous value.
+    # Parameters under OS will be read first, under Component next and under Environment last.
+    # While reading parameters under Component, if a value is present under specific component, 
+    #   it will be stored as latest desired value, overriding the value previously defined under OS
+    # While reading parameters under Environment, if a value is present under specific environment, 
+    #   it will be stored as latest desired value, overriding the value previously defined under OS or Component
+    # In all cases (OS, Component, Environment sections), value under 'All' will be stored 
+    #   if the value is not yet stored before in any prior section.
+
+    Before exiting, store the current location of environment file in JAAudit.profile
+
+    Parameters passed: 
+        config file name - yml file name containing parameter spec
+        defaultParameters dictionary to update with values read
+        yamlModulePresent = True or False
+        debugLevel - 0 to 3, 3 being max
+        auditLogFileName - log file to log messages
+        thisHostName - current host name, used to match the hostname spec
+        OSType - current host's OS type
+
+    Returned value
+        True if success, False if file could not be read
+
+    """
 
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to integer and store
     #  in defaultParameters{}
@@ -114,13 +118,13 @@ def JAReadEnvironmentConfig(
                         fileName = tempFileName     
                     break
             file.close()
-    elif os.path.exists('./Custom/{0}'.format(fileName)):
-        ### use the file in ./Custom/ if present
-        fileName = './Custom/{0}'.format(fileName)
+    elif os.path.exists('./AppsCustom/{0}'.format(fileName)):
+        ### use the file in ./AppsCustom/ if present
+        fileName = './AppsCustom/{0}'.format(fileName)
 
-    elif os.path.exists(fileName) == None:
-        print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./Custom directory.\n\
-            Get the file from SCM, place it in 'LocalRepositoryCustom' directory or default locatoin ./Custom directory\n".format(fileName))
+    elif os.path.exists(fileName) == False:
+        print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./AppsCustom directory.\n\
+            Get the file from SCM, place it in directory as specified for environment 'LocalRepositoryCustom' or default location ./AppsCustom directory\n".format(fileName))
         return False
 
     # use limited yaml reader when yaml is not available
@@ -243,8 +247,8 @@ def JAReadEnvironmentConfig(
         defaultParameters['MaxWaitTime'] = 600
 
     ### exand any environment variables used in path definitions
-    if 'LocalRespositoryHome' in defaultParameters:
-        defaultParameters['LocalRespositoryHome'] = os.path.expandvars(defaultParameters['LocalRespositoryHome'])
+    if 'LocalRepositoryHome' in defaultParameters:
+        defaultParameters['LocalRepositoryHome'] = os.path.expandvars(defaultParameters['LocalRepositoryHome'])
     if 'LogFilePath' in defaultParameters:
         defaultParameters['LogFilePath'] = os.path.expandvars(defaultParameters['LogFilePath'])
     if 'ReportsPath' in defaultParameters:
@@ -254,8 +258,13 @@ def JAReadEnvironmentConfig(
     if 'LogFilePath' in defaultParameters:
         logFilePath = defaultParameters['LogFilePath']
     else:
-        if 'LocalRespositoryHome' in defaultParameters:
-            logFilePath = defaultParameters['LocalRespositoryHome'] + "/Logs"
+        if 'LocalRepositoryHome' in defaultParameters:
+            logFilePath = defaultParameters['LocalRepositoryHome'] + "/Logs"
+
+    ### if logFilePath does not end with '/', add it
+    if re.match(r'/$', logFilePath) == None:
+        logFilePath = '{0}/'.format(logFilePath)
+    defaultParameters['LogFilePath'] = logFilePath
 
     if os.path.exists(logFilePath) == False:
         try:
@@ -270,8 +279,8 @@ def JAReadEnvironmentConfig(
     if 'ReportsPath' in defaultParameters:
         reportsFilePath = defaultParameters['ReportsPath']
     else:
-        if 'LocalRespositoryHome' in defaultParameters:
-            reportsFilePath = defaultParameters['LocalRespositoryHome'] + "/Reports"
+        if 'LocalRepositoryHome' in defaultParameters:
+            reportsFilePath = defaultParameters['LocalRepositoryHome'] + "/Reports"
         else:
             reportsFilePath = ''
     if os.path.exists(reportsFilePath) == False:

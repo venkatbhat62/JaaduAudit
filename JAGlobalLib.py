@@ -602,7 +602,7 @@ def JAGetUptime(OSType:str):
          uptime_seconds = 0
     return uptime_seconds
 
-def JAExecuteCommand(command:str, OSType:str, OSName:str, OSVersion:str, debugLevel:int):
+def JAExecuteCommand(command:str, debugLevel:int):
     """
     Execute given command
 
@@ -755,7 +755,7 @@ def JACheckConnectivity(
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
     elif OSType == 'SunOS':
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
-    returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, OSType, OSName, OSVersion, debugLevel)
+    returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel)
     
     if OSType == 'Windows':
         ### translate returnOutput to Linux output format

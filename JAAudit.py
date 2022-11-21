@@ -543,9 +543,9 @@ returnResult = "_JAAudit_PASS_" # change this to other errors when error is enco
 
 ### determin current session type using the term environment value, sleep for random duration if non-interactive 
 if os.getenv('TERM') == '' or os.getenv('TERM') == 'dumb':
-    interactiveMode = True
-else:
     interactiveMode = False
+else:
+    interactiveMode = True
     # sleep for random time using RandomizationWindow spec
     if 'RandomizationWindowInSec' in defaultParameters:
         randomizationWindow = defaultParameters['RandomizationWindowInSec']
@@ -596,7 +596,7 @@ else:
     if debugLevel > 0:
         print("DEBUG-1 JAAudit() Executing command:{0} to purge files".format(command))
 
-    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, OSType, OSName, OSVersion, debugLevel)
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
             print("ERROR JAAudit() Error deleting old log files {0} {1}".format(returnOutput, errorMsg))
@@ -607,7 +607,7 @@ else:
 if 'CommandToGetAppVersion' in defaultParameters:
     commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-        commandToGetAppVersion, OSType, OSName, OSVersion, debugLevel)
+        commandToGetAppVersion, debugLevel)
     if returnResult == True:
         appVersion = returnOutput.rstrip("\n")
         appVersion = appVersion.lstrip()

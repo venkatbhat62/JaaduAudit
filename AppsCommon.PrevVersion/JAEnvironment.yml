@@ -24,14 +24,13 @@ Platform:
 OS:
   SunOS:
     CommandCurl: /usr/bin/curl
+    CommandWget: ../exe/wget
     CommandConnCheck: ../exe/telnet
     CommandToGetOSType: uname
     CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
-    ### wget command to get file from SCM
-    CommandWget: ../exe/wget --read-timeout=10 -t 2 --no-check-certificate
     ### add current working directory to path
     LD_LIBRARY_PATH: ./
     ### add current working directory to path
@@ -42,13 +41,6 @@ OS:
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
-    ### wget command to get file from SCM
-    ### for RHEL 4 or 5
-    # CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k
-    ###  for RHEL 6 or above
-    #CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off
-    ###  on RHEL 7 or above
-    CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off --preserve-permissions
   Windows:
     ### power shell command to check connectivity 
     ### C:\Program Files\PowerShell\7\pwsh
@@ -63,7 +55,7 @@ OS:
     CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
-    LocalRepositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
+    LocalRespositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
     LogFilePath: 'C:\Users\${username}\documents\github\jaaduAudit\Logs'
     ReportsPath: 'C:\Users\${username}\documents\github\jaaduAudit\Reports'
 
@@ -247,8 +239,6 @@ Environment:
    ##  and that variable is defined under 'All', value under 'All' will be picked up
    ##  if variable is already defined under environment before, value under 'All' will be ignored.
    All:
-     ### binary file type to check the diff by using MD5 checksum only
-     BinaryFileTypes: (\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)
      ### debug level 0, no debug, 1 to 4, 4 being max details
      DebugLevel: 3
      ### delta time for stats operation in min, process log lines with timestamp within below min from current time
@@ -290,15 +280,15 @@ Environment:
      ### local folders on target host where common and custom respositories from SCM are synced to.
      ###  these are sub-directories under JAAudit install path.
      ### If all code is kept on a single folder on SCM, put '' for below definitions so that
-     ###   artifacts are downloaded from SCM to LocalRepositoryHome (no sub-directories maintained) to
+     ###   artifacts are downloaded from SCM to LocalRespositoryHome (no sub-directories maintained) to
      ###   separate common code/scripts and customization files per component or per OS type
-     LocalRepositoryCommon: AppsCommon
-     LocalRepositoryCustom: AppsCustom
+     LocalRepositoryCommon: Common
+     LocalRepositoryCustom: Custom
      ### suggest to define this per OS type under OS section. If all components are similar for a given platform,
      ###   can define the common path below.
      ### root path on target host where the contents of Common and Custom files will be copied
      ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
-     LocalRepositoryHome: ''
+     LocalRespositoryHome: ''
 
      ### max wait time in seconds for individual task to complete
      MaxWaitTime: 600
