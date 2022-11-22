@@ -77,13 +77,26 @@ def GetAllFilesFromSCMUsingRsync(
             if not line:
                 break
 
+            ### refreshed file and new file signature in rsync log line
+            if re.search(r'>f.st|>f++++', line):
+                ### <date> <time> [size] >f.st..... <fileName>
+                ### <date> <time> [size] >f++++++++ <fileName>
+                ###   0       1     2      3           4
+                logLineParts = line.split()
+                if len(logLineParts) > 4:
+                    ### TBD if file name has extra characters on either side, strip those
+                    fileNames.append(logLineParts[4])
+
         file.close()
         os.remove(rsyncOutputFileName)
+
+    if debugLevel > 0:
+        print("DEBUG-1 GetAllFilesFromSCMUsingRsync() files refreshed {0}".format(fileNames))
 
     return returnStatus, fileNames, errorMsg
 
 def GetAllFilesFromSCMUsingWget(
-    wgetCommand:str, 
+    wgetCommand:str, filesToExcludeInWget:str, filesWithExecPermission:str, fileExecPermission:str,
     OSType:str, OSName:str, OSVersion:str, debugLevel:int):
     """
     This function first executes given wget command to get index dump from SCM (source code management) server
@@ -124,7 +137,7 @@ def GetAllFilesFromSCMUsingWget(
 
     if returnResult == False:
         returnStatus = False
-        errorMsg = "ERROR GetAllFilesFromSCM() unable to get file list from SCM, wget command:{0}, return response:{1}, error:{2}".format(
+        errorMsg = "ERROR GetAllFilesFromSCMUsingWget() unable to get file list from SCM, wget command:{0}, return response:{1}, error:{2}".format(
             tempWgetCommand, returnOutput, errorMsg    )
         print(errorMsg)
         return returnStatus, fileNames, errorMsg
@@ -157,6 +170,10 @@ def GetAllFilesFromSCMUsingWget(
                 if fileNameFieldParts != None and patternMatchCount > 0 :
                     fileNameToFetch= fileNameFieldParts[0]
 
+                    ### if current file name match to exclude list, SKIP this file
+                    if re.match(filesToExcludeInWget, fileNameToFetch) != None:
+                        continue
+
                     ### extract timestamp string
                     ###  align="right">2022-11-19 15:23  
                     ###                ^^^^^^^^^^^^^^^^^
@@ -187,22 +204,30 @@ def GetAllFilesFromSCMUsingWget(
 
                             if returnResult == False:
                                 returnStatus = False
-                                errorMsg = "ERROR GetAllFilesFromSCM() unable to get the file {0} from SCM, wget command:{1}, return response:{2}, error:{3}".format(
+                                errorMsg = "ERROR GetAllFilesFromSCMUsingWget() unable to get the file {0} from SCM, wget command:{1}, return response:{2}, error:{3}".format(
                                     fileNameToFetch, tempWgetCommand, returnOutput, errorMsg    )
                                 print(errorMsg)
                             else:
+                                ### set exec permission if current file name match to spec
+                                if re.match(filesWithExecPermission, fileNameToFetch) != None:
+                                    os.chmod(fileNameToFetch, fileExecPermission)
+
                                 ### add fetched file name to the list
                                 fileNames.append(fileNameToFetch)
                                 if debugLevel > 1:
-                                    errorMsg = "DEBUG-2 GetAllFilesFromSCM() Fetched file {0} from SCM using the command:{1}".format(
+                                    errorMsg = "DEBUG-2 GetAllFilesFromSCMUsingWget() Fetched file {0} from SCM using the command:{1}".format(
                                         fileNameToFetch, tempWgetCommand )
                                     print(errorMsg)
+                                
                         else:
                             if debugLevel > 2:
                                 print("DEBUG-3 GetAllFilesFromSCM() File {0} on SCM is older than local file, not fetching it".format(fileNameToFetch))
                 
         file.close()
         os.remove(wgetOutputFileName)
+
+    if debugLevel > 0:
+        print("DEBUG-1 GetAllFilesFromSCMUsingWget() files refreshed {0}".format(fileNames))
 
     return returnStatus, fileNames, errorMsg
 
@@ -214,8 +239,6 @@ def JAOperationSync(
     defaultParameters, debugLevel, currentTime ):
 
     returnStatus = True
-
-    downloadedFileInfo = {}
 
     ### If not interactive mode, check whether it is time to run sync based on last sync run time.
     if interactiveMode == False:
@@ -273,9 +296,6 @@ def JAOperationSync(
         ### make a list of files to copy to save directory 
         if 'FilesToCompareAfterSync' in defaultParameters:
             filesToCompareAfterSync = defaultParameters['FilesToCompareAfterSync']
-        else:
-            ### no custom definition in environment definition, use default list
-            filesToCompareAfterSync = "*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd"
 
         ### create Common and Custom directories if not present yet
         prevVersionFolder = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCommon)
@@ -390,7 +410,11 @@ def JAOperationSync(
 
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
-                syncCommand, OSType, OSName, OSVersion, debugLevel)
+                syncCommand, 
+                defaultParameters['FilesToExcludeInWget'],
+                defaultParameters['FilesWithExecPermission'],
+                defaultParameters['FileExecPermission'],
+                OSType, OSName, OSVersion, debugLevel)
 
         if returnResult == True:
             ### If file is NEW, print that file name as NEW file.
@@ -444,7 +468,11 @@ def JAOperationSync(
             
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
-                syncCommand, OSType, OSName, OSVersion, debugLevel )
+                syncCommand, 
+                defaultParameters['FilesToExcludeInWget'],
+                defaultParameters['FilesWithExecPermission'],
+                defaultParameters['FileExecPermission'],
+                OSType, OSName, OSVersion, debugLevel )
 
         if returnResult == True:
             ### If file is NEW, print that file name as NEW file.
@@ -456,6 +484,8 @@ def JAOperationSync(
                     JAOperationCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
                             defaultParameters['BinaryFileTypes'],
+                            defaultParameters['CompareCommand'],
+                            OSType, OSName, OSVersion, 
                             interactiveMode, debugLevel)
                 else:
                     print("INFO  downloaded new file from SCM:{0}", currentFileName)

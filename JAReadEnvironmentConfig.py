@@ -246,6 +246,22 @@ def JAReadEnvironmentConfig(
     if 'MaxWaitTime' not in defaultParameters:
         defaultParameters['MaxWaitTime'] = 600
 
+    if 'FilesToExcludeInWget' not in defaultParameters:
+        ### no file to skip by default
+        defaultParameters['FilesToExcludeInWget'] = ''
+    
+    ### make a list of files to copy to save directory if not specified
+    if 'FilesToCompareAfterSync' not in defaultParameters:
+        defaultParameters['FilesToCompareAfterSync'] = "*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd"
+
+    ### set up default files to have exec permission if not specified
+    if 'FilesWithExecPermission' not in defaultParameters:
+        defaultParameters['FilesWithExecPermission'] = '*.exp *.py *.pl *.ksh *.bash logfilter*'
+
+    ### set default permission if not specified
+    if 'FileExecPermission' not in defaultParameters:
+        defaultParameters['FileExecPermission'] = '750'
+
     ### exand any environment variables used in path definitions
     if 'LocalRepositoryHome' in defaultParameters:
         defaultParameters['LocalRepositoryHome'] = os.path.expandvars(defaultParameters['LocalRepositoryHome'])

@@ -24,12 +24,15 @@ Platform:
 OS:
   SunOS:
     CommandCurl: /usr/bin/curl
+    ### Compare command to be used to find diff between two text files
+    ### compare all white space and blank lines
+    CompareCommand: diff -E
     CommandConnCheck: ../exe/telnet
     CommandToGetOSType: uname
     CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
-    CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
+    CommandChmod: chmod 750 *.py *.bash *.ksh *.pl logfilter* 
     ### wget command to get file from SCM
     CommandWget: ../exe/wget --read-timeout=10 -t 2 --no-check-certificate
     ### add current working directory to path
@@ -41,7 +44,10 @@ OS:
     CommandConnCheck: nc
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
-    CommandChmod: chmod 755 *.py *.bash *.ksh *.pl logfilter* 
+    CommandChmod: chmod 750 *.py *.bash *.ksh *.pl logfilter*
+    ### Compare command to be used to find diff between two text files
+    ### compare all white space and blank lines
+    CompareCommand: diff -w -B
     ### wget command to get file from SCM
     ### for RHEL 4 or 5
     # CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k
@@ -61,6 +67,8 @@ OS:
     CommandRsync: ''
     ### wget command with option to ignore cert check
     CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
+    ### Compare command to be used to find diff between two text files
+    CompareCommand: 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
     LocalRepositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
@@ -76,7 +84,16 @@ OS:
     CommandWget: wget
     ### files to copy from current directory to JAAudit.PrevVersion before getting latest files from SCM
     ###   update this list to find delta or see the changes in newer files downloaded
+    ### space separated list
     FilesToCompareAfterSync: '*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd'
+    ### set exec permission for below files after wget
+    ### regular expression syntax, re.match() is used to find a match
+    FilesWithExecPermission: '(\.exp$)|(\.py$)|(\.pl$)|(\.ksh$)|(\.bash$)|^logfilter(\d+)$'
+    ### executable permission to be set for the executable files fetched from SCM
+    FileExecPermission: 750
+    ### exclude these files while fetching using wget
+    ### regular expression syntax, re.match() is used to find a match
+    FilesToExcludeInWget: (\.swp$)|(\.log$)
 
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
@@ -248,7 +265,7 @@ Environment:
    ##  if variable is already defined under environment before, value under 'All' will be ignored.
    All:
      ### binary file type to check the diff by using MD5 checksum only
-     BinaryFileTypes: (\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)
+     BinaryFileTypes: (\.jar)|(\.war)|(\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)
      ### debug level 0, no debug, 1 to 4, 4 being max details
      DebugLevel: 3
      ### delta time for stats operation in min, process log lines with timestamp within below min from current time

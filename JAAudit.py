@@ -566,6 +566,13 @@ if 'PATH' in defaultParameters:
 if 'LD_LIBRARY_PATH' in defaultParameters:
     os.environ['LD_LIBRARY_PATH'] = defaultParameters['LD_LIBRARY_PATH']
 
+### setup default compare commands based on OSType
+if 'CompareCommand' not in defaultParameters:
+    if OSType == "Windows":
+        defaultParameters['CompareCommand'] = 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
+    elif OSType == 'Linux':
+        ### ignore blank lines
+        defaultParameters['CompareCommand'] = 'diff -B'
 ### get current time in seconds
 currentTime = time.time()
 

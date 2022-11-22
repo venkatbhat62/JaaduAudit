@@ -8,7 +8,9 @@ import re
 import JAGlobalLib
 
 def JAOperationCompareFiles(
-    currentFileName:str, previousFileName:str, binFileTypes:str, interactiveMode:bool, debugLevel:int):
+    currentFileName:str, previousFileName:str, binFileTypes:str, compareCommand:str,
+    OSType, OSName, OSVersion,
+    interactiveMode:bool, debugLevel:int):
     """
     If files passed is binary type, computes the checksum and compares the checksum
     If files passed is text type, first computes the check sum to see whethey are same.
@@ -57,9 +59,8 @@ def JAOperationCompareFiles(
         if re.search(binFileTypes, currentFileName) :
             return returnStatus, True
 
-        else:
-            tempCompareCommand = "diff {0} {1} {2}".format(currentFileName, previousFileName )
-            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                    tempCompareCommand, debugLevel)
+        tempCompareCommand = "diff {0} {1} {2}".format(currentFileName, previousFileName )
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                tempCompareCommand, debugLevel)
 
     return returnStatus
