@@ -48,6 +48,9 @@ OS:
     ### Compare command to be used to find diff between two text files
     ### compare all white space and blank lines
     CompareCommand: diff -w -B
+    ### for a host to host compare, use special bash script that takes custom sed command file to ignore patterns
+    CompareCommandH2H: H2HDiff.bash
+    CompareCommandH2HSedCommand: H2HDiff.SedCmd
     ### wget command to get file from SCM
     ### for RHEL 4 or 5
     # CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k
@@ -56,19 +59,15 @@ OS:
     ###  on RHEL 7 or above
     CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off --preserve-permissions
   Windows:
+    ### Compare command to be used to find diff between two text files
+    CompareCommand: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command compare-object -SyncWindow 10'
     ### power shell command to check connectivity 
     ### C:\Program Files\PowerShell\7\pwsh
     CommandConnCheck: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection'
-    ### use below command to change the file permission so that scripts can be executed after getting those from
-    ###  WebServer using wget (wget does not retain original file permission on WebServer)
-    ### ICACLS <fileName> /grant "users:(RWX)" /c
-    CommandChmod: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command ICACLS'
     ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
     CommandRsync: ''
     ### wget command with option to ignore cert check
     CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
-    ### Compare command to be used to find diff between two text files
-    CompareCommand: 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
     LocalRepositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
@@ -87,20 +86,20 @@ OS:
     ### space separated list
     FilesToCompareAfterSync: '*.exp *.yml *.py *.pl *.ksh *.bash *.Rsp* *.sql *.sedCmd'
     ### set exec permission for below files after wget
-    ### regular expression syntax, re.match() is used to find a match
+    ### regular expression syntax, re.search() is used to find a match
     FilesWithExecPermission: '(\.exp$)|(\.py$)|(\.pl$)|(\.ksh$)|(\.bash$)|^logfilter(\d+)$'
     ### executable permission to be set for the executable files fetched from SCM
     FileExecPermission: 750
     ### exclude these files while fetching using wget
-    ### regular expression syntax, re.match() is used to find a match
-    FilesToExcludeInWget: (\.swp$)|(\.log$)
+    ### regular expression syntax, re.search() is used to find a match
+    FilesToExcludeInWget: (\.swp$)|(\.log$)|^__pycache__/$
 
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
   ###  so that component specific variable values can be derived run time
-  ### AppConfig naming convention - <SubsystemName><repositoryName><ComponentName>.yml[.<AppVersion>] where
+  ### AppConfig naming convention - <SubsystemName><platform><ComponentName>.yml[.<AppVersion>] where
   ###   <SubsystemName> - App for main application, DB for Database configurations, OS for OS configurations
-  ###   <repositoryName>  - keep this same as platform name defined before for this environment
+  ###   <platform>  - keep this same as platform name defined before for this environment
   ###   <ComponentName> - abbreviated component name
   ###   [.<AppVersion>] - this application version will be appended run time to derive the config file to be used
   ###           based on current application release installed on that host.
@@ -120,7 +119,7 @@ Component:
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppAppsWindowsAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: echo TBD
+    CommandToGetAppVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (LAPTOP-QOCNVF0T)
     ### datamask for this component

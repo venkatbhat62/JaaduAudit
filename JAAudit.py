@@ -35,8 +35,7 @@ import JAExecuteOperations
 
 ### define global variables
 JAVersion = "JA01.00.00"
-H2HDiffSedCmd = "H2HDiff.SedCmd"
-skipH2HFileNameExtension = ".SkipH2H"
+
 # this config file has environment specific definitions
 environmentFileName = "JAEnvironment.yml"
 # this config file has list of commands allowed to be executed by JAAudit
@@ -104,7 +103,7 @@ def JAAuditExit(reason):
 
 def JAHelp():
     helpString1 = """
-    python JAAudit.py -o <operations> [-s <subsystem>] [-p <repositoryName>] [-k <SCMHostName>] [-H <downloadHostName>] 
+    python JAAudit.py -o <operations> [-s <subsystem>] [-p <platform>] [-k <SCMHostName>] [-H <downloadHostName>] 
        [-d <saveDirectory>] [-D <debugLevel>] [-f <baseConfigFile>] [-l <logFileName>]  [-F <reportFormat>]
        [-fT <fromTime in YYYY-MM-DD hh:mm:ss>] [-tT <toTime in YYYY-MM-DD hh:mm:ss>] [-dT <deltaTimeInMin>] 
        [-i <ignoreHostNameIPDifference>]
@@ -213,7 +212,7 @@ def JAHelp():
         The subsystem name  can be OS, DB, App, OSS, Vendor etc.
         Defaut subsystem is 'App'.
     
-    [-p <repositoryName>] - repository name to be sent to SCM host while doing rsync or wget so that
+    [-p <platform>] - repository name to be sent to SCM host while doing rsync or wget so that
         platform specific files are downloaded to current host. This repository name is also used
         while uploading the file to SCM so that the file is placed under platform specific path on SCM host.
         The directory or folder path on SCM is computed using <WebServerMain>/<repository>/<hostname> and
@@ -416,7 +415,7 @@ if '-D' in argsPassed:
     debugLevel = int(argsPassed['-D'])
     
 if debugLevel > 0 :
-    print("JAAudit.py Version {0}\nParameters passed: {1}".format(JAVersion, argsPassed))
+    print("DEBUG-1 JAAudit.py() Version {0}\nParameters passed: {1}".format(JAVersion, argsPassed))
 
 baseConfigFileName = None
 if '-f' in argsPassed:
@@ -434,8 +433,8 @@ else:
 
 if '-l' in argsPassed:
     try:
-        # log file requested
-        outputFileHandle = open ( argsPassed['-l'], "w")
+        # log file requested, open in append mode
+        outputFileHandle = open ( argsPassed['-l'], "a")
     except OSError as err:
         errorMsg = "ERROR - Can not open configFile:|{0}|, OS error: {1}\n".format(argsPassed['-l'], err)
         JAAuditExit(errorMsg)
@@ -470,10 +469,6 @@ thisHostName = hostNameParts[0]
 # functions based on compatibility to the environment
 OSType, OSName, OSVersion = JAGlobalLib.JAGetOSInfo(sys.version_info, debugLevel)
 
-errorMsg  = "JAAudit.py Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
-    JAVersion, OSType, OSName, OSVersion)
-print(errorMsg)
-JAGlobalLib.LogMsg(errorMsg,auditLogFileName, True)
 
 ### check whether yaml module is present
 yamlModulePresent = JAGlobalLib.JAIsYamlModulePresent()
@@ -536,16 +531,27 @@ PASS   - expect to see in green color
  PASS  - expect to see in green color
 <      blue color line
 >      magenta color line"""
-    JAGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag)
+    JAGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
 returnResult = "_JAAudit_PASS_" # change this to other errors when error is encountered
 
-
+environmentTERM = os.getenv('TERM')
 ### determin current session type using the term environment value, sleep for random duration if non-interactive 
-if os.getenv('TERM') == '' or os.getenv('TERM') == 'dumb':
+if environmentTERM == '' or environmentTERM == 'dumb':
     interactiveMode = False
-else:
-    interactiveMode = True
+
+    ### for non-interactive mode, if log file not opened yet, open it in append mode
+    if outputFileHandle == None:
+        tempOutputFileName = '{0}/JAAudit.log..{1}'.format(
+            defaultParameters['LogFilePath'],
+            JAGlobalLib.UTCDateForFileName())
+        # log file requested, open in append mode
+        try:
+            outputFileHandle = open ( tempOutputFileName, "a")
+        except OSError as err:
+            print("ERROR JAAudit() Can't open output file:{0}, OSError: {1}".format( 
+                tempOutputFileName, err        ))
+
     # sleep for random time using RandomizationWindow spec
     if 'RandomizationWindowInSec' in defaultParameters:
         randomizationWindow = defaultParameters['RandomizationWindowInSec']
@@ -555,9 +561,18 @@ else:
 
     import random
     sleepTime = random.randint(0,randomizationWindow)
-    print("INFO sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime))
+    print("INFO JAAudit() sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime))
     time.sleep(sleepTime)
 
+else:
+    interactiveMode = True
+
+errorMsg  = "INFO JAAudit.py() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
+    JAVersion, OSType, OSName, OSVersion)
+JAGlobalLib.LogLine(
+	errorMsg, 
+    interactiveMode,
+    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
 ### if PATH and LD_LIBRARY are defined, set those environment variables
 if 'PATH' in defaultParameters:
@@ -566,13 +581,6 @@ if 'PATH' in defaultParameters:
 if 'LD_LIBRARY_PATH' in defaultParameters:
     os.environ['LD_LIBRARY_PATH'] = defaultParameters['LD_LIBRARY_PATH']
 
-### setup default compare commands based on OSType
-if 'CompareCommand' not in defaultParameters:
-    if OSType == "Windows":
-        defaultParameters['CompareCommand'] = 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
-    elif OSType == 'Linux':
-        ### ignore blank lines
-        defaultParameters['CompareCommand'] = 'diff -B'
 ### get current time in seconds
 currentTime = time.time()
 
@@ -596,19 +604,24 @@ if OSType == 'Windows':
                 if debugLevel > 3:
                     print("DEBUG-4 JAAudit() Deleting the file:{0}".format(fileName))
             except OSError as err:
-                print("ERROR JAAudit() Error deleting old log file:{0}, errorMsg:{1}".format(fileName, err))
+                JAGlobalLib.LogLine(
+			        "ERROR JAAudit() Error deleting old log file:{0}, errorMsg:{1}".format(fileName, err), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                
 else:
     # delete log files covering logs of operations also.
     command = 'find {0} -name "JAAudit*.log.*" -mtime +{1} |xargs rm'.format(defaultParameters['LogFilePath'], fileRetencyDurationInDays)
-    if debugLevel > 0:
-        print("DEBUG-1 JAAudit() Executing command:{0} to purge files".format(command))
+    if debugLevel > 1:
+        print("DEBUG-2 JAAudit() purging files with command:{0}".format(command))
 
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
-            print("ERROR JAAudit() Error deleting old log files {0} {1}".format(returnOutput, errorMsg))
-            JAGlobalLib.LogMsg(errorMsg, auditLogFileName, True)
-
+            JAGlobalLib.LogLine(
+			    "INFO JAAudit() File not found, Error deleting old log files:{0} ".format(returnOutput), 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
 ### get application version, this is used to derive host/component specific specification file(s)
 if 'CommandToGetAppVersion' in defaultParameters:
@@ -620,71 +633,92 @@ if 'CommandToGetAppVersion' in defaultParameters:
         appVersion = appVersion.lstrip()
     else:
         appVersion = ''
-        print( errorMsg)
-        JAGlobalLib.LogMsg(errorMsg, auditLogFileName, True)
-else:
-    appVersion = ''
-
-
+        JAGlobalLib.LogLine(
+			errorMsg, 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
 ### if operation is default, sync, download, or upload, need to connect to SCM. Check the connectivity
 if re.match(r"sync|download|upload|default", operations):
 
-    if 'SCMHostName1' in defaultParameters and 'SCMPortHTTPS' in defaultParameters:
-        # check connectivity to SCM host
-        connectivitySpec = [
-            [defaultParameters['SCMHostName1'], 'TCP', defaultParameters['SCMPortHTTPS']],
-            ]
-        returnStatus, passCount, failureCount, detailedResults = JAGlobalLib.JACheckConnectivityToHosts( 
-            defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
-        if passCount > 0:
-            prevSCMHostCheckStatus = True
-            defaultParameters['SCMHostName'] = SCMHostName = defaultParameters['SCMHostName1']
-            if debugLevel > 0:
-                print("DEBUG-1 JAAudit() connectivity check to wget port:{0} on SCMHostName:{1} PASSED".format(
-                        defaultParameters['SCMPortHTTPS'], SCMHostName
-                    ))
-        else:
-            # check connectivity to SCMHostName2
+    ### within the sync interveral, NO need to check the connection again. 
+    ### this is to speed up operation in interactive mode
+    returnStatus = JAGlobalLib.JAIsItTimeToRunOperation(
+        currentTime, subsystem, "sync", defaultParameters, debugLevel)
+    if returnStatus == False:
+        if debugLevel > 0:
+            print("DEBUG-1 JAAudit() sync interval not elapsed yet, skipping connectivity check to SCM host")
+
+        ### get SCMHostName used last time for file fetch
+        returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
+    
+    if returnStatus == True:
+            defaultParameters['SCMHostName'] = SCMHostName
+    elif returnStatus == False:
+        ### SCMHostName used before is not known, proceed with connection checks
+        if 'SCMHostName1' in defaultParameters and 'SCMPortHTTPS' in defaultParameters:
+            # check connectivity to SCM host
             connectivitySpec = [
-                [defaultParameters['SCMHostName2'], 'TCP', defaultParameters['SCMPortHTTPS']],
+                [defaultParameters['SCMHostName1'], 'TCP', defaultParameters['SCMPortHTTPS']],
                 ]
             returnStatus, passCount, failureCount, detailedResults = JAGlobalLib.JACheckConnectivityToHosts( 
-               defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
+                defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
             if passCount > 0:
                 prevSCMHostCheckStatus = True
-                defaultParameters['SCMHostName'] = SCMHostName = defaultParameters['SCMHostName2']
+                defaultParameters['SCMHostName'] = SCMHostName = defaultParameters['SCMHostName1']
+                if debugLevel > 1:
+                    print("DEBUG-2 JAAudit() connectivity check to wget port:{0} on SCMHostName:{1} PASSED".format(
+                            defaultParameters['SCMPortHTTPS'], SCMHostName
+                        ))
             else:
-                # SCM hostname is not accessible
-                defaultParameters['SCMHostName'] = SCMHostName = None
-
-        # if operation is sync or default, check connectivity to rsync port if rsync port is specified
-        if ( (re.match(r"sync", operations) != None and  
-            re.match(r"nosync", operations) == None) or 
-            re.match(r"default", operations) ):
-            if 'SCMPortRsync' in defaultParameters:
-                # check connectivity to SCM host
+                # check connectivity to SCMHostName2
                 connectivitySpec = [
-                    [SCMHostName, 'TCP', defaultParameters['SCMPortRsync']],
+                    [defaultParameters['SCMHostName2'], 'TCP', defaultParameters['SCMPortHTTPS']],
                     ]
                 returnStatus, passCount, failureCount, detailedResults = JAGlobalLib.JACheckConnectivityToHosts( 
-                    defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
-                if passCount != 1:
-                    print("ERROR JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} FAILED".format(
-                                defaultParameters['SCMPortRsync'], SCMHostName ))
+                defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
+                if passCount > 0:
+                    prevSCMHostCheckStatus = True
+                    defaultParameters['SCMHostName'] = SCMHostName = defaultParameters['SCMHostName2']
                 else:
-                    if debugLevel > 0:
-                        print("DEBUG-1 JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} PASSED".format(
-                                defaultParameters['SCMPortRsync'], SCMHostName
-                            ))
+                    # SCM hostname is not accessible
+                    defaultParameters['SCMHostName'] = SCMHostName = None
+
+            # if operation is sync or default, check connectivity to rsync port if rsync port is specified
+            if ( (re.match(r"sync", operations) != None and  
+                re.match(r"nosync", operations) == None) or 
+                re.match(r"default", operations) ):
+                if 'SCMPortRsync' in defaultParameters:
+                    # check connectivity to SCM host
+                    connectivitySpec = [
+                        [SCMHostName, 'TCP', defaultParameters['SCMPortRsync']],
+                        ]
+                    returnStatus, passCount, failureCount, detailedResults = JAGlobalLib.JACheckConnectivityToHosts( 
+                        defaultParameters, connectivitySpec, OSType, OSName, OSVersion, interactiveMode, debugLevel)
+                    if passCount != 1:
+                        JAGlobalLib.LogLine(
+                            "ERROR JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} FAILED".format(
+                                    defaultParameters['SCMPortRsync'], SCMHostName ), 
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        
+                    else:
+                        if debugLevel > 1:
+                            print("DEBUG-2 JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} PASSED".format(
+                                    defaultParameters['SCMPortRsync'], SCMHostName
+                                ))
+            ### save SCMHostName in JAAudit.profile so that next time, it can be used without going through the 
+            ###   connection check if sync interval is not passed yet
+            JAGlobalLib.JASetProfile("JAAudit.profile", 'SCMHostName', SCMHostName)
 
 
 ### if sync is opted, run it
 if re.search("sync", operations) != None and re.match("nosync", operations) == None:
-    JAExecuteOperations.JARun( "sync", defaultParameters['MaxWaitTime'],
+    JAExecuteOperations.JARun( 
+        "sync", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
-        OSType, OSName, OSVersion, defaultParameters['LogFilePath'], auditLogFileName, 
-        outputFileHandle, colorIndex, HTMLBRTag, myColors,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
         defaultParameters, debugLevel, currentTime
     )
@@ -692,10 +726,11 @@ if re.search("sync", operations) != None and re.match("nosync", operations) == N
 ### if conn operation is opted, read config file, run connn tests and if upload is opted,
 ###    upload results to SCM
 if re.search("conn", operations):
-    JAExecuteOperations.JARun( "conn", defaultParameters['MaxWaitTime'],
+    JAExecuteOperations.JARun( 
+        "conn", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
-        OSType, OSName, OSVersion, defaultParameters['LogFilePath'], auditLogFileName, 
-        outputFileHandle, colorIndex, HTMLBRTag, myColors,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
         defaultParameters, debugLevel, currentTime
     )

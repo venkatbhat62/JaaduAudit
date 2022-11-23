@@ -24,7 +24,8 @@ import JAOperationCompare
 
 def GetAllFilesFromSCMUsingRsync(
     rsyncCommand:str, 
-    OSType:str, OSName:str, OSVersion:str, debugLevel:int):
+    OSType:str, OSName:str, OSVersion:str, debugLevel:int,
+    interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag):
 
     """
     This function uses rsync to fetch files from SCM to local host.
@@ -65,7 +66,11 @@ def GetAllFilesFromSCMUsingRsync(
         returnStatus = False
         errorMsg = "ERROR GetAllFilesFromSCMUsingRsync() unable to get file list from SCM, rsync command:{0}, return response:{1}, error:{2}".format(
             tempRsyncCommand, returnOutput, errorMsg    )
-        print(errorMsg)
+        JAGlobalLib.LogLine(
+			errorMsg, 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag)
+      
         return returnStatus, fileNames, errorMsg
     
     ### process index output to extract file names
@@ -96,8 +101,9 @@ def GetAllFilesFromSCMUsingRsync(
     return returnStatus, fileNames, errorMsg
 
 def GetAllFilesFromSCMUsingWget(
-    wgetCommand:str, filesToExcludeInWget:str, filesWithExecPermission:str, fileExecPermission:str,
-    OSType:str, OSName:str, OSVersion:str, debugLevel:int):
+    wgetCommand:str, filesToExcludeInWget:str, filesWithExecPermission:str, fileExecPermission:int,
+    OSType:str, OSName:str, OSVersion:str, debugLevel:int,
+    interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag):
     """
     This function first executes given wget command to get index dump from SCM (source code management) server
     Parses the index file, extracts the file name and last updated date
@@ -139,7 +145,11 @@ def GetAllFilesFromSCMUsingWget(
         returnStatus = False
         errorMsg = "ERROR GetAllFilesFromSCMUsingWget() unable to get file list from SCM, wget command:{0}, return response:{1}, error:{2}".format(
             tempWgetCommand, returnOutput, errorMsg    )
-        print(errorMsg)
+        JAGlobalLib.LogLine(
+            errorMsg, 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag)
+        
         return returnStatus, fileNames, errorMsg
     
     ### process index output to extract file names
@@ -171,7 +181,7 @@ def GetAllFilesFromSCMUsingWget(
                     fileNameToFetch= fileNameFieldParts[0]
 
                     ### if current file name match to exclude list, SKIP this file
-                    if re.match(filesToExcludeInWget, fileNameToFetch) != None:
+                    if re.search(filesToExcludeInWget, fileNameToFetch) != None:
                         continue
 
                     ### extract timestamp string
@@ -187,11 +197,12 @@ def GetAllFilesFromSCMUsingWget(
 
                         fetchSCMFile = True
                         if os.path.exists(fileNameToFetch):
-                            ### get file modified time on local host
+                            ### get file modified time on local host, 
                             fileModifiedTime = os.path.getmtime ( fileNameToFetch )
 
                             ### if the local file has same time stamp as that of SCM file, DO NO NOT fetch it
-                            if abs(SCMFileTimeInSec - fileModifiedTime) > 0 :
+                            ###  this logic accuracy is one min, since SCM time is available in min, not in seconds
+                            if SCMFileTimeInSec < fileModifiedTime:
                                 fetchSCMFile = False
 
                         ### fetch the file if needed
@@ -206,11 +217,14 @@ def GetAllFilesFromSCMUsingWget(
                                 returnStatus = False
                                 errorMsg = "ERROR GetAllFilesFromSCMUsingWget() unable to get the file {0} from SCM, wget command:{1}, return response:{2}, error:{3}".format(
                                     fileNameToFetch, tempWgetCommand, returnOutput, errorMsg    )
-                                print(errorMsg)
+                                JAGlobalLib.LogLine(
+			                        errorMsg, 
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag)
                             else:
                                 ### set exec permission if current file name match to spec
-                                if re.match(filesWithExecPermission, fileNameToFetch) != None:
-                                    os.chmod(fileNameToFetch, fileExecPermission)
+                                if re.search(filesWithExecPermission, fileNameToFetch) != None:
+                                    os.chmod(fileNameToFetch, int(fileExecPermission))
 
                                 ### add fetched file name to the list
                                 fileNames.append(fileNameToFetch)
@@ -233,7 +247,7 @@ def GetAllFilesFromSCMUsingWget(
 
 def JAOperationSync(
     baseConfigFileName, subsystem, myPlatform, appVersion,
-    OSType, OSName, OSVersion, logFilePath, auditLogFileName, 
+    OSType, OSName, OSVersion, logFilePath,  
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTime ):
@@ -246,9 +260,11 @@ def JAOperationSync(
             currentTime, subsystem, "sync", defaultParameters, debugLevel)
         if returnStatus == False:
             ### sync durtaion not elapsed, return 
-            errorMsg = "Skipping Sync, duration not elapsed yet"
-            if debugLevel > 0:
-                print("DEBUG-1 JAOperationSync() {0}".format(errorMsg))
+            errorMsg = "INFO JAOperationSync() Skipping Sync, duration not elapsed yet"
+            JAGlobalLib.LogLine(
+                        errorMsg, 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
     if returnStatus == True:
         ### run sync
@@ -262,7 +278,10 @@ def JAOperationSync(
             except OSError as err:
                 errorMessage = ("ERROR JAOperationSync() Not able to change directory to {0}, OS Error:{1}".format(
                      localRepositoryHome, err   ))
-                print(errorMessage)
+                JAGlobalLib.LogLine(
+			        errorMessage, 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag)
                 return False, errorMessage 
         else:
             localRepositoryHome = os.getcwd()
@@ -275,7 +294,10 @@ def JAOperationSync(
                 except OSError as err:
                     errorMessage = ("ERROR JAOperationSync() Not able to create directory to {0}, OS Error:{1}".format(
                         localRepositoryCommon, err   ))
-                    print(errorMessage)
+                    JAGlobalLib.LogLine(
+                        errorMessage, 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag)
                     return False, errorMessage 
         else:
             localRepositoryCommon = ''
@@ -288,7 +310,10 @@ def JAOperationSync(
                 except OSError as err:
                     errorMessage = ("ERROR JAOperationSync() Not able to create directory to {0}, OS Error:{1}".format(
                         localRepositoryCustom, err   ))
-                    print(errorMessage)
+                    JAGlobalLib.LogLine(
+                        errorMessage, 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag)
                     return False, errorMessage 
         else:
             localRepositoryCustom = ''
@@ -305,33 +330,58 @@ def JAOperationSync(
         if os.path.exists(prevVersionFolder) == False:
             os.mkdir(prevVersionFolder)
             
+        ### delete files in *.PrevVersion directory
+        import glob
+        import shutil
+        sourceDirCommon = "{0}/{1}".format(localRepositoryHome, localRepositoryCommon)
+        destinationDirCommon = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCommon)
+        sourceDirCustom = "{0}/{1}".format(localRepositoryHome, localRepositoryCustom)
+        destinationDirCustom = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCustom)
+
+        ### delete files in destination directory Common
+        filesInDestinationDir = glob.glob("{0}/*".format(destinationDirCommon))
+        for file in filesInDestinationDir:
+            try:
+                os.remove(file)
+            except OSError as err:
+                JAGlobalLib.LogLine(
+			        "ERROR JAOperationSync() Error deleting file:{0}, OSError:{1}".format(file, OSError), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag)
+
+        ### delete files in destination directory Custom
+        filesInDestinationDir = glob.glob("{0}/*".format(destinationDirCustom))
+        for file in filesInDestinationDir:
+            try:
+                os.remove(file)
+            except OSError as err:
+                JAGlobalLib.LogLine(
+			        "ERROR JAOperationSync() Error deleting file:{0}, OSError:{1}".format(file, OSError), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
         ### copy code/config contents to Common.PrevVersion, Custom.PrevVersion directories
         ###    so that downloaded contents can be compared to previous contents and display the delta
         if OSType == "Windows":
-            import glob
-            import shutil
-            sourceDirCommon = "{0}/{1}".format(localRepositoryHome, localRepositoryCommon)
-            destinationDirCommon = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCommon)
-            sourceDirCustom = "{0}/{1}".format(localRepositoryHome, localRepositoryCustom)
-            destinationDirCustom = "{0}/{1}.PrevVersion".format(localRepositoryHome, localRepositoryCustom)
             ### copy files one type at a time
             fileNames = filesToCompareAfterSync.split(' ')
             for fileName in fileNames:
                 globString = r"{0}/{1}".format(sourceDirCommon, fileName)
                 ### copy files from Common to .PrevVersion
                 for file in glob.glob(globString):
-                    print(file)
+                    if debugLevel > 2:
+                        print("DEBUG-3 JAOperationSync() copying file:{0} to {1}".format(file, destinationDirCommon))
                     shutil.copy(file, destinationDirCommon)
 
                 if localRepositoryCustom != '':
                     globString = r"{0}/{1}".format(sourceDirCustom, fileName)
                     ### copy files from Custom to .PrevVersion
                     for file in glob.glob(globString):
-                        print(file)
+                        if debugLevel > 2:
+                            print("DEBUG-3 JAOperationSync() copying file:{0} to {1}".format(file, destinationDirCustom))
                         shutil.copy(file, destinationDirCustom)
 
-        else:    
+        else:
             ### firt copy contents under Common
             if OSType == "SunOS":
                 copyCommand = "cp -p {0}/{1}/{2} {3}/{4}.PrevVersion 2>/dev/null".format(
@@ -369,9 +419,16 @@ def JAOperationSync(
             commandWget = ''
         
         if commandRsync == '' and commandWget == '':
-            errorMessage = ("ERROR JAOperationSync() Both rsync and wget commands not present, can't complete sync operation")
-            print(errorMessage)
+            errorMsg = ("ERROR JAOperationSync() Both rsync and wget commands not present, can't complete sync operation")
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag)
+
             return False, errorMessage
+
+        ### counters to keep track of new files, changed files
+        countNewFiles = countChangedFiles = 0
 
         ### use rsync or wget, derive command to sync common contents, and execute command
         if localRepositoryCommon != '':
@@ -395,7 +452,8 @@ def JAOperationSync(
 
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingRsync(
-                syncCommand, OSType, OSName, OSVersion, debugLevel)
+                syncCommand, OSType, OSName, OSVersion, debugLevel,
+                interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
         elif commandWget != '':
             syncCommand = "{0} https://{1}:{2}/{3}/".format( 
@@ -411,10 +469,11 @@ def JAOperationSync(
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
                 syncCommand, 
-                defaultParameters['FilesToExcludeInWget'],
-                defaultParameters['FilesWithExecPermission'],
+                r'{0}'.format(defaultParameters['FilesToExcludeInWget']),
+                r'{0}'.format(defaultParameters['FilesWithExecPermission']),
                 defaultParameters['FileExecPermission'],
-                OSType, OSName, OSVersion, debugLevel)
+                OSType, OSName, OSVersion, debugLevel,
+                interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
         if returnResult == True:
             ### If file is NEW, print that file name as NEW file.
@@ -423,12 +482,33 @@ def JAOperationSync(
                 currentFileName = '{0}/{1}/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
                 previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
                 if os.path.exists(previousFileName ):
-                    JAOperationCompare.JAOperationCompareFiles( 
+                    returnStatus, fileDiffer, errorMsg = JAOperationCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
                             defaultParameters['BinaryFileTypes'],
-                            interactiveMode, debugLevel)
+                            defaultParameters['CompareCommand'],
+                            False,"","", ## not a host to host compare scenario
+                            "", # no additional info to log
+                            interactiveMode, debugLevel,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag,
+                            OSType)
+                    if fileDiffer == True:
+                        countChangedFiles += 1
                 else:
-                    print("INFO  downloaded new file from SCM:{0}".format( currentFileName))
+                    JAGlobalLib.LogLine(
+                        "INFO  JAOperationSync() downloaded new file from SCM:{0}".format( currentFileName), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag)
+
+                    countNewFiles += 1
+
+            errorMsg = "INFO JAOperationSync() Repository:{0}, Number of new files fetched:{1}, number of updated files fetched:{2}".format(
+                    localRepositoryCommon, countNewFiles, countChangedFiles)
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag)
+        
+        countChangedFiles = countNewFiles = 0
 
         ### use rsync or wget, derive command to sync custom contents, and execute command
         if localRepositoryCustom != '':
@@ -453,7 +533,8 @@ def JAOperationSync(
             
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingRsync(
-                syncCommand, OSType, OSName, OSVersion, debugLevel)
+                syncCommand, OSType, OSName, OSVersion, debugLevel,
+                interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
         elif commandWget != '':
             syncCommand = "{0} https://{1}:{2}/{3}/".format( 
@@ -469,28 +550,48 @@ def JAOperationSync(
             ### can't get all files in one go, have to get those one by one
             returnResult, fileNames, errorMsg = GetAllFilesFromSCMUsingWget(
                 syncCommand, 
-                defaultParameters['FilesToExcludeInWget'],
-                defaultParameters['FilesWithExecPermission'],
+                r'{0}'.format(defaultParameters['FilesToExcludeInWget']),
+                r'{0}'.format(defaultParameters['FilesWithExecPermission']),
                 defaultParameters['FileExecPermission'],
-                OSType, OSName, OSVersion, debugLevel )
+                OSType, OSName, OSVersion, debugLevel,
+                interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag )
 
         if returnResult == True:
             ### If file is NEW, print that file name as NEW file.
             ### If existing file, print differences between PrevVersion and current version of the file
             for fileName in fileNames:
-                currentFileName = '{0}{/1}/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
-                previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
+                currentFileName = '{0}{/1}/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
+                previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
                 if os.path.exists(previousFileName ):
-                    JAOperationCompare.JAOperationCompareFiles( 
+                    returnStatus, fileDiffer, errorMsg = JAOperationCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
-                            OSType, OSName, OSVersion, 
-                            interactiveMode, debugLevel)
+                            False,"","", ## not a host to host compare scenario
+                            "", # no additional info to log
+                            interactiveMode, debugLevel,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag,
+                            OSType)
+                    if fileDiffer == True:
+                        countChangedFiles += 1
                 else:
-                    print("INFO  downloaded new file from SCM:{0}", currentFileName)
+                    JAGlobalLib.LogLine(
+			            "INFO  JAOperationSync() downloaded new file from SCM:{0}".format( currentFileName), 
+                	    interactiveMode,
+                	    myColors, colorIndex, outputFileHandle, HTMLBRTag)
+                    countNewFiles += 1
 
+            errorMsg = ("INFO  JAOperationSync() Repository:{0}, Number of new files fetched:{1}, number of updated files fetched:{2}".format(
+                    localRepositoryCustom, countNewFiles, countChangedFiles))
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag)
 
-    if errorMsg != '':
-        print("ERROR JAOperationSync() Sync failed with error:{0}".format(errorMsg))
+            ### if file is to be operated on post fetch, execute those commands
+            ### TBD add later
+
+    ### operation completed, update the history file to track the last time when it is completed
+    JAGlobalLib.JAUpdateHistoryFileName(subsystem, "sync", defaultParameters)
+
     return returnStatus, errorMsg

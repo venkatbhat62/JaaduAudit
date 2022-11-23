@@ -81,10 +81,10 @@ def JAReadEnvironmentConfig(
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to integer and store
     #  in defaultParameters{}
     integerParameters = [
-        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays',
+        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays','FileExecPermission',
         'DueInDaysForLicence', 'HealIntervalInSec', 'HealAfterTimeInSec', 
         'RandomizationWindowForHealthInSec', 'RandomizationWindowForOtherInSec',
-        'RandomizationWindowForTaskInSec', 'SitePrefixLength'
+        'RandomizationWindowForTaskInSec', 'SitePrefixLength',
         ]
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to float and store
     #  in defaultParameters{}
@@ -98,29 +98,21 @@ def JAReadEnvironmentConfig(
     returnStatus = True
 
     ### first check whether profile is present in current working directory
-    localReposistoryCustom = ''
-    if os.path.exists("JAAudit.profile") :
-        with open("JAAudit.profile", "r") as file:
-            while True:
-                line = file.readline()
-                if not line:
-                    break
-                line = line.rstrip()
-                fieldParts = re.findall(r'LocalRepositoryCustom:(\s+)(.+)', line)
-                if len(fieldParts) > 1:
-                    localReposistoryCustom = fieldParts[1]
+    returnStatus, localRepositoryCustom = JAGlobalLib.JAGetProfile("JAAudit.profile", 'LocalRepositoryCustom')
+    if returnStatus == True:
+        ### localReposistoryCustom is available, environment file may be under that folder.
+        ###   if present, update file to that location
+        tempFileName = '{0}/{1}'.format(localRepositoryCustom, fileName)
 
-                    ### localReposistoryCustom is available, environment file may be under that folder.
-                    ###   if present, update file to that location
-                    tempFileName = '{0}/{1}'.format(localReposistoryCustom, fileName)
-
-                    if os.path.exits(tempFileName) == True:
-                        fileName = tempFileName     
-                    break
-            file.close()
+        if os.path.exists(tempFileName) == True:
+            fileName = tempFileName
+        if debugLevel > 0:
+            print("DEBUG-1 JAReadEnvironmentConfig() Using environment spec file:{0} from JAAudit.profile".format(fileName))
     elif os.path.exists('./AppsCustom/{0}'.format(fileName)):
         ### use the file in ./AppsCustom/ if present
         fileName = './AppsCustom/{0}'.format(fileName)
+        if debugLevel > 0:
+            print("DEBUG-1 JAReadEnvironmentConfig() Using environment spec file:{0}".format(fileName))
 
     elif os.path.exists(fileName) == False:
         print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./AppsCustom directory.\n\
@@ -228,6 +220,9 @@ def JAReadEnvironmentConfig(
             errorMsg += "DEBUG-1 JAReadEnvironmentConfig() Disabled OperationHeal, enable it in {0} if needed\n".format(
                 fileName) 
 
+    if 'BinaryFileTypes' not in defaultParameters:
+        defaultParameters['BinaryFileTypes'] = '(\.jar)|(\.war)|(\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)'
+
     if 'RandomizationWindowInSec' not in defaultParameters:
         defaultParameters['RandomizationWindowInSec'] = 600
         if debugLevel > 0:
@@ -247,8 +242,8 @@ def JAReadEnvironmentConfig(
         defaultParameters['MaxWaitTime'] = 600
 
     if 'FilesToExcludeInWget' not in defaultParameters:
-        ### no file to skip by default
-        defaultParameters['FilesToExcludeInWget'] = ''
+        ### default skip files
+        defaultParameters['FilesToExcludeInWget'] = '(\.swp$)|(\.log$)|^__pycache__/$'
     
     ### make a list of files to copy to save directory if not specified
     if 'FilesToCompareAfterSync' not in defaultParameters:
@@ -256,12 +251,32 @@ def JAReadEnvironmentConfig(
 
     ### set up default files to have exec permission if not specified
     if 'FilesWithExecPermission' not in defaultParameters:
-        defaultParameters['FilesWithExecPermission'] = '*.exp *.py *.pl *.ksh *.bash logfilter*'
+        defaultParameters['FilesWithExecPermission'] = '(\.exp$)|(\.py$)|(\.pl$)|(\.ksh$)|(\.bash$)|^logfilter(\d+)$'
 
     ### set default permission if not specified
     if 'FileExecPermission' not in defaultParameters:
         defaultParameters['FileExecPermission'] = '750'
 
+    ### Default spec for host to host comparison custom commands
+    if 'CompareCommandH2H' not in defaultParameters:
+        if OSType == 'Linux':
+            defaultParameters['CompareCommandH2H'] = 'H2HDiff.bash'
+        else:
+            defaultParameters['CompareCommandH2H'] = ''
+    if 'CompareCommandH2HSedCommand' not in defaultParameters:
+        if OSType == 'Linux':
+            defaultParameters['CompareCommandH2HSedCommand'] = 'H2HDiff.SedCmd'
+        else:
+            defaultParameters['CompareCommandH2HSedCommand'] = ''
+
+    ### setup default compare commands based on OSType
+    if 'CompareCommand' not in defaultParameters:
+        if OSType == "Windows":
+            defaultParameters['CompareCommand'] = 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
+        elif OSType == 'Linux':
+            ### ignore blank lines
+            defaultParameters['CompareCommand'] = 'diff -B'
+ 
     ### exand any environment variables used in path definitions
     if 'LocalRepositoryHome' in defaultParameters:
         defaultParameters['LocalRepositoryHome'] = os.path.expandvars(defaultParameters['LocalRepositoryHome'])
@@ -320,8 +335,9 @@ def JAReadEnvironmentConfig(
         localReposistoryCustom = defaultParameters['LocalRepositoryCustom']
     else:
         localReposistoryCustom = "Custom"
-    with open("JAAudit.profile", "w") as file:
-        file.write("LocalRepositoryCustom: {0}".format(localReposistoryCustom))
-        file.close()
-    return returnStatus
+
+    ### save LocalRepositoryCustom value in JAAudit.profile
+    JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
+
+    return True
     

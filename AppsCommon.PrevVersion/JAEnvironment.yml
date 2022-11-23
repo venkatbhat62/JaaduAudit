@@ -73,9 +73,9 @@ OS:
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
   ###  so that component specific variable values can be derived run time
-  ### AppConfig naming convention - <SubsystemName><repositoryName><ComponentName>.yml[.<AppVersion>] where
+  ### AppConfig naming convention - <SubsystemName><platform><ComponentName>.yml[.<AppVersion>] where
   ###   <SubsystemName> - App for main application, DB for Database configurations, OS for OS configurations
-  ###   <repositoryName>  - keep this same as platform name defined before for this environment
+  ###   <platform>  - keep this same as platform name defined before for this environment
   ###   <ComponentName> - abbreviated component name
   ###   [.<AppVersion>] - this application version will be appended run time to derive the config file to be used
   ###           based on current application release installed on that host.

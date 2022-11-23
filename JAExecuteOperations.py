@@ -17,7 +17,7 @@ import JAOperationConn
 def JARun( 
     operation, maxWaitTime,
     baseConfigFileName, subsystem, myPlatform, appVersion,
-    OSType, OSName, OSVersion, logFilePath, auditLogFileName, 
+    OSType, OSName, OSVersion, logFilePath,  
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTime) :
@@ -47,9 +47,10 @@ def JARun(
                 deltaTime = time.time() - startTime
                 if deltaTime > maxWaitTime:
                     ### terminate the child
-                    print("WARN JARun() exceeded maxWaitTime:{0}, killed the operation:{1}".format(
-                        maxWaitTime, operation
-                    ))
+                    JAGlobalLib.LogLine(
+			            "WARN JARun() exceeded maxWaitTime:{0}, killed the operation:{1}".format(maxWaitTime, operation), 
+                	    interactiveMode,
+                	    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     ### TBD - add code later
 
         ### read the message from child
@@ -67,14 +68,14 @@ def JARun(
         if operation == 'sync':
             returnStatus, errorMsg = JAOperationSync.JAOperationSync(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath, auditLogFileName, 
+                OSType, OSName, OSVersion, logFilePath,  
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime )
         elif operation == 'conn':
             returnStatus, errorMsg = JAOperationConn.JAOperationConn(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath, auditLogFileName, 
+                OSType, OSName, OSVersion, logFilePath,  
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime  )
@@ -92,8 +93,10 @@ def JARun(
 
             except os.error as err:
                 # ignore error
-                print("ERROR JARun() could not execution result to parent for the operation:{0}, error:{1}".format(
-                        operation, err))
+                JAGlobalLib.LogLine(
+                    "ERROR JARun() could not execution result to parent for the operation:{0}, error:{1}".format(operation, err), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
             # child process on non windows platform, exit child process
             sys.exit(0)

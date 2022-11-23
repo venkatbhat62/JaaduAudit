@@ -128,7 +128,7 @@ Parameters passed:
 
 
 """
-def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HTMLBRTag:str):
+def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HTMLBRTag:str,  diffLine=False, OSType='Linux'):
 
     currentTime = UTCDateTime() + ' '
     tempLines = myLines.splitlines(False)
@@ -138,10 +138,17 @@ def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HT
             line = line.replace("<!--",  "/&lt;!--")
             line = line.replace("-->",  "--&gt;")
         
-        if re.match( '^< ', line):
+        # repace \r with \n
+        line = line.replace(r'\r', r'\n')
+
+        if ( ( (OSType != "Windows") and re.match( '^< ', line) )
+            or ( (OSType == "Windows" and re.search(r'<=$' , line) )) 
+            and (diffLine == True) ):
             # diff line, color code it
             line = myColors['blue'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]
-        elif re.match( '^> ', line):
+        elif ( ( (OSType != "Windows") and re.match( '^> ', line) )
+            or ( (OSType == "Windows" and re.search(r'=>$' , line) )) 
+            and (diffLine == True) ):
             # diff line, color code it
             line = myColors['magenta'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]
         elif re.match( '^ERROR |^ERROR,', line):
@@ -583,7 +590,7 @@ def JAReadTimeStamp( fileName:str):
             return prevTime
 
     except OSError as err:
-        errorMsg = 'INFO - JAReadTimeStamp() Can not open file: {0} to save current time, error:{1}\n'.format( 
+        errorMsg = 'INFO JAReadTimeStamp() Can not open file: {0} to save current time, error:{1}\n'.format( 
             fileName, err)
         print(errorMsg)
         return 0
@@ -622,25 +629,122 @@ def JAExecuteCommand(command:str, debugLevel:int):
     try:
         result = subprocess.run( command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         returnOutput = result.stdout.decode('utf-8').split('\n')
-        errorMsg = 'INFO JAAudit() result of executing the command:{0}\n{1}'.format(command,returnOutput)
+        errorMsg = 'INFO JAExecuteCommand() result of executing the command:{0}\n{1}'.format(command,returnOutput)
         returnResult = True
     except (subprocess.CalledProcessError) as err :
-        errorMsg = "ERROR failed to execute command:{0}".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:{0}".format(command, err)
       
     except ( FileNotFoundError ) as err:
-        errorMsg = "INFO File not found, while executing the command:{0}".format(command, err)
+        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:{0}".format(command, err)
         
     except Exception as err:
-        errorMsg = "ERROR failed to execute command:{0}".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:{0}".format(command, err)
 
     if debugLevel > 0 :
         print("DEBUG-1 JAExecuteCommand() command output:{0}, errorMsg:{1}".format(returnOutput, errorMsg))
     returnOutput = str(returnOutput)
     return returnResult, returnOutput, errorMsg
 
+def JAGetProfile(fileName:str, paramName:str):
+    """
+    Searches for the paramName in given profile file having the values in the format
+        paramName: paramValue 
+    
+    Parameters passed:
+        fileName - profile file name
+        paramName - parameter name to search
+
+    Returns
+       returnStatus - True if value found, else False
+       paramValue - value if value found, else None
+
+    """
+    returnStatus = False
+    paramValue = None
+    if os.path.exists(fileName) :
+        with open(fileName, "r") as file:
+            while True:
+                line = file.readline()
+                if not line:
+                    break
+                line = line.strip()
+                fieldParts = line.split(':')
+                if len(fieldParts) > 1:
+                    if fieldParts[0] == paramName:
+                        paramValue = fieldParts[1]
+                        paramValue = paramValue.lstrip()
+                        returnStatus = True
+                        break
+            file.close()
+    else:
+        print("ERROR JAGetProfile() Profile file:{0} is not present".format(fileName))
+
+    return returnStatus, paramValue
+
+def JASetProfile(fileName:str, paramName:str, paramValue:str):
+    """
+    Searches for the paramName in given profile file having the values in the format
+        paramName: paramValue 
+    Replaces the maching line with new paramValue passed
+
+    Parameters passed:
+        fileName - profile file name
+        paramName - parameter name to search
+        paramValue - parameter value
+
+    Returns
+       returnStatus - True if value found, else False
+       
+    """
+    returnStatus = True
+    fileContents = ''
+    lineFound = False
+    replaceLine = "{0}:{1}\n".format(paramName,paramValue)
+    if os.path.exists(fileName) :
+        with open(fileName, "r") as file:
+            while True:
+                line = file.readline()
+                if not line:
+                    break
+                fieldParts = line.split(':')
+                if len(fieldParts) > 1:
+                    if fieldParts[0] == paramName:
+                        ### make new line with new param value
+                        fileContents += replaceLine
+                        lineFound = True
+                    else:
+                        ### store original line as is
+                        fileContents += (line + '\n')
+            if lineFound == False:
+                ### add new line
+                fileContents += replaceLine
+            file.close()
+        
+        with open(fileName, "w") as file:
+            file.write(fileContents)
+            file.close()
+
+    else:
+        ### write new file
+        with open(fileName, "w") as file:
+            file.write(replaceLine)
+            file.close()
+
+    return returnStatus
+
 def JADeriveHistoryFileName( subsystem:str, operation:str, defaultParameters):
-    historyFileName = "{0}JAAudit.{1}.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], operation,subsystem)
+    historyFileName = "{0}/JAAudit.{1}.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], operation,subsystem)
     return historyFileName
+
+def JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters ):
+    """
+    Write current time to history file indicating last time when this operation was performed
+    """
+    historyFileName = JADeriveHistoryFileName(subsystem, operation, defaultParameters )
+    with open(historyFileName,"w") as file:
+        file.write(UTCDateTime())
+    
+    return True
 
 def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defaultParameters, debugLevel:int):
     """
