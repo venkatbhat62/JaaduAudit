@@ -11,6 +11,7 @@ from collections import defaultdict
 import JAGlobalLib
 
 import JAOperationSync
+import JAOperationSaveCompare
 import JAOperationConn
 
 
@@ -65,7 +66,21 @@ def JARun(
         # This is the child process
         os.close(readDescriptor)
         
-        if operation == 'sync':
+        if operation == 'save':
+            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSave(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion, logFilePath,  
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime )
+        elif operation == 'compare':
+            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationCompare(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion, logFilePath,  
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime )                
+        elif operation == 'sync':
             returnStatus, errorMsg = JAOperationSync.JAOperationSync(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion, logFilePath,  

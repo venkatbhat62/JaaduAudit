@@ -20,7 +20,7 @@ import subprocess
 import signal
 from collections import defaultdict
 import JAGlobalLib
-import JAOperationCompare
+import JAOperationSaveCompare
 
 def GetAllFilesFromSCMUsingRsync(
     rsyncCommand:str, 
@@ -482,7 +482,7 @@ def JAOperationSync(
                 currentFileName = '{0}/{1}/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
                 previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
                 if os.path.exists(previousFileName ):
-                    returnStatus, fileDiffer, errorMsg = JAOperationCompare.JAOperationCompareFiles( 
+                    returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
@@ -563,7 +563,7 @@ def JAOperationSync(
                 currentFileName = '{0}{/1}/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
                 previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
                 if os.path.exists(previousFileName ):
-                    returnStatus, fileDiffer, errorMsg = JAOperationCompare.JAOperationCompareFiles( 
+                    returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
