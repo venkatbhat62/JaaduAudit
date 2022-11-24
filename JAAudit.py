@@ -559,13 +559,9 @@ if environmentTERM == '' or environmentTERM == 'dumb':
         # stagger the execution by 10 min or 600 seconds
         randomizationWindow = 600
 
-    import random
-    sleepTime = random.randint(0,randomizationWindow)
-    print("INFO JAAudit() sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime))
-    time.sleep(sleepTime)
-
 else:
     interactiveMode = True
+    randomizationWindow = 0
 
 errorMsg  = "INFO JAAudit.py() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
     JAVersion, OSType, OSName, OSVersion)
@@ -623,20 +619,40 @@ else:
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-### get application version, this is used to derive host/component specific specification file(s)
-if 'CommandToGetAppVersion' in defaultParameters:
-    commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']
-    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-        commandToGetAppVersion, debugLevel)
-    if returnResult == True:
-        appVersion = returnOutput.rstrip("\n")
-        appVersion = appVersion.lstrip()
-    else:
-        appVersion = ''
-        JAGlobalLib.LogLine(
-			errorMsg, 
-            interactiveMode,
-            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+if subsystem == 'App' or subsystem == None:
+    ### get application version, this is used to derive host/component specific specification file(s)
+    if 'CommandToGetAppVersion' in defaultParameters:
+        commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            commandToGetAppVersion, debugLevel)
+        if returnResult == True:
+            appVersion = returnOutput.rstrip("\n")
+            appVersion = appVersion.lstrip()
+        else:
+            appVersion = ''
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+elif subsystem == 'DB':
+    ### get application version, this is used to derive host/component specific specification file(s)
+    if 'CommandToGetDBVersion' in defaultParameters:
+        commandToGetDBVersion = defaultParameters['CommandToGetDBVersion']
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            commandToGetDBVersion, debugLevel)
+        if returnResult == True:
+            appVersion = returnOutput.rstrip("\n")
+            appVersion = appVersion.lstrip()
+        else:
+            appVersion = ''
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+elif subsystem == 'OS':
+    appVersion = OSVersion
+else:
+    appVersion = ''
 
 ### if operation is default, sync, download, or upload, need to connect to SCM. Check the connectivity
 if re.match(r"sync|download|upload|default", operations):
@@ -712,6 +728,35 @@ if re.match(r"sync|download|upload|default", operations):
             JAGlobalLib.JASetProfile("JAAudit.profile", 'SCMHostName', SCMHostName)
 
 
+### if save is opted, run it
+if re.search("perfStatsOS", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "perfStatsOS", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if save is opted, run it
+if re.search("perfStatsApp", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "perfStatsApp", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### sleep for random time so that file fetch load on SCM is staggered acorss many hosts running this audit tool
+if randomizationWindow > 0:
+    import random
+    sleepTime = random.randint(0,randomizationWindow)
+    print("INFO JAAudit() sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime))
+    time.sleep(sleepTime)
+
 ### if sync is opted, run it
 if re.search("sync", operations) != None and re.match("nosync", operations) == None:
     JAExecuteOperations.JARun( 
@@ -722,7 +767,141 @@ if re.search("sync", operations) != None and re.match("nosync", operations) == N
         interactiveMode, operations, thisHostName, yamlModulePresent,
         defaultParameters, debugLevel, currentTime
     )
-    
+
+### if cert is opted, run it
+if re.search("cert", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "cert", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if conn is opted, run it
+if re.search("conn", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "conn", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if heal is opted, run it
+if re.search("heal", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "heal", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if health is opted, run it
+if re.search("health", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "health", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+
+### if inventory is opted, run it
+if re.search("inventory", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "inventory", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if license is opted, run it
+if re.search("license", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "license", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if save is opted, run it
+if re.search("save", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "save", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if stats is opted, run it
+if re.search("stats", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "stats", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if task is opted, run it
+if re.search("task", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "task", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if test is opted, run it
+if re.search("test", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "test", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### KEEP download before compare operation so that files from SCM are downloaded before compare
+### if download is opted, run it
+if re.search("download", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "download", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
+### if compare is opted, run it
+if re.search("compare", operations) != None and re.match("nosync", operations) == None:
+    JAExecuteOperations.JARun( 
+        "compare", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime
+    )
+
 ### if conn operation is opted, read config file, run connn tests and if upload is opted,
 ###    upload results to SCM
 if re.search("conn", operations):

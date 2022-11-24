@@ -95,6 +95,11 @@ OS:
     ### exclude these files while fetching using wget
     ### regular expression syntax, re.search() is used to find a match
     FilesToExcludeInWget: (\.swp$)|(\.log$)|^__pycache__/$
+    ### root path on target host where the contents of Common and Custom files will be copied
+    ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+    LocalRepositoryHome: '$HOME/JaaduAudit'
+    LogFilePath: '$HOME/JaaduAudit/Logs'
+    ReportsPath: '$HOME/JaaduAudit/Reports'
 
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
@@ -122,6 +127,7 @@ Component:
     AppConfig: AppWindowsAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
+    CommandToGetDBVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (LAPTOP-QOCNVF0T)
     ### datamask for this component
@@ -169,7 +175,7 @@ Component:
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     AppConfig: AppPlatform1DB.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
+    CommandToGetDBVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
     ### if the current hostname match to below spec, it is considered of component type DB
     HostName: (...)(d|t|u|p)(db)
     ### datamask for this component

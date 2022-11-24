@@ -145,12 +145,12 @@ def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HT
             or ( (OSType == "Windows" and re.search(r'<=$' , line) )) 
             and (diffLine == True) ):
             # diff line, color code it
-            line = myColors['blue'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]
+            line = myColors['blue'][colorIndex]  + line + myColors['clear'][colorIndex]
         elif ( ( (OSType != "Windows") and re.match( '^> ', line) )
             or ( (OSType == "Windows" and re.search(r'=>$' , line) )) 
             and (diffLine == True) ):
             # diff line, color code it
-            line = myColors['magenta'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]
+            line = myColors['magenta'][colorIndex] + line + myColors['clear'][colorIndex]
         elif re.match( '^ERROR |^ERROR,', line):
             # diff line, color code it
             line = myColors['red'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]
@@ -790,43 +790,53 @@ def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defa
 
     return returnStatus
 
-def JADeriveConfigFileName( pathName:str, prefix:str, baseConfigFileName:str, subsystem:str, appVersion:str, debugLevel:int ):
+def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseConfigFileName:str, version:str, debugLevel:int ):
     """
     Prepare operation specific configuration file
-    <path><prefix><baseConfigFileName><subsystem>[.<appVersion>].<fileType>
+    <path>/<subsystem><baseConfigFileName>[.<version>].<fileType>
     
     if subsystem passed is empty, 'App' subsystem is used by default
-    if appVersion is not empty, it is added to the filename
+    if version is not empty, it is added to the filename
     
     """
 
-    if debugLevel > 0:
-        print("DEBUG-1 JADeriveConfigFileName() pathName{0}, prefix:{1}, baseConfigFileName:{2}, subsystem:{3}, appVersion:{4}".format(
-                pathName, prefix, baseConfigFileName, subsystem, appVersion))
+    returnStatus = True
+    errorMsg = ''
+    
+    if debugLevel > 1:
+        print("DEBUG-2 JADeriveConfigFileName() pathName1:{0}, pathName2:{1}, subsystem:{2}, baseConfigFileName:{3}, version:{4}".format(
+                pathName1, pathName2, subsystem, baseConfigFileName, version))
 
     # remove file type from baseConfigFileName
     baseConfigFileNameWithoutFileType, fileType = baseConfigFileName.split('.')
 
-    # start making full file name now
-    specFileName = "{0}{1}{2}".format(pathName, prefix, baseConfigFileNameWithoutFileType)
-
+    ### use App subsystem as default 
     if subsystem == '' or subsystem == None:
-        specFileName = "{0}App".format(specFileName)
-    else: 
-        specFileName = "{0}{1}".format(specFileName, subsystem)
+        subsystem = 'App'
+    
+    ### first try under pathName1
+    tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
+        pathName1, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
+    if os.path.exists( tempConfigFileName ) == False:
+        tempConfigFileName = '{0}/{1}{2}.{3}'.format(
+            pathName1, subsystem, baseConfigFileNameWithoutFileType, fileType)
+        if os.path.exists( tempConfigFileName ) == False:
+            ### Now try under pathName2
+            tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
+                pathName2, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
+            if os.path.exists( tempConfigFileName ) == False:
+                tempConfigFileName = '{0}/{1}{2}.{3}'.format(
+                    pathName2, subsystem, baseConfigFileNameWithoutFileType, fileType)
+                if os.path.exists( tempConfigFileName ) == False:
+                    ### file does exist, return error
+                    errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, subsystem:{3}, AppConfig:{4}, version:{5}".format(
+                        tempConfigFileName, pathName1, pathName2, subsystem, baseConfigFileName, version)
+                    returnStatus = False
+                    tempConfigFileName = ''
 
-    if appVersion != '':
-        specFileNameWithAppVersion = "{0}.{1}.{2}".format(specFileName, appVersion, fileType)
-        if os.path.exists(specFileNameWithAppVersion):
-            specFileName =  specFileNameWithAppVersion
-        else:
-            specFileName = "{0}.{1}".format( specFileName, fileType)
-    else:
-        specFileName = "{0}.{1}".format( specFileName, fileType)
-
-    if debugLevel > 0:
-        print("DEBUG-1 JADeriveConfigFileName() derived config file:{0}".format(specFileName))
-    return specFileName
+    if debugLevel > 1:
+        print("DEBUG-2 JADeriveConfigFileName() derived config file:{0}".format(tempConfigFileName))
+    return returnStatus, tempConfigFileName, errorMsg
 
 def JACheckConnectivity( 
     hostName:str, port:str, protocol:str, command:str, tcpOptions:str, udpOptions:str, 

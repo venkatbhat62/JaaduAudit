@@ -24,7 +24,7 @@ import JAGlobalLib
 
 def JAOperationConn(
     baseConfigFileName, subsystem, myPlatform, appVersion,
-    OSType, OSName, OSVersion, logFilePath, auditLogFileName, 
+    OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel ):

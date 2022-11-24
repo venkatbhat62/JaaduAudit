@@ -69,31 +69,39 @@ def JARun(
         if operation == 'save':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSave(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath,  
+                OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime )
         elif operation == 'compare':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath,  
+                OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime )                
         elif operation == 'sync':
             returnStatus, errorMsg = JAOperationSync.JAOperationSync(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath,  
+                OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime )
         elif operation == 'conn':
             returnStatus, errorMsg = JAOperationConn.JAOperationConn(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion, logFilePath,  
+                OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime  )
+                defaultParameters, debugLevel  )
+        else:
+            errorMsg = "ERROR JARun() Unsupported operation:{0}".format(operation)
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            returnStatus = False            
+
         if OSType == "Windows":
             ### did not fork, return
             return returnStatus, errorMsg 

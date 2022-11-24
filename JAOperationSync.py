@@ -247,7 +247,7 @@ def GetAllFilesFromSCMUsingWget(
 
 def JAOperationSync(
     baseConfigFileName, subsystem, myPlatform, appVersion,
-    OSType, OSName, OSVersion, logFilePath,  
+    OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTime ):

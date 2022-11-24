@@ -8,15 +8,14 @@ import re
 import os
 import JAGlobalLib
 
-def JAOperationsCompareReadConfig( 
+def JAOperationCompareReadConfig( 
         baseConfigFileName, 
         subsystem, 
-        myPlatform, 
-        appVersion,
-        OSType, OSName, OSVersion, logFilePath,  
+        version, 
+        OSType,
         outputFileHandle, colorIndex, HTMLBRTag, myColors,
-        interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime,
+        interactiveMode, yamlModulePresent,
+        defaultParameters, debugLevel,
         saveCompareSpec ):
 
     
@@ -57,6 +56,20 @@ def JAOperationsCompareReadConfig(
 #            Also, use this when the object or file is application to this host only like certificate        
 #            Default - No
 #
+   Parameters passed:
+        baseConfigFileName - Vaue of 'AppConfig' parameter defined in JAEnvironment.yml for that host or component for that environment
+        subsystem - if not empty, it will be Prefixed to derive config file
+        version - if not empty, suffixed to the baseConfigFileName to find release specific config file
+        OSType,
+        outputFileHandle, colorIndex, HTMLBRTag, myColors,
+        interactiveMode, yamlModulePresent,
+        defaultParameters, debugLevel, 
+        saveCompareSpec - full details, along with default parameters assigned, are returned in this dictionary
+
+    Returned Values:
+        returnStatus - True on success, False upon file read error
+        numberOfItems - number of items read
+
     """
     returnStatus = False
     errorMsg = ''
@@ -64,8 +77,35 @@ def JAOperationsCompareReadConfig(
     numberOfErrors = 0
     numberOfWarnings = 0
 
-    
-    return returnStatus, errorMsg
+    baseConfigFileNameParts = baseConfigFileName.split('.')
+    if len(baseConfigFileNameParts) != 2:
+        JAGlobalLib.LogLine(
+            "ERROR JAOperationCompareReadConfig() AppConfig name not in expected format, no . (dot) in filename: {0}".format(baseConfigFileName),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        return returnStatus, numberOfItems
+
+    ### derive the save compare spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
+    returnStatus, saveCompareSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
+          '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCustom']),
+          '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCommon']),
+          subsystem, baseConfigFileName, version, debugLevel )
+    if returnStatus == False:
+        JAGlobalLib.LogLine(
+            "ERROR JAOperationCompareReadConfig() AppConfig:{0} not present, error:{1}".format(baseConfigFileName, errorMsg),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        return returnStatus, numberOfItems
+        
+    if debugLevel > 0:
+        JAGlobalLib.LogLine(
+            "DEBUG-1 JAOperationCompareReadConfig() Read items:{0}, with warnings:{1} and errors:{2}, from AppConfig:{3}".format(
+                numberOfItems, numberOfWarnings, numberOfErrors, baseConfigFileName),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    return returnStatus, numberOfItems
 
 def JAOperationCompareFiles(
     currentFileName:str, previousFileName:str, binFileTypes:str, compareCommand:str,
@@ -179,6 +219,10 @@ def JAOperationCompareFiles(
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             
         else:
+            JAGlobalLib.LogLine(
+                tempCompareCommand, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             JAGlobalLib.LogLine(
                 "JAAuditDiffStart++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", 
                 interactiveMode,
@@ -313,12 +357,12 @@ def JAOperationCompareFiles(
 
     return returnStatus, fileDiffer, errorMsg
 
-def JAOperationsSave( 
+def JAOperationSave( 
     baseConfigFileName, 
     subsystem, 
     myPlatform, 
-    appVersion,
-    OSType, OSName, OSVersion, logFilePath,  
+    version,
+    OSType, OSName, OSVersion,  
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTime ):
@@ -329,14 +373,50 @@ def JAOperationsSave(
     numberOfWarnings = 0
     errorMsg = ''
 
+    ### dictionary to hold object definitions
+    saveCompareSpec = {}
+
+    returnStatus, numberOfItems = JAOperationCompareReadConfig( 
+        baseConfigFileName, 
+        subsystem, 
+        version, 
+        OSType,
+        outputFileHandle, colorIndex, HTMLBRTag, myColors,
+        interactiveMode, yamlModulePresent,
+        defaultParameters, debugLevel,
+        saveCompareSpec )
+    if returnStatus == False:
+        returnStatus, numberOfItems
+
     return returnStatus, numberOfItems
 
-def JAOperationsCompare( 
+def JAOperationCompare( 
     baseConfigFileName, 
     subsystem, 
     myPlatform, 
-    appVersion,
-    OSType, OSName, OSVersion, logFilePath,  
+    version,
+    OSType, OSName, OSVersion,  
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTime ):
+
+    returnStatus = True
+    numberOfItems = 0
+    numberOfErrors = 0
+    numberOfWarnings = 0
+    errorMsg = ''
+
+    ### dictionary to hold object definitions
+    saveCompareSpec = {}
+
+    returnStatus, numberOfItems = JAOperationCompareReadConfig( 
+        baseConfigFileName, 
+        subsystem, 
+        version, 
+        OSType,
+        outputFileHandle, colorIndex, HTMLBRTag, myColors,
+        interactiveMode, yamlModulePresent,
+        defaultParameters, debugLevel,
+        saveCompareSpec )
+    if returnStatus == False:
+        returnStatus, numberOfItems
