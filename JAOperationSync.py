@@ -560,7 +560,7 @@ def JAOperationSync(
             ### If file is NEW, print that file name as NEW file.
             ### If existing file, print differences between PrevVersion and current version of the file
             for fileName in fileNames:
-                currentFileName = '{0}{/1}/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
+                currentFileName = '{0}/{1}/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
                 previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCustom, fileName)
                 if os.path.exists(previousFileName ):
                     returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 

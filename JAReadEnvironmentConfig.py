@@ -100,7 +100,7 @@ def JAReadEnvironmentConfig(
     ### first check whether profile is present in current working directory
     returnStatus, localRepositoryCustom = JAGlobalLib.JAGetProfile("JAAudit.profile", 'LocalRepositoryCustom')
     if returnStatus == True:
-        ### localReposistoryCustom is available, environment file may be under that folder.
+        ### LocalRepositoryCustom is available, environment file may be under that folder.
         ###   if present, update file to that location
         tempFileName = '{0}/{1}'.format(localRepositoryCustom, fileName)
 
@@ -332,12 +332,12 @@ def JAReadEnvironmentConfig(
 
     ### write the LocalRepositoryCustom value to JAAudit.profile 
     if 'LocalRepositoryCustom' in defaultParameters:
-        localReposistoryCustom = defaultParameters['LocalRepositoryCustom']
+        LocalRepositoryCustom = defaultParameters['LocalRepositoryCustom']
     else:
-        localReposistoryCustom = "Custom"
+        LocalRepositoryCustom = "Custom"
 
     ### save LocalRepositoryCustom value in JAAudit.profile
-    JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
+    JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalRepositoryCustom', LocalRepositoryCustom)
 
     return True
     

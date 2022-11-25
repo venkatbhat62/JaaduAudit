@@ -39,7 +39,9 @@ JAVersion = "JA01.00.00"
 # this config file has environment specific definitions
 environmentFileName = "JAEnvironment.yml"
 # this config file has list of commands allowed to be executed by JAAudit
-allowCommandsFileName = "JAAllowCommmands.conf"
+# OSType and .conf will be suffixed to get the config file for current host type
+# expect this file to be at LocalRepositoryHome/LocalRepositoryCommon
+allowCommandsFileName = "JAAllowCommands"
 
 # web server URL to post the OS stats data, per environment
 SCMHostName = ''
@@ -533,6 +535,31 @@ PASS   - expect to see in green color
 >      magenta color line"""
     JAGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+if '-H' in argsPassed:
+    defaultParameters['DownloadHostName'] = argsPassed['-H']
+else:
+    defaultParameters['DownloadHostName'] = None
+
+if '-i' in argsPassed:
+    defaultParameters['IgnoreHostNameIPDifference'] = argsPassed['-i']
+else:
+    defaultParameters['IgnoreHostNameIPDifference'] = None
+
+if '-fT' in argsPassed:
+    defaultParameters['FromTime'] = argsPassed['-fT']
+else:
+    defaultParameters['FromTime'] = None
+
+if '-tT' in argsPassed:
+    defaultParameters['ToTime'] = argsPassed['-tT']
+else:
+    defaultParameters['ToTime'] = None
+    
+if '-dT' in argsPassed:
+    deltaTimeInMin = int(argsPassed['-dT'])
+    defaultParameters['FromTime'] = JAGlobalLib.JAGetDateTime(deltaTimeInMin*60)
+    defaultParameters['ToTime'] = JAGlobalLib.UTCDateTime()
+
 returnResult = "_JAAudit_PASS_" # change this to other errors when error is encountered
 
 environmentTERM = os.getenv('TERM')
@@ -576,6 +603,41 @@ if 'PATH' in defaultParameters:
 
 if 'LD_LIBRARY_PATH' in defaultParameters:
     os.environ['LD_LIBRARY_PATH'] = defaultParameters['LD_LIBRARY_PATH']
+
+### read allowed commands from config file.
+fileName = fileNameCommon = '{0}/{1}/{2}.{3}.conf'.format(
+    defaultParameters['LocalRepositoryHome'],
+    defaultParameters['LocalRepositoryCommon'],
+    allowCommandsFileName,OSType)
+if os.path.exists( fileNameCommon) == False :
+    ### try reading it from custom area
+    fileName = fileNameCustom = '{0}/{1}/{2}.{3}.conf'.format(
+        defaultParameters['LocalRepositoryHome'],
+        defaultParameters['LocalRepositoryCustom'],
+        allowCommandsFileName,OSType)
+    if os.path.exists(fileName) == False:
+        errorMsg = "ERROR JAAudit() Error reading allow commands config file from common folder ({0}) as well as from custom folder ({1}), exiting".format( 
+            fileNameCommon, fileNameCustom)
+        JAGlobalLib.LogLine(
+            errorMsg, 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        sys.exit(0)
+allowedCommands = []
+with open(fileName, "r") as file:
+    while True:
+        line = file.readline()
+        if not line:
+            break
+        if re.match('#', line):
+            ### skip comment line
+            continue
+        line = line.strip()
+        ### on windows system, change the command to lower case
+        if OSType == "Windows":
+            line = line.lower()
+        allowedCommands.append(line)
+    file.close()
 
 ### get current time in seconds
 currentTime = time.time()
@@ -653,6 +715,32 @@ elif subsystem == 'OS':
     appVersion = OSVersion
 else:
     appVersion = ''
+
+if '-d' in argsPassed:
+    """
+        [-d <saveDirectory>] - Directory where files will be saved if operation is 'save' or 'download'.
+        Directory from where files will be uploaded to SCM if operation is 'upload'
+        Files under this directory will be compared with source files if operation is 'compare'
+        If value is not passed for 'download' operation and -H <downloadHostName> is passed
+            downloaded info is saved under JAAudit/otherHost
+        Else if value is not passed for the operations 'save' 'compare', 'upload', 'download'
+            If subsystem is OS, use the OS version id as directory name (JAAudit/<OSVersion>).
+            Else if the application version spec is defined in environment config file, use that application version
+                id as the directory name (JAAudit/<AppVersion>)
+            Else use JAAudit/old as directory name
+    """
+    defaultParameters['SaveDir'] = argsPassed['-d']
+else:
+    if defaultParameters['DownloadHostName'] != None:
+        defaultParameters['SaveDir'] = 'otherHost'
+    elif subsystem == 'OS':
+        defaultParameters['SaveDir'] = OSVersion
+    elif appVersion != None:
+        defaultParameters['SaveDir'] = appVersion
+    else:
+        defaultParameters['SaveDir'] = 'old'
+### all subdirectories will be under 'LocalRepositoryHome'
+defaultParameters['SaveDir'] = "{0}/{1}".format( defaultParameters['LocalRepositoryHome'], defaultParameters['SaveDir'])
 
 ### if operation is default, sync, download, or upload, need to connect to SCM. Check the connectivity
 if re.match(r"sync|download|upload|default", operations):
@@ -736,7 +824,7 @@ if re.search("perfStatsOS", operations) != None and re.match("nosync", operation
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if save is opted, run it
@@ -747,7 +835,7 @@ if re.search("perfStatsApp", operations) != None and re.match("nosync", operatio
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### sleep for random time so that file fetch load on SCM is staggered acorss many hosts running this audit tool
@@ -765,7 +853,7 @@ if re.search("sync", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if cert is opted, run it
@@ -776,7 +864,7 @@ if re.search("cert", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if conn is opted, run it
@@ -787,7 +875,7 @@ if re.search("conn", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if heal is opted, run it
@@ -798,7 +886,7 @@ if re.search("heal", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if health is opted, run it
@@ -809,7 +897,7 @@ if re.search("health", operations) != None and re.match("nosync", operations) ==
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 
@@ -821,7 +909,7 @@ if re.search("inventory", operations) != None and re.match("nosync", operations)
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if license is opted, run it
@@ -832,7 +920,7 @@ if re.search("license", operations) != None and re.match("nosync", operations) =
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if save is opted, run it
@@ -843,7 +931,7 @@ if re.search("save", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if stats is opted, run it
@@ -854,7 +942,7 @@ if re.search("stats", operations) != None and re.match("nosync", operations) == 
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if task is opted, run it
@@ -865,7 +953,7 @@ if re.search("task", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if test is opted, run it
@@ -876,7 +964,7 @@ if re.search("test", operations) != None and re.match("nosync", operations) == N
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### KEEP download before compare operation so that files from SCM are downloaded before compare
@@ -888,7 +976,7 @@ if re.search("download", operations) != None and re.match("nosync", operations) 
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if compare is opted, run it
@@ -899,7 +987,7 @@ if re.search("compare", operations) != None and re.match("nosync", operations) =
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
 ### if conn operation is opted, read config file, run connn tests and if upload is opted,
@@ -911,5 +999,5 @@ if re.search("conn", operations):
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 
         interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime
+        defaultParameters, debugLevel, currentTime, allowedCommands
     )

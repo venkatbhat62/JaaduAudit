@@ -77,6 +77,12 @@ def JAGetTime( deltaSeconds:int ):
     newTime = tempTime - deltaTime
     return newTime.strftime("%H:%M:%S")
 
+def JAGetDateTime( deltaSeconds:int ):
+    tempTime = datetime.datetime.now()
+    deltaTime = datetime.timedelta(seconds=deltaSeconds)
+    newTime = tempTime - deltaTime
+    return newTime.strftime("%Y-%m-%dT%H:%M:%S.%f%Z")
+
 def JAGetDayOfMonth( deltaSeconds:int ):
     tempTime = datetime.datetime.now()
     deltaTime = datetime.timedelta(seconds=deltaSeconds)
@@ -800,7 +806,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
     
     """
 
-    returnStatus = True
+    returnStatus = False
     errorMsg = ''
     
     if debugLevel > 1:
@@ -814,25 +820,39 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
     if subsystem == '' or subsystem == None:
         subsystem = 'App'
     
-    ### first try under pathName1
-    tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
-        pathName1, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
-    if os.path.exists( tempConfigFileName ) == False:
-        tempConfigFileName = '{0}/{1}{2}.{3}'.format(
-            pathName1, subsystem, baseConfigFileNameWithoutFileType, fileType)
+    ### first try with version, if version is passed
+    if version != '':
+        ### first try under path1
+        tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
+            pathName1, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
         if os.path.exists( tempConfigFileName ) == False:
             ### Now try under pathName2
             tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
                 pathName2, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
             if os.path.exists( tempConfigFileName ) == False:
-                tempConfigFileName = '{0}/{1}{2}.{3}'.format(
-                    pathName2, subsystem, baseConfigFileNameWithoutFileType, fileType)
-                if os.path.exists( tempConfigFileName ) == False:
-                    ### file does exist, return error
-                    errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, subsystem:{3}, AppConfig:{4}, version:{5}".format(
-                        tempConfigFileName, pathName1, pathName2, subsystem, baseConfigFileName, version)
-                    returnStatus = False
-                    tempConfigFileName = ''
+                returnStatus = False
+            else:
+                returnStatus = True
+        else:
+            returnStatus = True
+
+    if returnStatus == False:
+        ### try without the version string
+        tempConfigFileName = '{0}/{1}{2}.{3}'.format(
+            pathName1, subsystem, baseConfigFileNameWithoutFileType, fileType)
+        if os.path.exists( tempConfigFileName ) == False:
+            tempConfigFileName = '{0}/{1}{2}.{3}'.format(
+                pathName2, subsystem, baseConfigFileNameWithoutFileType, fileType)
+            if os.path.exists( tempConfigFileName ) == False:
+                ### file does exist, return error
+                errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, subsystem:{3}, AppConfig:{4}, version:{5}".format(
+                    tempConfigFileName, pathName1, pathName2, subsystem, baseConfigFileName, version)
+                returnStatus = False
+                tempConfigFileName = ''
+            else:
+                returnStatus = True
+        else:
+            returnStatus = True
 
     if debugLevel > 1:
         print("DEBUG-2 JADeriveConfigFileName() derived config file:{0}".format(tempConfigFileName))

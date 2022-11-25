@@ -1,0 +1,64 @@
+## AppWindowsAPP.yml
+# Save, Compare config spec 
+# Author: havembha@gmail.com,  2022-11-24
+# Format
+#    <ObjectName>: prefix used to formulate the filename of an object being saved or compared.
+#            If the operaton is save, the command output or reference file will be saved with this name as prefix. 
+#            If the operatoin is compare, object saved before with this name as prefix will be compared with current value.
+#            ObjectName needs to be unique across yml file. Duplicate not allowed by yml syntax.
+#        Command: - If the operation is save, gather environment details using this command and save the content with <ObjectName>
+#            If the operation is compare, gather current environment details using this command and compare to previously 
+#                saved content with <ObjectName>
+#            Only commands listed in JAAllowedCommands.yml are allowed. 
+#            On windows, these commands are executed via powershell, whose base path is defined in environment spec file
+#               via the parameter 'CommandPowershell'
+#            For a given object name, either Command or FileNames can be specified.
+#               If both are specified, Command definition takes precedence.
+#        CompareType: optional - Checksum, checksum, Text or text 
+#             Specify Checksum to compare binary files or any files where text comparison is not needed.
+#             If not specified, 
+#                On Unix/Linux hosts, it uses 'file' command to determin the file type.
+#                On Windows, file type defined in environment spec file via the parameter 'BinaryFileTypes' is used
+#                For binary files, defaults to Checksum
+#                For ASCII text, defaults to Text       
+#        Environment: optional - match to one of the environment defined in JAEnvironment.yml file
+#            if the current hostname match to the environment spec, this ObjectName will be saved or compared.
+#            Default - All environment
+#        FileNames: file names in CSV form or find command that returns file names in multiple lines
+#            each file name is suffixed with NameSuffix.
+#            If operation is save, save the contents of the files with <fileName>.<ObjectName> without the path name.
+#            If operation is compare, current file is compared to saved file.
+#            For a given object name, either Command or FileNames can be specified, NOT both.
+#            On Linux/Unix host, if the first word is 'find', it will execute the comamnd and work all files names
+#               returned in the command response
+#            On Windows host, if the first word is 'get-childitem', it will execute the comamnd and work all files names
+#               returned in the command response
+#        SkipH2H: optional - Yes, YES, NO or No 
+#            Skip this file from upload/download actions, keep the file on local host only.
+#            Suggest to use this option to keep any sensitive information on local host only, not to upload to SCM.
+#            Also, use this when the object or file is application to this host only like certificate        
+#            Default - No
+#
+AppProfile:
+  FileNames: $PSHOME\Profile.ps1
+AppCode:
+  # python files under AppsCommon 
+  # need to specify full path while referring to files (powershell defaults to home directory)
+  # Use "Select-object -expandproperty fullname" to get pathname and filename
+  FileNames: get-childitem C:\Users\${username}\documents\github\jaaduAudit/AppsCommon -Filter "*.py" | Select-object -expandproperty fullname
+  CompareType: Checksum
+  Environment: Dev
+  SkipH2H: Yes
+AppConfig:
+  # need to specify full path while referring to files (powershell defaults to home directory)
+  FileNames: C:\Users\${username}\documents\github\jaaduAudit/AppsCustom/JAEnvironment.yml, C:\Users\${username}\documents\github\jaaduAudit/AppsCustom/AppWindowsAPP.yml
+EnvApp:
+  ### take a snapshot of current environment
+  Command: env
+EnvOS:
+  Command: Get-WMIObject win32_operatingsystem | Select Version,SystemDirectory,BuildNumber
+FileSystem:
+  ### this will be executed using powershell
+  Command: Get-CimInstance Win32_LogicalDisk
+Firewall:
+  Command: get-netfirewallrule

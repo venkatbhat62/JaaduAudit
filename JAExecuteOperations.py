@@ -21,7 +21,7 @@ def JARun(
     OSType, OSName, OSVersion, logFilePath,  
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
-    defaultParameters, debugLevel, currentTime) :
+    defaultParameters, debugLevel, currentTime, allowedCommands) :
 
     # file descriptors r, w for reading and writing
     readDescriptor, writeDescriptor = os.pipe() 
@@ -72,14 +72,14 @@ def JARun(
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime )
+                defaultParameters, debugLevel, currentTime, allowedCommands  )
         elif operation == 'compare':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime )                
+                defaultParameters, debugLevel, currentTime, allowedCommands )                
         elif operation == 'sync':
             returnStatus, errorMsg = JAOperationSync.JAOperationSync(
                 baseConfigFileName, subsystem, myPlatform, appVersion,

@@ -37,7 +37,7 @@ def JAOperationConn(
     if debugLevel > 0:
         print("DEBUG-1 JAOperationConn() Connectivity spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
             baseConfigFileName, subsystem, appVersion, interactiveMode))
-    time.sleep(10)
+    time.sleep(1)
 
 
     return returnStatus, errorMsg
