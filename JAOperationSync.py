@@ -484,9 +484,10 @@ def JAOperationSync(
                 if os.path.exists(previousFileName ):
                     returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
+                            False,  # prevFileHasChecksum = False
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
-                            False,"","", ## not a host to host compare scenario
+                            False,"","", # not a host to host compare scenario
                             "", # no additional info to log
                             interactiveMode, debugLevel,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag,
@@ -565,9 +566,10 @@ def JAOperationSync(
                 if os.path.exists(previousFileName ):
                     returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName, 
+                            False,  # prevHasCheckSum = False
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
-                            False,"","", ## not a host to host compare scenario
+                            False,"","", # not a host to host compare scenario
                             "", # no additional info to log
                             interactiveMode, debugLevel,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag,

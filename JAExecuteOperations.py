@@ -67,19 +67,19 @@ def JARun(
         os.close(readDescriptor)
         
         if operation == 'save':
-            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSave(
+            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands  )
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         elif operation == 'compare':
-            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationCompare(
+            returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands )                
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )                
         elif operation == 'sync':
             returnStatus, errorMsg = JAOperationSync.JAOperationSync(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
