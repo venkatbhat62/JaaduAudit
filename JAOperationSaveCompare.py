@@ -104,7 +104,7 @@ def JAOperationReadConfig(
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-        return returnStatus, numberOfItems
+        return returnStatus, numberOfItems, saveCompareSpecFileName
 
     ### derive the save compare spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
     returnStatus, saveCompareSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
@@ -116,7 +116,7 @@ def JAOperationReadConfig(
             "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-        return returnStatus, numberOfItems
+        return returnStatus, numberOfItems, saveCompareSpecFileName
         
     if debugLevel > 1:
         JAGlobalLib.LogLine(
@@ -380,7 +380,7 @@ def JAOperationReadConfig(
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-    return returnStatus, numberOfItems
+    return returnStatus, numberOfItems, saveCompareSpecFileName
 
 def JAOperationCompareFiles(
     currentFileName:str, previousFileName:str, 
@@ -684,7 +684,7 @@ def JAOperationSaveCompare(
     saveCompareParameters = defaultdict(dict)
 
     ### read the object spec file contents
-    returnStatus, numberOfItems = JAOperationReadConfig( 
+    returnStatus, numberOfItems, saveCompareSpecFileName = JAOperationReadConfig( 
         baseConfigFileName, 
         subsystem, 
         version, 
@@ -749,6 +749,42 @@ def JAOperationSaveCompare(
         compareH2H = True
         compareCommandH2H = defaultParameters['CompareCommandH2H']
         compareCommandH2HSedCommand = defaultParameters['CompareCommandH2HSedCommand']
+
+    discoveredSpecFileName = "{0}/{1}{2}.{3}".format(
+        saveDir, subsystem, baseConfigFileName, operation  )
+    ### write the current AppConfig spec info to saveDir. 
+    # This info will be used later while comparing the current environment to saved environment
+    with open(discoveredSpecFileName, "w") as file:
+        for objectName, attributes in saveCompareParameters.items():
+            file.write("{0}:\n\tCommand: {1}\n\tFileNames: {2}\n\tCompareType:{3}\n\tSkipH2H: {4}\n\n".format(
+                    objectName,
+                    attributes['Command'],
+                    attributes['FileNames'],
+                    attributes['CompareType'],
+                    attributes['SkipH2H']
+                ))
+        file.close()
+    if operation == 'compare':
+        discoveredSpecSaveFileName = "{0}/{1}{2}.save".format(
+            saveDir, subsystem, baseConfigFileName  )
+        ### compare two files as text files to find delta between the two
+        returnStatus, fileDiffer, errorMsg = JAOperationCompareFiles(
+            discoveredSpecFileName, discoveredSpecSaveFileName, 
+            defaultParameters['BinaryFileTypes'],
+            'text', # compareType
+            defaultParameters['CompareCommand'],
+            compareH2H, compareCommandH2H, compareCommandH2HSedCommand,
+            '', ### file comparison, no additional info to print
+            interactiveMode, debugLevel,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag,
+            OSType)
+        if returnStatus == True:
+            if fileDiffer == True:
+                JAGlobalLib.LogLine(
+                    "\n\nWARN JAOperationSaveCompare() Discovered environment spec file:|{0}| and saved environment spec file:|{1}| differ\n\n".format(
+                    discoveredSpecFileName, discoveredSpecSaveFileName ), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     ### initialize counters to track summary
     numberOfItems = numberOfErrors = 0
