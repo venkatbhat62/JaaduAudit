@@ -615,7 +615,7 @@ def JAGetUptime(OSType:str):
          uptime_seconds = 0
     return uptime_seconds
 
-def JAExecuteCommand(command:str, debugLevel:int):
+def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=30):
     """
     Execute given command
 
@@ -633,21 +633,28 @@ def JAExecuteCommand(command:str, debugLevel:int):
         print("DEBUG-3 JAExecuteCommand() command:{0}".format(command))
 
     try:
-        result = subprocess.run( command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        returnOutput = result.stdout.decode('utf-8').split('\n')
-        errorMsg = 'INFO JAExecuteCommand() result of executing the command:{0}\n{1}'.format(command,returnOutput)
-        returnResult = True
+        result = subprocess.run( command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+        if result.returncode == 0:
+            returnOutput = result.stdout.decode('utf-8').split('\n')
+            errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0}|, result:\n{1}'.format(command,returnOutput)
+            returnResult = True
+        else:
+            ### execution failed
+            returnOutput = result.stderr.decode('utf-8').split('\n')
+            errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0}|, error:\n{1}'.format(command,returnOutput)
+            returnResult = False
+
     except (subprocess.CalledProcessError) as err :
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:{0}".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0}|, called process error:|{1}|".format(command, err)
       
     except ( FileNotFoundError ) as err:
-        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:{0}".format(command, err)
+        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:|{0}|, error:|{1}|".format(command, err)
         
     except Exception as err:
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:{0}".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0}|, exception:|{1}|".format(command, err)
 
     if debugLevel > 0 :
-        print("DEBUG-1 JAExecuteCommand() command output:{0}, errorMsg:{1}".format(returnOutput, errorMsg))
+        print("DEBUG-1 JAExecuteCommand() command output:{0}, message:{1}".format(returnOutput, errorMsg))
     returnOutput = str(returnOutput)
     return returnResult, returnOutput, errorMsg
 
@@ -889,7 +896,7 @@ def JACheckConnectivity(
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
     elif OSType == 'SunOS':
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
-    returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel)
+    returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel, OSType)
     
     if OSType == 'Windows':
         ### translate returnOutput to Linux output format

@@ -100,7 +100,7 @@ def JAReadEnvironmentConfig(
     ### first check whether profile is present in current working directory
     returnStatus, localRepositoryCustom = JAGlobalLib.JAGetProfile("JAAudit.profile", 'LocalRepositoryCustom')
     if returnStatus == True:
-        ### LocalRepositoryCustom is available, environment file may be under that folder.
+        ### localReposistoryCustom is available, environment file may be under that folder.
         ###   if present, update file to that location
         tempFileName = '{0}/{1}'.format(localRepositoryCustom, fileName)
 
@@ -262,17 +262,27 @@ def JAReadEnvironmentConfig(
         if OSType == 'Linux':
             defaultParameters['CompareCommandH2H'] = 'H2HDiff.bash'
         else:
-            defaultParameters['CompareCommandH2H'] = ''
+            ### TBD expand this later for Windows
+            defaultParameters['CompareCommandH2H'] = 'TBD'
     if 'CompareCommandH2HSedCommand' not in defaultParameters:
         if OSType == 'Linux':
             defaultParameters['CompareCommandH2HSedCommand'] = 'H2HDiff.SedCmd'
         else:
-            defaultParameters['CompareCommandH2HSedCommand'] = ''
+            ### TBD expand this later for windows
+            defaultParameters['CompareCommandH2HSedCommand'] = 'TBD'
+
+    if OSType == "Windows":
+        if 'CommandPowershell' not in defaultParameters:
+            ### chekc if powershell 7 is present
+            if os.path.exists('C:/Program Files/PowerShell/7/pwsh.exe'):
+                defaultParameters['CommandPowershell'] = 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
+            else:
+                defaultParameters['CommandPowershell'] ="TBD"
 
     ### setup default compare commands based on OSType
     if 'CompareCommand' not in defaultParameters:
         if OSType == "Windows":
-            defaultParameters['CompareCommand'] = 'C:/Program Files/PowerShell/7/pwsh.exe compare-object -SyncWindow 10'
+            defaultParameters['CompareCommand'] = defaultParameters['CommandPowershell'] + " compare-object -SyncWindow 10"
         elif OSType == 'Linux':
             ### ignore blank lines
             defaultParameters['CompareCommand'] = 'diff -B'
@@ -332,12 +342,12 @@ def JAReadEnvironmentConfig(
 
     ### write the LocalRepositoryCustom value to JAAudit.profile 
     if 'LocalRepositoryCustom' in defaultParameters:
-        LocalRepositoryCustom = defaultParameters['LocalRepositoryCustom']
+        localReposistoryCustom = defaultParameters['LocalRepositoryCustom']
     else:
-        LocalRepositoryCustom = "Custom"
+        localReposistoryCustom = "Custom"
 
     ### save LocalRepositoryCustom value in JAAudit.profile
-    JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalRepositoryCustom', LocalRepositoryCustom)
+    JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 
     return True
     

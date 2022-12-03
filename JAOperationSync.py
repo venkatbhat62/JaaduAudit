@@ -60,7 +60,7 @@ def GetAllFilesFromSCMUsingRsync(
             rsyncCommand, rsyncOutputFileOption, rsyncOutputFileName )
 
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-        tempRsyncCommand, debugLevel)
+        tempRsyncCommand, debugLevel, OSType)
 
     if returnResult == False:
         returnStatus = False
@@ -139,7 +139,7 @@ def GetAllFilesFromSCMUsingWget(
             wgetCommand, wgetOutputFileOption, wgetOutputFileName )
 
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-        tempWgetCommand, debugLevel)
+        tempWgetCommand, debugLevel, OSType)
 
     if returnResult == False:
         returnStatus = False
@@ -211,7 +211,7 @@ def GetAllFilesFromSCMUsingWget(
                                     wgetCommand, fileNameToFetch, wgetOutputFileOption, fileNameToFetch )
 
                             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                                tempWgetCommand, debugLevel)
+                                tempWgetCommand, debugLevel, OSType)
 
                             if returnResult == False:
                                 returnStatus = False
@@ -393,7 +393,7 @@ def JAOperationSync(
                         localRepositoryHome, localRepositoryCommon,filesToCompareAfterSync, 
                         localRepositoryHome, localRepositoryCommon)
                 
-            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel)
+            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel, OSType)
 
             ### next copy contents under Custom
             if OSType == "SunOS":
@@ -406,7 +406,7 @@ def JAOperationSync(
                         localRepositoryHome, localRepositoryCustom,filesToCompareAfterSync, 
                         localRepositoryHome, localRepositoryCustom)
                 
-            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel)
+            JAGlobalLib.JAExecuteCommand(copyCommand, debugLevel, OSType)
 
         if 'CommandRsync' in defaultParameters:
             commandRsync = defaultParameters['CommandRsync']
@@ -483,8 +483,7 @@ def JAOperationSync(
                 previousFileName = '{0}/{1}.PrevVersion/{2}'.format(localRepositoryHome,localRepositoryCommon, fileName)
                 if os.path.exists(previousFileName ):
                     returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
-                            currentFileName, previousFileName, 
-                            False,  # prevFileHasChecksum = False
+                            currentFileName, previousFileName,
                             defaultParameters['BinaryFileTypes'],
                             defaultParameters['CompareCommand'],
                             False,"","", # not a host to host compare scenario

@@ -56,7 +56,7 @@ EnvApp:
   ### take a snapshot of current environment
   Command: env
 EnvOS:
-  Command: Get-WMIObject win32_operatingsystem | Select Version,SystemDirectory,BuildNumber
+  Command: Get-WMIObject win32_operatingsystem | Select-string Version,SystemDirectory,BuildNumber
 FileSystem:
   ### this will be executed using powershell
   Command: Get-CimInstance Win32_LogicalDisk

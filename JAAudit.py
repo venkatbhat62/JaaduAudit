@@ -673,7 +673,7 @@ else:
     if debugLevel > 1:
         print("DEBUG-2 JAAudit() purging files with command:{0}".format(command))
 
-    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel)
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel, OSType)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
             JAGlobalLib.LogLine(
@@ -686,7 +686,7 @@ if subsystem == 'App' or subsystem == None:
     if 'CommandToGetAppVersion' in defaultParameters:
         commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-            commandToGetAppVersion, debugLevel)
+            commandToGetAppVersion, debugLevel, OSType)
         if returnResult == True:
             appVersion = returnOutput.rstrip("\n")
             appVersion = appVersion.lstrip()
@@ -701,7 +701,7 @@ elif subsystem == 'DB':
     if 'CommandToGetDBVersion' in defaultParameters:
         commandToGetDBVersion = defaultParameters['CommandToGetDBVersion']
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-            commandToGetDBVersion, debugLevel)
+            commandToGetDBVersion, debugLevel, OSType)
         if returnResult == True:
             appVersion = returnOutput.rstrip("\n")
             appVersion = appVersion.lstrip()
