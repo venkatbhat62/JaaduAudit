@@ -48,13 +48,12 @@ AppCode:
   FileNames: get-childitem C:\Users\${username}\documents\github\jaaduAudit/AppsCommon -Filter "*.py" | Select-object -expandproperty fullname
   CompareType: Checksum
   Environment: Dev
-  SkipH2H: Yes
 AppConfig:
   # need to specify full path while referring to files (powershell defaults to home directory)
   FileNames: C:\Users\${username}\documents\github\jaaduAudit/AppsCustom/JAEnvironment.yml, C:\Users\${username}\documents\github\jaaduAudit/AppsCustom/AppWindowsAPP.yml
 EnvApp:
   ### take a snapshot of current environment
-  Command: env
+  Command: 'Get-ChildItem -Path Env:'
 EnvOS:
   Command: Get-WMIObject win32_operatingsystem | Select-string Version,SystemDirectory,BuildNumber
 FileSystem:
@@ -62,3 +61,4 @@ FileSystem:
   Command: Get-CimInstance Win32_LogicalDisk
 Firewall:
   Command: get-netfirewallrule
+  SkipH2H: Yes

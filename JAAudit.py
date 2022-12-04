@@ -111,8 +111,13 @@ def JAHelp():
        [-i <ignoreHostNameIPDifference>]
     
     -o <operations> - can have one or more operations in CSV format. operations supported are -
-          cert,compare,conn,default,discover,download,heal,health,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload
-          
+          backup,cert,compare,conn,default,download,heal,health,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload
+
+        If called with operation 'backup'
+            Takes the environment snapshot by carrying out instructions in save<baseConfigFile><subsystem>.yml
+            It is like save except, it will save the environment in BackupYYYYMMDD directory under 'LocalRepositoryHome'
+            It will also delete expired backup directories based on duration specified by parameter 'BackupRetencyDurationInDays'
+
         If called with operation 'cert'
             Checks the start and end dates, DNS alias of certificates specified in cert<baseConfigFile><subsystem>.yml file.
             The spec can include commands to connect to a running process, get the cert being used by that process
@@ -138,14 +143,6 @@ def JAHelp():
                 spec can be changed in a single source on SCM or git type of source repository and make the 
                 change apply to all hosts in one or more environments.
 
-        If called with operation 'discover'
-            Runs the discover commands specified in save<baseConfigFile><subsystem>.yml, and creates save<baseConfigFile><subsystem>.yml.discover
-                Displays the difference between save<baseConfigFile><subsystem>.yml and save<baseConfigFile><subsystem>.yml.disc
-            Typically used to replace previous file references in save<baseConfigFile><subsystem>.yml with current file references
-              seen on a host pertaining to latest application environment. This operation simplies the task of
-              manually collecting file names and adding those to spec file. The content of discovered file can be used to
-              update the spec file on SCM or git type of repository.
-
         If called with operation 'download'
             If rsync is enabled for that host, it will sync files from SCM host to local host from specified path.
             If not, uses wget to get latest files from SCM host to local host from specified path.
@@ -159,6 +156,9 @@ def JAHelp():
         If called with operation 'health'
             Collects current health of a host covering OS, DB, application, services, connections etc by acting on 
                 specification in health<baseConfigFile><subsystem>.yml.
+
+        If called with operation 'help,
+            display help message and exit
 
         If called with operation 'inventory'
             Collects the S/W version information by carrying out instructions in inventory<baseConfigFile><subsystem>.yml
@@ -279,6 +279,11 @@ def JAHelp():
 
     helpString3 = """
     Examples:
+        python JAAudit.py -o backup <-- save current environment, typically scheduled (cron or schedule) for periodic backup. 
+            Save directory name of BackupYYYYMMDD is used.
+            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default base config file name specified in environment config file is used for the current hostname
+
         python JAAudit.py -o save <-- save current environment, typically done before code install. 
             Default <saveDir> is used. (see <saveDir> for more details)
             Default <subsystem> of 'App' is used (see <subsystem> for more details)
@@ -386,7 +391,6 @@ def JAHelp():
 
         python JAAudit.py -o task <-- execute tasks
 
-        python JAAudit.py -o discover <-- discover files and display delta.
 
     """
     print(helpString1)
@@ -428,6 +432,12 @@ if '-f' in argsPassed:
         
 if '-o' in argsPassed:
     operations = argsPassed['-o']
+
+    ### if help is opted, print help and exit
+    if re.search(r'help|Help', operations):
+        JAHelp()
+        sys.exit()
+
 else:
     print("ERROR mandatory parameter operations is not passed")
     JAHelp()
@@ -642,12 +652,7 @@ with open(fileName, "r") as file:
 ### get current time in seconds
 currentTime = time.time()
 
-### delete log files and report files older than specified days
-if 'FileRetencyDurationInDays' in defaultParameters:
-    fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
-else:
-    # default retency period - 7 days
-    fileRetencyDurationInDays = 7
+fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 
 if OSType == 'Windows':
     ### get list of files older than retency period
@@ -655,7 +660,7 @@ if OSType == 'Windows':
             '{0}/JAAudit*.log.*'.format(defaultParameters['LogFilePath']), 
             currentTime - (fileRetencyDurationInDays*3600*24), ### get files modified before this time
             debugLevel, thisHostName)
-    if filesToDelete != '':
+    if len(filesToDelete) > 0:
         for fileName in filesToDelete:
             try:
                 os.remove(fileName)
@@ -743,7 +748,8 @@ else:
 defaultParameters['SaveDir'] = "{0}/{1}".format( defaultParameters['LocalRepositoryHome'], defaultParameters['SaveDir'])
 
 ### if operation is default, sync, download, or upload, need to connect to SCM. Check the connectivity
-if re.match(r"sync|download|upload|default", operations):
+if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None) \
+    or re.search(r"download|upload|default", operations):
 
     ### within the sync interveral, NO need to check the connection again. 
     ### this is to speed up operation in interactive mode
@@ -817,7 +823,7 @@ if re.match(r"sync|download|upload|default", operations):
 
 
 ### if save is opted, run it
-if re.search("perfStatsOS", operations) != None and re.match("nosync", operations) == None:
+if re.search("perfStatsOS", operations) != None :
     JAExecuteOperations.JARun( 
         "perfStatsOS", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -828,7 +834,7 @@ if re.search("perfStatsOS", operations) != None and re.match("nosync", operation
     )
 
 ### if save is opted, run it
-if re.search("perfStatsApp", operations) != None and re.match("nosync", operations) == None:
+if re.search("perfStatsApp", operations) != None:
     JAExecuteOperations.JARun( 
         "perfStatsApp", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -856,8 +862,18 @@ if re.search("sync", operations) != None and re.match("nosync", operations) == N
         defaultParameters, debugLevel, currentTime, allowedCommands
     )
 
+### if backup is opted, run it
+if re.search("backup", operations) != None :
+    JAExecuteOperations.JARun( 
+        "backup", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime, allowedCommands
+    )
 ### if cert is opted, run it
-if re.search("cert", operations) != None and re.match("nosync", operations) == None:
+if re.search("cert", operations) != None:
     JAExecuteOperations.JARun( 
         "cert", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -868,7 +884,7 @@ if re.search("cert", operations) != None and re.match("nosync", operations) == N
     )
 
 ### if conn is opted, run it
-if re.search("conn", operations) != None and re.match("nosync", operations) == None:
+if re.search("conn", operations) != None :
     JAExecuteOperations.JARun( 
         "conn", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -879,7 +895,7 @@ if re.search("conn", operations) != None and re.match("nosync", operations) == N
     )
 
 ### if heal is opted, run it
-if re.search("heal", operations) != None and re.match("nosync", operations) == None:
+if re.search("heal", operations) != None :
     JAExecuteOperations.JARun( 
         "heal", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -890,7 +906,7 @@ if re.search("heal", operations) != None and re.match("nosync", operations) == N
     )
 
 ### if health is opted, run it
-if re.search("health", operations) != None and re.match("nosync", operations) == None:
+if re.search("health", operations) != None :
     JAExecuteOperations.JARun( 
         "health", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -902,7 +918,7 @@ if re.search("health", operations) != None and re.match("nosync", operations) ==
 
 
 ### if inventory is opted, run it
-if re.search("inventory", operations) != None and re.match("nosync", operations) == None:
+if re.search("inventory", operations) != None :
     JAExecuteOperations.JARun( 
         "inventory", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -913,7 +929,7 @@ if re.search("inventory", operations) != None and re.match("nosync", operations)
     )
 
 ### if license is opted, run it
-if re.search("license", operations) != None and re.match("nosync", operations) == None:
+if re.search("license", operations) != None :
     JAExecuteOperations.JARun( 
         "license", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -924,7 +940,7 @@ if re.search("license", operations) != None and re.match("nosync", operations) =
     )
 
 ### if save is opted, run it
-if re.search("save", operations) != None and re.match("nosync", operations) == None:
+if re.search("save", operations) != None :
     JAExecuteOperations.JARun( 
         "save", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -935,7 +951,7 @@ if re.search("save", operations) != None and re.match("nosync", operations) == N
     )
 
 ### if stats is opted, run it
-if re.search("stats", operations) != None and re.match("nosync", operations) == None:
+if re.search("stats", operations) != None :
     JAExecuteOperations.JARun( 
         "stats", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -946,7 +962,7 @@ if re.search("stats", operations) != None and re.match("nosync", operations) == 
     )
 
 ### if task is opted, run it
-if re.search("task", operations) != None and re.match("nosync", operations) == None:
+if re.search("task", operations) != None :
     JAExecuteOperations.JARun( 
         "task", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -957,7 +973,7 @@ if re.search("task", operations) != None and re.match("nosync", operations) == N
     )
 
 ### if test is opted, run it
-if re.search("test", operations) != None and re.match("nosync", operations) == None:
+if re.search("test", operations) != None :
     JAExecuteOperations.JARun( 
         "test", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -969,7 +985,7 @@ if re.search("test", operations) != None and re.match("nosync", operations) == N
 
 ### KEEP download before compare operation so that files from SCM are downloaded before compare
 ### if download is opted, run it
-if re.search("download", operations) != None and re.match("nosync", operations) == None:
+if re.search("download", operations) != None :
     JAExecuteOperations.JARun( 
         "download", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -980,7 +996,7 @@ if re.search("download", operations) != None and re.match("nosync", operations) 
     )
 
 ### if compare is opted, run it
-if re.search("compare", operations) != None and re.match("nosync", operations) == None:
+if re.search("compare", operations) != None :
     JAExecuteOperations.JARun( 
         "compare", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,

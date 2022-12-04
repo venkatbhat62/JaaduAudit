@@ -231,6 +231,8 @@ Component:
 
 Environment:
    Dev:
+     ### keep automatic backup for 60 days
+     BackupRetencyDurationInDays: 60
      # specify hostname in regular expression 
      HostName: ((...)(d)(...)([0-9][0-9]))|(LAPTOP-QOCNVF0T)
      OperationSync: 0.5
@@ -239,6 +241,8 @@ Environment:
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
    Test:
+     ### keep automatic backup for 60 days
+     BackupRetencyDurationInDays: 60
      ### keep  logs and result files for 7 days 
      FileRetencyDurationInDays: 7
      HostName: (...)(t)(...)([0-9][0-9])

@@ -81,7 +81,8 @@ def JAReadEnvironmentConfig(
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to integer and store
     #  in defaultParameters{}
     integerParameters = [
-        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays','FileExecPermission',
+        'BackupRetencyDurationInDays',
+        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays','FileExecPermission', 
         'DueInDaysForLicence', 'HealIntervalInSec', 'HealAfterTimeInSec', 
         'RandomizationWindowForHealthInSec', 'RandomizationWindowForOtherInSec',
         'RandomizationWindowForTaskInSec', 'SitePrefixLength',
@@ -256,6 +257,14 @@ def JAReadEnvironmentConfig(
     ### set default permission if not specified
     if 'FileExecPermission' not in defaultParameters:
         defaultParameters['FileExecPermission'] = '750'
+
+    ### set default retenc periods
+    # delete log files, report files after this time
+    if 'FileRetencyDurationInDays' not in defaultParameters:
+        defaultParameters['FileRetencyDurationInDays'] = 7
+    # delete backup directory after this time
+    if 'BackupRetencyDurationInDays' not in defaultParameters:
+        defaultParameters['BackupRetencyDurationInDays'] = 60
 
     ### Default spec for host to host comparison custom commands
     if 'CompareCommandH2H' not in defaultParameters:

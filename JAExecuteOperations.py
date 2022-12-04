@@ -66,7 +66,7 @@ def JARun(
         # This is the child process
         os.close(readDescriptor)
         
-        if operation == 'save':
+        if operation == 'save' or operation == 'backup':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   

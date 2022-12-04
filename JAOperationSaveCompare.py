@@ -104,7 +104,7 @@ def JAOperationReadConfig(
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-        return returnStatus, numberOfItems, saveCompareSpecFileName
+        return returnStatus, numberOfItems
 
     ### derive the save compare spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
     returnStatus, saveCompareSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
@@ -116,7 +116,7 @@ def JAOperationReadConfig(
             "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-        return returnStatus, numberOfItems, saveCompareSpecFileName
+        return returnStatus, numberOfItems
         
     if debugLevel > 1:
         JAGlobalLib.LogLine(
@@ -380,7 +380,7 @@ def JAOperationReadConfig(
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-    return returnStatus, numberOfItems, saveCompareSpecFileName
+    return returnStatus, numberOfItems
 
 def JAOperationCompareFiles(
     currentFileName:str, previousFileName:str, 
@@ -668,6 +668,29 @@ def JAOperationSaveCompare(
     allowedCommands,
     operation ):
 
+    """
+    This function can be called to perform operations like 'backup, 'compare' and 'save'
+    For 'save' operation, it
+        Reads the environment spec file for the given subsystem
+        For Command type of object, executes commands to gather environment info and saves in file name specified under saveDir
+        For FileNames type of object, 
+            if checksum is to be stored, it computes the checksum and stores it in filename <objectName>.checksum
+            else, copies the contents of the file to saveDir/<objectName>
+
+    For 'backup' operation, it
+        Deletes any BackupYYYYMMDD directories that are older than specified retency period in param 'BackupRetencyDurationInDays'
+        Derives the saveDir name in the form BackupYYYYMMDD using current time
+        Performs all the tasks of 'save' operation with derived saveDir.
+
+    for 'compare' operation, it
+        Reads the environment spec file for the given subsystem
+        For Command type of object, executes commands to gather environment info and saves in temp file
+        For FileNames type of object, 
+            if checksum is to be compared, it computes the checksum, reads the saved checksum from a saveDir/<objectName>.checksum 
+                and compares the two checksums
+            else, compares current file to the file saved in saveDir/<objectName>
+
+    """
     returnStatus = True
     numberOfItems = 0
 
@@ -684,7 +707,7 @@ def JAOperationSaveCompare(
     saveCompareParameters = defaultdict(dict)
 
     ### read the object spec file contents
-    returnStatus, numberOfItems, saveCompareSpecFileName = JAOperationReadConfig( 
+    returnStatus, numberOfItems = JAOperationReadConfig( 
         baseConfigFileName, 
         subsystem, 
         version, 
@@ -697,7 +720,52 @@ def JAOperationSaveCompare(
         ### fatal error, can't proceed.
         return returnStatus, numberOfItems
 
-    saveDir = defaultParameters['SaveDir']
+    if operation == 'backup':
+        ### first delete older backup directories, older than 'BackupRetencyDurationInDays'
+    
+        backupRetencyDurationInDays = defaultParameters['BackupRetencyDurationInDays']
+
+        if OSType == 'Windows':
+            ### get list of files older than retency period
+            filesToDelete = JAGlobalLib.JAFindModifiedFiles(
+                    '{0}/Backup*'.format(defaultParameters['LocalRepositoryHome']), 
+                    currentTime - (backupRetencyDurationInDays*3600*24), ### get files modified before this time
+                    debugLevel, thisHostName)
+            if len(filesToDelete) > 0:
+                for fileName in filesToDelete:
+                    try:
+                        os.remove(fileName)
+                        if debugLevel > 3:
+                            print("DEBUG-4 JAOperationSaveCompare() Deleting the file:{0}".format(fileName))
+                    except OSError as err:
+                        JAGlobalLib.LogLine(
+                            "ERROR JAOperationSaveCompare() Error deleting old backup file:{0}, errorMsg:{1}".format(fileName, err), 
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        
+        else:
+            # delete directories older than retency period
+            command = 'find {0} -name "Backup*" -mtime +{1} -type d |xargs rm'.format(
+                defaultParameters['LocalRepositoryHome'], backupRetencyDurationInDays)
+            if debugLevel > 1:
+                print("DEBUG-2 JAOperationSaveCompare() purging files with command:{0}".format(command))
+
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel, OSType)
+            if returnResult == False:
+                if re.match(r'File not found', errorMsg) != True:
+                    JAGlobalLib.LogLine(
+                        "INFO JAOperationSaveCompare() File not found, Error deleting old backup files:{0} ".format(returnOutput), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        ### derive the saveDir using current time in the form BackupYYYYMMDD
+        defaultParameters['SaveDir'] = saveDir = "{0}/Backup{1}".format( 
+            defaultParameters['LocalRepositoryHome'],
+            JAGlobalLib.UTCDateForFileName() )
+
+    elif re.search(r'save|compare', operation) :
+        saveDir = defaultParameters['SaveDir']
+
     if os.path.exists(saveDir) :
         if operation == "save":
             ### if saveDir present and it starts with 'Pre', skip save operation
@@ -710,13 +778,14 @@ def JAOperationSaveCompare(
                 return False, numberOfItems
 
     else:
-        if operation == "save":
+        if operation == "save" or operation == 'backup':
             ### save directory not present, create it
             try:
                 os.mkdir(saveDir)
             except OSError as err:
                 JAGlobalLib.LogLine(
-                    "ERROR JAOperationSaveCompare() Error creating save directory:{0}, error:{1}, Skipped save operation".format(saveDir, err),
+                    "ERROR JAOperationSaveCompare() Error creating {0} directory:{1}, error:{2}, Skipped {3} operation".format(
+                        operation, saveDir, err, operation),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 return False, numberOfItems
@@ -789,12 +858,28 @@ def JAOperationSaveCompare(
     ### initialize counters to track summary
     numberOfItems = numberOfErrors = 0
     numberOfCommandOutputSaved = numberOfChecksumsSaved = numberOfFilesSaved = 0
-    numberOfChangedFiles = numberOfChangedCommandOutput = numberOfChangedChecksum = 0
+    numberOfChangedFiles = numberOfChangedCommandOutput = numberOfChangedChecksum = numberOfItemsSkipped = 0
 
     ### save or compare information of each object
     for objectName in saveCompareParameters:
         numberOfItems += 1
         objectAttributes = saveCompareParameters[objectName]
+
+        ### while doing host to host compare, SKIP any object that has SkipH2H set to True
+        if operation == 'compare' and compareH2H == True and objectAttributes['SkipH2H'] == True:
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                    "DEBUG-1 JAOperationSaveCompare() Skipping objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, SkipH2H:|{4}|".format(
+                    objectName,
+                    objectAttributes['Command'],
+                    objectAttributes['FileNames'],
+                    objectAttributes['CompareType'],
+                    objectAttributes['SkipH2H'] ), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            numberOfItemsSkipped += 1
+            continue
+
         if debugLevel > 1:
             JAGlobalLib.LogLine(
                 "DEBUG-2 JAOperationSaveCompare() processing objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, SkipH2H:|{4}|".format(
@@ -896,7 +981,7 @@ def JAOperationSaveCompare(
                     ### done processing current object
                     continue
 
-                if operation == 'save':
+                if operation == 'save' or operation == 'backup':
                     ### save current checksum computed in save file name
                     try:
                         with open(saveFileName,"w") as file:
@@ -940,7 +1025,7 @@ def JAOperationSaveCompare(
                 saveFileName = '{0}/{1}'.format( saveDir, objectName)
 
                 ### copy the file to save directory
-                if operation == 'save':
+                if operation == 'save' or operation == 'backup':
                     try:
                         shutil.copy2(referenceFileName, saveFileName)
                         numberOfFilesSaved += 1
@@ -972,7 +1057,7 @@ def JAOperationSaveCompare(
                         if fileDiffer == True:
                             numberOfChangedFiles += 1
                             
-    if operation == 'save':
+    if operation == 'save' or operation == 'backup':
         JAGlobalLib.LogLine(
             "INFO JAOperationSaveCompare() total objects:{0}, Saved objects of commands:{1}, checksums:{2}, files:{3} with errors:{4}".format(
                 numberOfItems, numberOfCommandOutputSaved, numberOfChecksumsSaved,numberOfFilesSaved,numberOfErrors), 
@@ -982,10 +1067,11 @@ def JAOperationSaveCompare(
         ### delete temporary file that was created during the compare operation 
         os.remove(currentDataFileName)
         JAGlobalLib.LogLine(
-            "INFO JAOperationSaveCompare() total objects:{0}, Saved objects of commands:{1}, checksums:{2}, files:{3}, changed command outputs:{4}, changed checksums:{5}, changed files:{6} with errors:{7}".format(
+            "INFO JAOperationSaveCompare() total objects:{0}, Saved objects of commands:{1}, checksums:{2}, files:{3}, \
+changed command outputs:{4}, changed checksums:{5}, changed files:{6}, skipped objects:{7}, with errors:{8}".format(
                 numberOfItems, 
                 numberOfCommandOutputSaved, numberOfChecksumsSaved, numberOfFilesSaved,
-                numberOfChangedCommandOutput, numberOfChangedChecksum, numberOfChangedFiles, 
+                numberOfChangedCommandOutput, numberOfChangedChecksum, numberOfChangedFiles, numberOfItemsSkipped,
                 numberOfErrors), 
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
