@@ -485,12 +485,14 @@ def JAOperationSync(
                     returnStatus, fileDiffer, errorMsg = JAOperationSaveCompare.JAOperationCompareFiles( 
                             currentFileName, previousFileName,
                             defaultParameters['BinaryFileTypes'],
+                            '', # compare type, find out compare type for binary files automatically
                             defaultParameters['CompareCommand'],
                             False,"","", # not a host to host compare scenario
                             "", # no additional info to log
                             interactiveMode, debugLevel,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag,
                             OSType)
+
                     if fileDiffer == True:
                         countChangedFiles += 1
                 else:

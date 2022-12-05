@@ -13,7 +13,7 @@ import JAGlobalLib
 import JAOperationSync
 import JAOperationSaveCompare
 import JAOperationConn
-
+import JAOperationDownloadUpload
 
 def JARun( 
     operation, maxWaitTime,
@@ -73,6 +73,20 @@ def JARun(
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'download':
+            returnStatus, errorMsg = JAOperationDownloadUpload.JAOperationDownload(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,  
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation ) 
+                            
+        elif operation == 'upload':
+            returnStatus, errorMsg = JAOperationDownloadUpload.JAOperationUpload(
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, 
+                defaultParameters, debugLevel  )                
         elif operation == 'compare':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,

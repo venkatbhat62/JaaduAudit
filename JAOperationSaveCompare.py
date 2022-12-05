@@ -382,6 +382,63 @@ def JAOperationReadConfig(
 
     return returnStatus, numberOfItems
 
+def JAPrepareUploadFileList(
+    baseConfigFileName, 
+    subsystem, 
+    OSType, 
+    outputFileHandle, colorIndex, HTMLBRTag, myColors,
+    interactiveMode,
+    defaultParameters, saveCompareParameters,
+    debugLevel ):
+
+    """
+    This function parses the saveCompareParameters list, and populates defaultParameters['UploadFileNames']
+    Excludes object with SkipH2H flag True
+
+    The file names in defaultParameters['UploadFileNames'] will be used to upload those files to SCM Web server
+    or download those files from SCM web server
+
+    The file name will not have full path, just the file name portion only 
+        For upload operation, the file is assumed to be under saveDir
+        For download operation, file file will be downloaded to saveDir
+
+    Parameters passed:
+        defaultParameters
+        saveCompareParameters - this hash contains below attributes for each object. Object name itself is the filename.
+            'Command',
+            'CompareType',
+            'Environment',
+            'FileNames',
+            'SkipH2H'
+
+    Returned result
+        number of files in file list
+
+    """
+
+    ### save file to the list, this will be used to download files later.
+    fileName = "{0}{1}.save".format( subsystem, baseConfigFileName  )
+    fileList = []
+    fileList.append(fileName)
+
+    for objectName in saveCompareParameters:
+        attributes = saveCompareParameters[objectName]
+        if attributes['SkipH2H'] == 'no' or attributes['SkipH2H'] == 'No' or attributes['SkipH2H'] == None:
+            if attributes['CompareType'] == 'text' or attributes['CompareType'] == 'Text':
+                ### include this file for upload/download
+                fileList.append(objectName)
+            else:
+                ### include checksum file name
+                fileList.append(objectName + ".checksum")
+        else:
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAPrepareUploadFileList() SkipH2H is True, skipping the object:{0}".format(objectName),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    defaultParameters['UploadFileNames'] = fileList
+    return len(defaultParameters['UploadFileNames'])
+ 
 def JAOperationCompareFiles(
     currentFileName:str, previousFileName:str, 
     binFileTypes:str, compareType:str, compareCommand:str,
@@ -465,7 +522,7 @@ def JAOperationCompareFiles(
 
     ### files differ, and file type is not binary, compare word by word
     if fileDiffer == True:
-        if compareType == '':
+        if compareType == '' or compareType == None:
             if re.search(binFileTypes, currentFileName) :
                 JAGlobalLib.LogLine(
                 "DIFF  current file:{0} differs from reference file:{1}".format(currentFileName, previousFileName ), 
@@ -1075,5 +1132,17 @@ changed command outputs:{4}, changed checksums:{5}, changed files:{6}, skipped o
                 numberOfErrors), 
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    if re.search(r'upload', defaultParameters['operations']):
+        ### upload will follow, prepare upload file list
+        JAPrepareUploadFileList(
+            baseConfigFileName, 
+            subsystem, 
+            OSType, 
+            outputFileHandle, colorIndex, HTMLBRTag, myColors,
+            interactiveMode,
+            defaultParameters, saveCompareParameters,
+            debugLevel )
+
 
     return returnStatus, numberOfItems

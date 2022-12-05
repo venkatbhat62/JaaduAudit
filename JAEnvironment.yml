@@ -64,6 +64,8 @@ OS:
     ### power shell command to check connectivity 
     ### C:\Program Files\PowerShell\7\pwsh
     CommandConnCheck: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection'
+    ### command to post data to SCM web server
+    CommandCurl: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Invoke-WebRequest'
     ### powershell command used to gather environment details 
     ###   commands specified in <subsystem><platform><component>.yml are executed using this powershell command
     CommandPowershell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
@@ -114,27 +116,33 @@ Component:
   ###        If command is not specified under CommandToGetAppVersion, or version returned is TBD, 
   ###           AppVersion will not be appended to derive full name.
   ### Operations specific configuration file has operation name prefixed to above AppConfig file name
+  ###   below sample is for subsystem name of 'Apps'
   ### Example:
-  ###    ConnAppPlatform1APP.yml, CertAppPlatform1APP.yml, HealAppPlatform1APP.yml, HealthAppPlatform1APP.yml 
+  ###    ConnPlatform1APP.yml, CertPlatform1APP.yml, HealPlatform1APP.yml, HealthPlatform1APP.yml 
   ###    ^^^^                     ^^^^                     ^^^^^                    ^^^^^^
-  ###    LogStatsAppPlatform1APP.yml, OSStatsAppPlatform1APP.yml, StatsAppPlatform1APP.yml
+  ###    LogStatsPlatform1APP.yml, OSStatsPlatform1APP.yml, StatsPlatform1APP.yml
   ###    ^^^^^^^^                     ^^^^^^^                     ^^^^^
-  ###    TestAppPlatform1APP.yml, TaskAppPlatform1APP.yml
+  ###    TestPlatform1APP.yml, TaskPlatform1APP.yml
   ###    ^^^^                     ^^^^
   APPWin:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsWindowsAPP.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: WindowsAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
     CommandToGetDBVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (LAPTOP-QOCNVF0T)
     ### datamask for this component
-    SCMDataMaskSpec: AppsWindows/DMAPP.yml
+    SCMDataMaskSpec: Windows/DMAPP.yml
     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
     ###   this component has component specific path on SCM host where artifacts are maintained
-    SCMRepositoryCustom: AppsWindows/
+    SCMRepositoryCustom: Windows/
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Windows/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -142,16 +150,21 @@ Component:
   APPLinux:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsLinuxAPP.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: LinuxAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (...)(d|t|u|p)(app)
     ### datamask for this component
-    SCMDataMaskSpec: AppsLinux/DMAPP.yml
+    SCMDataMaskSpec: Linux/DMAPP.yml
     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
     ###   this component has component specific path on SCM host where artifacts are maintained
-    SCMRepositoryCustom: AppsLinux/
+    SCMRepositoryCustom: Linux/
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Linux/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -159,13 +172,18 @@ Component:
   CS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsLinuxCS.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: LinuxCS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (...)(d|t|u|p)(cs)
     ### datamask for this component
-    SCMDataMaskSpec: AppsLinux/DMCS.yml
+    SCMDataMaskSpec: Linux/DMCS.yml
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Linux/CS/
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -173,13 +191,18 @@ Component:
   DB:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsPlatform1DB.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: Platform1DB.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetDBVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
     ### if the current hostname match to below spec, it is considered of component type DB
     HostName: (...)(d|t|u|p)(db)
     ### datamask for this component
-    SCMDataMaskSpec: AppsPlatform1/DMDB.yml
+    SCMDataMaskSpec: Platform1/DMDB.yml
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Platform1/DB
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -187,13 +210,18 @@ Component:
   FS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsPlatform1FS.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: Platform1FS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
     ### if the current hostname match to below spec, it is considered of component type FS
     HostName: (...)(d|t|u|p)(fs)
     ### datamask for this component
-    SCMDataMaskSpec: AppsPlatform1/DMFS.yml
+    SCMDataMaskSpec: Platform1/DMFS.yml
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Platform1/FS
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -201,13 +229,18 @@ Component:
   MGT:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsPlatform1MGT.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: Platform1MGT.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
     ### if the current hostname match to below spec, it is considered of component type MGT
     HostName: (...)(d|t|u|p)(mgt)
     ### datamask for this component
-    SCMDataMaskSpec: AppsPlatform1/DMMGT.yml
+    SCMDataMaskSpec: Platform1/DMMGT.yml
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Platform1/MGT
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -215,16 +248,21 @@ Component:
   WS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    AppConfig: AppsPlatform1WS.yml
+    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    AppConfig: Platform1WS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
     ### if the current hostname match to below spec, it is considered of component type WS
     HostName: (...)(d|t|u|p)(ws)
     ### datamask for this component
-    SCMDataMaskSpec: AppsPlatform1/DMWS.yml
+    SCMDataMaskSpec: Platform1/DMWS.yml
     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
     ###   this component has component specific path on SCM host where artifacts are maintained
-    SCMRepositoryCustom: AppsPlatform1/WS/
+    SCMRepositoryCustom: Platform1/WS/
+    ### path to post the reports, environment files to
+    ###   make this application or platform specific so that data retency can be managed separtely on web server
+    ###   keeping it separately can help to manage the access restrictions per platform
+    SCMUploadPath: Platform1/WS
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
     ### of local site. This is used by connectivity test module.
     SitePrefixLength: 3
@@ -320,8 +358,8 @@ Environment:
      ### If all code is kept on a single folder on SCM, put '' for below definitions so that
      ###   artifacts are downloaded from SCM to LocalRepositoryHome (no sub-directories maintained) to
      ###   separate common code/scripts and customization files per component or per OS type
-     LocalRepositoryCommon: AppsCommon
-     LocalRepositoryCustom: AppsCustom
+     LocalRepositoryCommon: Common
+     LocalRepositoryCustom: Custom
      ### suggest to define this per OS type under OS section. If all components are similar for a given platform,
      ###   can define the common path below.
      ### root path on target host where the contents of Common and Custom files will be copied
@@ -380,23 +418,24 @@ Environment:
      ### Common code & config for all applications / platforms. 
      ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
      ### fetch latest files from WebServer like SCMHostName1 + RepositoryCommon
-     SCMRepositoryCommon: AppsCommon/
+     SCMRepositoryCommon: Common/
      ### Custom code & config repository for current application / platform or component of a platform
      ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
      ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom
-     SCMRepositoryCustom: AppsPlatform1/
+     SCMRepositoryCustom: Platform1/
 
      ### rsync user name on SCM host to retrieve the artifacts from SCM to local host
      ### Comment this line or set to None if rsync is not used
      SCMRsyncUserName: havembha
 
+     
      ### web server to pull the latest code & config from and to post the artifacts collected
      ###  can use single name if load balancer based FQDN is availabe
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
 
      ### datamask spec at application level, to be used on SCM while uploading a file
-     SCMDataMaskSpec: AppsPlatform1/DMDefault.yml
+     SCMDataMaskSpec: Platform1/DMDefault.yml
 
      ### default location to upload file on WebServer - local, replicate, support
      ###   local - file uploaded is kept on that web server only, not replicated to other WebServer, 

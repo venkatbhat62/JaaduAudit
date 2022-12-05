@@ -505,6 +505,9 @@ if SCMHostName != '':
     defaultParameters['SCMHostName'] = defaultParameters['SCMHostName1'] = defaultParameters['SCMHostName2']  \
         = SCMHostName
 
+### this will be used to find other operations opted while handling upload, download operations
+defaultParameters['operations'] = operations
+
 ### define colors to print messages in different color
 myColors = {
     'red':      ['',"\033[31m",'<font color="red">'], 
@@ -763,8 +766,12 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
         returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
     
     if returnStatus == True:
+        ### get SCMHostName used last time for file fetch
+        returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
+        if returnStatus == True:        
             defaultParameters['SCMHostName'] = SCMHostName
-    elif returnStatus == False:
+
+    if returnStatus == False:
         ### SCMHostName used before is not known, proceed with connection checks
         if 'SCMHostName1' in defaultParameters and 'SCMPortHTTPS' in defaultParameters:
             # check connectivity to SCM host
@@ -1008,9 +1015,9 @@ if re.search("compare", operations) != None :
 
 ### if conn operation is opted, read config file, run connn tests and if upload is opted,
 ###    upload results to SCM
-if re.search("conn", operations):
+if re.search("upload", operations):
     JAExecuteOperations.JARun( 
-        "conn", defaultParameters['MaxWaitTime'],
+        "upload", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 

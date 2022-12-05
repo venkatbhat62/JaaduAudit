@@ -355,6 +355,17 @@ def JAReadEnvironmentConfig(
     else:
         localReposistoryCustom = "Custom"
 
+    ### set default behavior for VerifyCertificate
+    if 'VerifyCertificate' not in defaultParameters:
+        defaultParameters['VerifyCertificate'] = True
+
+    ### set default behavior for VerifyCertificate
+    if 'SCMUploadPath' not in defaultParameters:
+        if 'Platform' in defaultParameters:
+            defaultParameters['SCMUploadPath'] = defaultParameters['Platform']
+        else:
+            defaultParameters['SCMUploadPath'] = ''
+            
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 

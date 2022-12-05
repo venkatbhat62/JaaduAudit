@@ -746,7 +746,7 @@ def JASetProfile(fileName:str, paramName:str, paramValue:str):
     return returnStatus
 
 def JADeriveHistoryFileName( subsystem:str, operation:str, defaultParameters):
-    historyFileName = "{0}/JAAudit.{1}.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], operation,subsystem)
+    historyFileName = "{0}/{1}JAAudit.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], subsystem, operation)
     return historyFileName
 
 def JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters ):
@@ -823,9 +823,9 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
     # remove file type from baseConfigFileName
     baseConfigFileNameWithoutFileType, fileType = baseConfigFileName.split('.')
 
-    ### use App subsystem as default 
+    ### use Apps subsystem as default 
     if subsystem == '' or subsystem == None:
-        subsystem = 'App'
+        subsystem = 'Apps'
     
     ### first try with version, if version is passed
     if version != '':
