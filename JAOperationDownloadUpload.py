@@ -225,14 +225,102 @@ def JAOperationDownload(
 
     numberOfFiles, sucessCount, failureCount = 0
 
-    ### now download the files from SCM
-    for fileName in defaultParameters['UploadFileNames']:
-        numberOfFiles += 1
-        if debugLevel > 1:
-            JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationDownload() downloading file:{0}".format( fileName ),
-                interactiveMode,
-                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    downloadURL = "https://{0}:{1}/{2}/".format(
+            defaultParameters['SCMHostName'],
+            defaultParameters['SCMPortHTTPS'],
+            defaultParameters['DownloadBasePath'] )
+
+    verifyCertificate = defaultParameters['VerifyCertificate']
+
+    numberOfFiles = sucessCount =  failureCount = 0
+    downloadSuccess = True
+    saveDir = defaultParameters['SaveDir']
+    try:
+        os.chdir(saveDir)
+    except OSError as err:
+        JAGlobalLib.LogLine(
+            "ERROR JAOperationDownload() can't change directory to saveDir:|{0}|".format( saveDir ),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        return False, numberOfFiles
+
+    ### compute full wget command with option to write the contents to output file
+    if OSType == "Windows":
+        ### iwr options used 
+        wgetOutputFileOption = "-OutFile"
+    else:
+        ### all unix/linux flavors support -o <outputFile> option
+        wgetOutputFileOption = "-o"
+
+    if OSType == 'Windows':
+        ### get file one by one 
+        for fileName in defaultParameters['UploadFileNames']:
+            numberOfFiles += 1
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAOperationDownload() downloading file:{0}".format( fileName ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            fullURL = "{0}/{1}/".format( downloadURL, fileName)
+
+            ### prepare wget command
+            if 'CommandWget' in defaultParameters:
+                wgetCommand = "{0} {1} {2} {3}".format( 
+                        defaultParameters['CommandWget'],
+                        fullURL,
+                        wgetOutputFileOption,
+                        fileName )
+                returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(wgetCommand, debugLevel, OSType)
+                if returnResult == True:
+                    if debugLevel > 0:
+                        JAGlobalLib.LogLine(
+                            "DEBUG-1 JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                else:
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    else:
+        ### can get multiple files in one go in Linux by passing URL file to wget
+        ### this file is used as temporary storage for output of commands
+        ### this temp file is deleted at the end of compare operation
+        downloadFileList ="{0}/JAAudit.dat.{1}".format(
+            defaultParameters['LogFilePath'],
+            os.getpid() )
+
+        with open( downloadFileList, "w") as file:
+            ### prepare a temporary file with download URLs. It will be passed to wget to get all files at one go
+            for fileName in defaultParameters['UploadFileNames']:
+                numberOfFiles += 1
+                if debugLevel > 1:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-2 JAOperationDownload() downloading file:{0}".format( fileName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                fullURL = "{0}/{1}/".format( downloadURL, fileName)
+                file.write(fullURL)
+            file.close()
+
+        ### prepare wget command
+        if 'CommandWget' in defaultParameters:
+            wgetCommand = "{0} -i {1}".format( 
+                    defaultParameters['CommandWget'],
+                    downloadFileList )
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(wgetCommand, debugLevel, OSType)
+            if returnResult == True:
+                if debugLevel > 0:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-1 JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            else:
+                JAGlobalLib.LogLine(
+                    "ERROR JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     JAGlobalLib.LogLine(
         "INFO JAOperationDownload() Total number of files:{0}, successful upload:{1}, failures:{2}".format(

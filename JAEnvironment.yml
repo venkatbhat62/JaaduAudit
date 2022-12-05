@@ -335,6 +335,14 @@ Environment:
      ### by default, display license due in message within 30 days of cert expiry when license operation is run
      DueInDaysForLicence: 30
 
+     ### download base path excluding document root on SCM
+     ### this needs to match the last folder name defined for 'DirLocal' used by cgi-bin/JAUploadFile.py used to upload files
+     ###   JAGlobalVars.yml:    DirLocal: /var/www/JaaduAudit/UploadLocal
+     ###                                                      ^^^^^^^^^^^  <--- this is the download base path
+     ### platform specific folders will be under this base path
+     ###  <DocumentRoot>/UploadLocal/<platform>/<hostname>/<files>
+     DownloadBasePath: UploadLocal
+
      ### heal operation related definitions
      ### healInterval in seconds
      ###    take heal action within this interval with max action count not exceeding the HealCount specified for that command

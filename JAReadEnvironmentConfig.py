@@ -359,13 +359,18 @@ def JAReadEnvironmentConfig(
     if 'VerifyCertificate' not in defaultParameters:
         defaultParameters['VerifyCertificate'] = True
 
-    ### set default behavior for VerifyCertificate
+    ### set default behavior for upload path
     if 'SCMUploadPath' not in defaultParameters:
         if 'Platform' in defaultParameters:
             defaultParameters['SCMUploadPath'] = defaultParameters['Platform']
         else:
             defaultParameters['SCMUploadPath'] = ''
-            
+
+    ### this default needs to match what was defined on SCM web server
+    ###  this path is directly under <DocumentRoot>/UploadLocal/<platform>/<hostName>/<files>
+    if 'DownloadBasePath' not in defaultParameters:
+        defaultParameters['DownloadBasePath'] = 'UploadLocal'
+
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 
