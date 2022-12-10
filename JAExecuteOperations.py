@@ -107,7 +107,7 @@ def JARun(
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel  )
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         else:
             errorMsg = "ERROR JARun() Unsupported operation:{0}".format(operation)
             JAGlobalLib.LogLine(

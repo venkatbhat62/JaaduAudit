@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-D", "0", "-o", "sync,conn,cert,health,heal,license,save,stats,task,test,upload", "-r", "color", "-l", "test.log"]
+            "args": ["-D", "3", "-o", "download,compare", "-d", "Temp", "-r", "color", "-l", "test.log"]
         }
     ]
 }

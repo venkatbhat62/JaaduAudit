@@ -202,6 +202,12 @@ def JAOperationReadConfig(
                     if paramValue != defaultParameters['Environment']:
                         saveParamValue = False
                         ### skip current object spec, current host's environment is not matching
+                        if debugLevel > 2:
+                            JAGlobalLib.LogLine(
+                                "DEBUG-3 JAOperationReadConfig() Skipped objectName:|{0}|, desired environment:{1}, current environment:{2}".format(
+                                        objectName, paramValue, defaultParameters['Environment']),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         break
                 elif paramName == 'CompareType' :
                     paramValue = paramValue.lower()
