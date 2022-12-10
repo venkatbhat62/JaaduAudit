@@ -542,8 +542,12 @@ def JAOperationCompareFiles(
 
         ### for host to host compare, use H2H compare specific command and sed command
         if compareH2H == True:
-            # host to host compare scenario
-            tempCompareCommand = "{0} {1} {2} {3}".format( compareCommandH2H, currentFileName, previousFileName, compareCommandH2HSedCommand )
+            if OSType == "Windows":
+                ### TBD enhance this later
+                tempCompareCommand = "{0} (cat {1}) (cat {2})".format(compareCommand, currentFileName, previousFileName )
+            else:
+                # host to host compare scenario
+                tempCompareCommand = "{0} {1} {2} {3}".format( compareCommandH2H, currentFileName, previousFileName, compareCommandH2HSedCommand )
         else:
             # regular compare scenario
             if OSType == "Windows":
@@ -867,10 +871,17 @@ def JAOperationSaveCompare(
     currentDataFileName ="{0}/JAAudit.dat.{1}".format(
         defaultParameters['LogFilePath'],
          os.getpid() )
-
+        
     if defaultParameters['DownloadHostName'] == None:
-        compareH2H = False
-        compareCommandH2H = compareCommandH2HSedCommand = None
+        if re.search(r'download', defaultParameters['operations']) :
+            ### if download operation was done before, need to assume compare current environment
+            ###   to uploaded info from current host itself.
+            compareH2H = True
+            compareCommandH2H = defaultParameters['CompareCommandH2H']
+            compareCommandH2HSedCommand = defaultParameters['CompareCommandH2HSedCommand']
+        else:
+            compareH2H = False
+            compareCommandH2H = compareCommandH2HSedCommand = None
     else:
         compareH2H = True
         compareCommandH2H = defaultParameters['CompareCommandH2H']

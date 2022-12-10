@@ -46,7 +46,7 @@ def JAOperationUpload(
 
     """
     # headers = {'Content-type': 'application/octet-stream', 'Accept': 'text/plain'}
-    headers = {'Content-type': 'multipart/form-data'}
+    # headers = {'Content-type': 'multipart/form-data'}
     requestSession = None
     useRequests = False
     try:
@@ -223,36 +223,71 @@ def JAOperationDownload(
         defaultParameters, saveCompareParameters,
         debugLevel )
 
-    numberOfFiles, sucessCount, failureCount = 0
+    if defaultParameters['DownloadHostName'] == None:
+        ### use current hostname as default hostname to download the files from SCM
+        downloadHostName = thisHostName
+    else:
+        downloadHostName = defaultParameters['DownloadHostName'] 
 
-    downloadURL = "https://{0}:{1}/{2}/".format(
+    downloadURL = "https://{0}:{1}/{2}/{3}/{4}".format(
             defaultParameters['SCMHostName'],
             defaultParameters['SCMPortHTTPS'],
-            defaultParameters['DownloadBasePath'] )
+            defaultParameters['DownloadBasePath'],
+            defaultParameters['SCMUploadPath'],
+            downloadHostName ) 
 
     verifyCertificate = defaultParameters['VerifyCertificate']
 
     numberOfFiles = sucessCount =  failureCount = 0
-    downloadSuccess = True
     saveDir = defaultParameters['SaveDir']
+
+    ### save directory not present, create it
+    if not os.path.exists(saveDir) :
+        try:
+            os.mkdir(saveDir)
+        except OSError as err:
+            JAGlobalLib.LogLine(
+                "ERROR JAOperationDownload() Error creating {0} directory:{1}, error:{2}, Skipped {3} operation".format(
+                    operation, saveDir, err, operation),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            return False, numberOfItems
+
+    requestSession = None
+    useRequests = False
     try:
-        os.chdir(saveDir)
-    except OSError as err:
-        JAGlobalLib.LogLine(
-            "ERROR JAOperationDownload() can't change directory to saveDir:|{0}|".format( saveDir ),
-            interactiveMode,
-            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-        return False, numberOfFiles
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 3:
+            import importlib
+            import importlib.util
+            try:
+                if importlib.util.find_spec("requests") != None:
+                    useRequests = True
+                    import requests
+                    from urllib3.exceptions import InsecureRequestWarning
+                    from urllib3 import disable_warnings
 
-    ### compute full wget command with option to write the contents to output file
-    if OSType == "Windows":
-        ### iwr options used 
-        wgetOutputFileOption = "-OutFile"
-    else:
-        ### all unix/linux flavors support -o <outputFile> option
-        wgetOutputFileOption = "-o"
+                    requestSession = requests.session()
+                    if defaultParameters['DisableWarnings']  == True:
+                        disable_warnings(InsecureRequestWarning)
 
-    if OSType == 'Windows':
+                else:
+                    useRequests = False
+
+                importlib.util.find_spec("json")
+                
+            except ImportError:
+                JAGlobalLib.LogLine(
+                    "WARN JAOperationUpload() import error, NOT using requests to post",
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)    
+    except:
+        if useRequests == False:
+            JAGlobalLib.LogLine(
+                "WARN JAOperationUpload() not able to determin python release level, NOT using requests to post",
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    if useRequests == True or OSType == 'Windows':
         ### get file one by one 
         for fileName in defaultParameters['UploadFileNames']:
             numberOfFiles += 1
@@ -261,27 +296,44 @@ def JAOperationDownload(
                     "DEBUG-2 JAOperationDownload() downloading file:{0}".format( fileName ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            fullURL = "{0}/{1}/".format( downloadURL, fileName)
+            fullURL = "{0}/{1}".format( downloadURL, fileName)
 
-            ### prepare wget command
-            if 'CommandWget' in defaultParameters:
-                wgetCommand = "{0} {1} {2} {3}".format( 
-                        defaultParameters['CommandWget'],
-                        fullURL,
-                        wgetOutputFileOption,
-                        fileName )
-                returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(wgetCommand, debugLevel, OSType)
-                if returnResult == True:
-                    if debugLevel > 0:
+            try:
+                returnResult = requestSession.get(
+                    url=fullURL, 
+                    verify=verifyCertificate, 
+                    timeout=300) 
+                if returnResult.status_code >= 200 and returnResult.status_code < 300:
+                    ### save the file in saveDir
+                    localFileName = "{0}/{1}".format(saveDir, fileName)
+                    try:
+                        with open(localFileName, 'wb') as file:
+                            file.write(returnResult.content)
+                            file.close()
+                        sucessCount += 1
+                        if debugLevel > 1:
+                            JAGlobalLib.LogLine(
+                                "DEBUG-2 JAOperationDownload() downloaded file:|{0}|, saved at:|{1}|".format( fullURL, localFileName ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+                    except OSError as err:
                         JAGlobalLib.LogLine(
-                            "DEBUG-1 JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                            "ERROR JAOperationDownload() Error saving the downloaded file:|{0}|".format( localFileName ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        failureCount += 1
                 else:
                     JAGlobalLib.LogLine(
-                        "ERROR JAOperationDownload() download result:{0}, msg:{1}".format( returnOutput, errorMsg ),
+                        "ERROR JAOperationDownload() Error downloading file:|{0}|, using full URL:|{1}|, HTTP Status Code:|{2}|".format( 
+                            fileName, fullURL, returnResult.status_code ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    failureCount += 1
+
+            except requests.exceptions.Timeout as err:
+                resultText += "<Response [500]> requestSession.post() Error downloading file:{0}, timeout exception raised","error:{1}\n".format(
+                    fullURL, err)
 
     else:
         ### can get multiple files in one go in Linux by passing URL file to wget
@@ -323,7 +375,8 @@ def JAOperationDownload(
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     JAGlobalLib.LogLine(
-        "INFO JAOperationDownload() Total number of files:{0}, successful upload:{1}, failures:{2}".format(
+        "INFO JAOperationDownload() Total number of files:{0}, successful download:{1}, failures:{2}".format(
             numberOfFiles, sucessCount, failureCount ),
         interactiveMode,
         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    return returnStatus, numberOfItems

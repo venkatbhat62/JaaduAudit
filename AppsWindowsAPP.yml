@@ -57,7 +57,7 @@ AppsCode:
   Environment: Dev
 AppsConfig:
   # need to specify full path while referring to files (powershell defaults to home directory)
-  FileNames: C:\Users\${username}\documents\github\jaaduAudit/Custom/JAEnvironment.yml, C:\Users\${username}\documents\github\jaaduAudit/Custom/AppWindowsAPP.yml
+  FileNames: C:\Users\${username}\documents\github\jaaduAudit/Custom/JAEnvironment.yml, C:\Users\${username}\documents\github\jaaduAudit/Custom/AppsWindowsAPP.yml
 AppsCmdEnv:
   ### take a snapshot of current environment
   Command: 'Get-ChildItem -Path Env:'

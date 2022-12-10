@@ -226,6 +226,7 @@ def JAHelp():
     
     [-H <downloadHostName>] - Typically used while running 'download,compare' operations.
         This hostname refers to the host whose environment is to be compared to current host's environment.
+        If not passed, default to current hostname
     """
 
     helpString2 = """
