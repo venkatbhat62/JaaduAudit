@@ -86,7 +86,7 @@ def JAOperationReadConfig(
     returnStatus, saveCompareSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCustom']),
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCommon']),
-          subsystem, baseConfigFileName, version, debugLevel )
+          baseConfigFileName, subsystem, 'compare', version, debugLevel )
     if returnStatus == False:
         JAGlobalLib.LogLine(
             "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),

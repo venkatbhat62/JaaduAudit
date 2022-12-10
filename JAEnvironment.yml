@@ -75,9 +75,10 @@ OS:
     CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
-    LocalRepositoryHome: 'C:\Users\${username}\documents\github\jaaduAudit'
+    LocalRepositoryHome: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository'
     LogFilePath: 'C:\Users\${username}\documents\github\jaaduAudit\Logs'
     ReportsPath: 'C:\Users\${username}\documents\github\jaaduAudit\Reports'
+
   All:
     ### default applies to all OS versions
     CommandCurl: curl
@@ -106,28 +107,29 @@ OS:
 Component:
   ### using regular expression syntax, specify how to find component name of the application of platform
   ###  so that component specific variable values can be derived run time
-  ### AppConfig naming convention - <SubsystemName><platform><ComponentName>.yml[.<AppVersion>] where
-  ###   <SubsystemName> - App for main application, DB for Database configurations, OS for OS configurations
+  ### AppConfig naming convention - <platform><componentName>.<subsystemName>.<operation>[.<version>].yml where
   ###   <platform>  - keep this same as platform name defined before for this environment
-  ###   <ComponentName> - abbreviated component name
-  ###   [.<AppVersion>] - this application version will be appended run time to derive the config file to be used
+  ###   <componentName> - abbreviated component name
+  ###   <subsystemName> - Apps for main application, DB for Database configurations, OS for OS configurations
+  ###   [.<version>] - this application version will be appended run time to derive the config file to be used
   ###           based on current application release installed on that host.
-  ###        Command specified under CommandToGetAppVersion will be used run time to derive the application version
-  ###        If command is not specified under CommandToGetAppVersion, or version returned is TBD, 
-  ###           AppVersion will not be appended to derive full name.
-  ### Operations specific configuration file has operation name prefixed to above AppConfig file name
-  ###   below sample is for subsystem name of 'Apps'
-  ### Example:
-  ###    ConnPlatform1APP.yml, CertPlatform1APP.yml, HealPlatform1APP.yml, HealthPlatform1APP.yml 
-  ###    ^^^^                     ^^^^                     ^^^^^                    ^^^^^^
-  ###    LogStatsPlatform1APP.yml, OSStatsPlatform1APP.yml, StatsPlatform1APP.yml
-  ###    ^^^^^^^^                     ^^^^^^^                     ^^^^^
-  ###    TestPlatform1APP.yml, TaskPlatform1APP.yml
-  ###    ^^^^                     ^^^^
+  ###        If the system is Apps, command specified under CommandToGetAppVersion will be used 
+  ###           run time to derive the application version
+  ###        For OS subsystem, command specified under CommandToGetOSVersion is used to derive the version
+  ###        For DB subsystem, command specified under CommandToGetDBVersion is used to derive the version
+  ###        This field is optional
+  ###   <operation> - compare, conn, license, test, stats... 
+  ###           each operation will have it's own spec file per platform, per component.
+  ###           It is feasible to maintain that per subsystem also.
+  ###
+  ### Examples:
+  ###    Platform1APP.Apps.compare.yml, Platform1APP.OS.compare.yml, Platform1APP.DB.compare.yml
+  ###    Platform1APP.Apps.compare.2.yml, Platform1APP.OS.compare.8.yml, Platform1APP.DB.compare.10.yml
+  ###    Platform1APP.Apps.conn.yml, Platform1APP.OS.conn.yml, Platform1APP.DB.conn.yml
   APPWin:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: WindowsAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
@@ -150,7 +152,7 @@ Component:
   APPLinux:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: LinuxAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
@@ -172,7 +174,7 @@ Component:
   CS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: LinuxCS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
@@ -191,7 +193,7 @@ Component:
   DB:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: Platform1DB.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetDBVersion: cat ../conf/DB.version | sort | tail -1 | sed 's/\(.*\)\(DB\)-\(.*\)/\2/'
@@ -210,7 +212,7 @@ Component:
   FS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: Platform1FS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
@@ -229,7 +231,7 @@ Component:
   MGT:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: Platform1MGT.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
@@ -248,7 +250,7 @@ Component:
   WS:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
-    ### Do not prefix subsystem name here, it will be prefixed run time based on subsystem for which operation is being performed
+    ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: Platform1WS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD

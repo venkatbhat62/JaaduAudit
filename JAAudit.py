@@ -114,24 +114,24 @@ def JAHelp():
           backup,cert,compare,conn,default,download,heal,health,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload
 
         If called with operation 'backup'
-            Takes the environment snapshot by carrying out instructions in save<baseConfigFile><subsystem>.yml
+            Takes the environment snapshot by carrying out instructions in <baseConfigFile>.<subsystem>.compare.yml
             It is like save except, it will save the environment in BackupYYYYMMDD directory under 'LocalRepositoryHome'
             It will also delete expired backup directories based on duration specified by parameter 'BackupRetencyDurationInDays'
 
         If called with operation 'cert'
-            Checks the start and end dates, DNS alias of certificates specified in cert<baseConfigFile><subsystem>.yml file.
+            Checks the start and end dates, DNS alias of certificates specified in <baseConfigFile>.<subsystem>.cert.yml file.
             The spec can include commands to connect to a running process, get the cert being used by that process
                 and display desired attributes.
 
         If called with operation 'compare'
-            Takes the environment snapshot by carrying out instructions in save<baseConfigFile><subsystem>.yml,
+            Takes the environment snapshot by carrying out instructions in save<baseConfigFile>.<subsystem>.compare.yml,
               compares the snapshot with the snapshot saved before at JAAudit/<saveDir>
             Typically used after applying change to the environment like OS update, application code/config update
                 to audit the changes to the environment.
 
         If called with operation 'conn'
             Check connectivity from current host to other (local or remote) hosts by using the connectivity
-                definition file conn<baseConfigFile><subsystem>.yml
+                definition file <baseConfigFile>.<subsystem>.conn.yml
             It uses operating system specific command or custom command specified in environment config file 
                 to run connectivity check. For UDP type of protocol, it just sends the packets, need to capture the
                 packets on other end to confirm the packets received on other end.
@@ -149,24 +149,24 @@ def JAHelp():
             Typically used during host to host compare, or to restore the files backed up before on SCM host. 
 
         If called with operation 'heal'
-            Executes heal instructions in health<baseConfigFile><subsystem>.yml to automatically correct anomalies in system health.
-            Actions are recorded in HealHistory.log.<YYYYMMDD>
+            Executes heal instructions in health<baseConfigFile>.<subsystem>.heal.yml to automatically correct anomalies in system health.
+            Actions are recorded in History.heal.log.<YYYYMMDD>
             If heal action count exceeds the threshold, sends email alert.
 
         If called with operation 'health'
             Collects current health of a host covering OS, DB, application, services, connections etc by acting on 
-                specification in health<baseConfigFile><subsystem>.yml.
+                specification in <baseConfigFile><subsystem>.health.yml.
 
         If called with operation 'help,
             display help message and exit
 
         If called with operation 'inventory'
-            Collects the S/W version information by carrying out instructions in inventory<baseConfigFile><subsystem>.yml
+            Collects the S/W version information by carrying out instructions in inventory<baseConfigFile>.<subsystem>.inventory.yml
             Typically used after applying change to the environment like OS update, application code/config update
                 to collect latest version information.
 
         If called with operation 'license'
-            Executes license display commands specified in license<baseConfigFile><subsystem>.yml and displays the results
+            Executes license display commands specified in license<baseConfigFile>.<subsystem>.license.yml and displays the results
 
         If called with operation 'perfStatsOS'
             Invokes JAGatherOSStats.py along with host specific parameters.
@@ -175,12 +175,12 @@ def JAHelp():
             Invokes JAGatherLogStats.py along with host specific parameters.
 
         If called with operation 'save'
-            Takes the environment snapshot by carrying out instructions in save<baseConfigFile><subsystem>.yml,
+            Takes the environment snapshot by carrying out instructions in save<baseConfigFile>.<subsystem>.compare.yml,
               Saves the collected snapshot in JAAudit/<saveDir>
             Typically done before applying change to the environment like OS update, application code/config update
 
         If called with operation 'stats'
-            Parse log file(s) specified in stats<baseConfigFile><subsystem>.yml and print stats in CSV format
+            Parse log file(s) specified in stats<baseConfigFile>.<subsystem>.stats.yml and print stats in CSV format
 
         If called with operation 'sync'
             Syncs the code & config (all spec files) from SCM to local host. rsync will be used if specified
@@ -189,13 +189,13 @@ def JAHelp():
                 achieve continuous deployment of audit tool to all desired environments automatically.
 
         If called with operation 'task'
-            Runs the tasks specified in task<baseConfigFile><subsystem>.yml
+            Runs the tasks specified in task<baseConfigFile>.<subsystem>.task.yml
             Typically used to manage tasks to be run on many hosts of one or more environments by using
                 single definition source on SCM or git type of repository. This task approach eliminates the
                 need to manage the crontab on each individual host.
 
         If called with operation 'test'
-            Runs the tests specified in test<baseConfigFile><subsystem>.yml, compare current result to the <ExpectedResult>
+            Runs the tests specified in test<baseConfigFile>.<subsystem>.test.yml, compare current result to the <ExpectedResult>
                 If <ExpectedResult>.sedCmd file is present, first translate the contents of <ExpectedResult> and 
                    current result by applying those sed commands before comparing to ignore dynamic contents.
             Typically used before a change is made to the environment to record behavior of the application before a change
@@ -211,8 +211,8 @@ def JAHelp():
 
     [-s <subsystem>] - subsystem name to be used to derive the config file name containing specifications
         to be used to run the operations like conn, cert, stats etc. 
-        The subsystem name  can be OS, DB, App, OSS, Vendor etc.
-        Defaut subsystem is 'App'.
+        The subsystem name  can be OS, DB, Apps, OSS, Vendor etc.
+        Defaut subsystem is 'Apps'.
     
     [-p <platform>] - repository name to be sent to SCM host while doing rsync or wget so that
         platform specific files are downloaded to current host. This repository name is also used
@@ -247,9 +247,9 @@ def JAHelp():
     [-f <baseConfigFile>] typically in the form Audit<Platform><component>
         Default file name is picked up environment config file per component.
         Base config file or spec file used per component to derive operation specific config file or spec file.
-        For operations like 'save', 'compare', 'save' is prefixed to this file name to derive spec file
-        For 'cert', 'conn', 'heal', 'health', 'inventory', 'license', 'task', 'test', the operation word is prefixed to this file name
-          to derive spec file.
+        For operations like 'backup, 'save', 'compare', 'compare' is suffixed to the file name to derive spec file
+        For 'cert', 'conn', 'heal', 'health', 'inventory', 'license', 'task', 'test', 
+            the operation word is suffixed to this file name to derive spec file.
         For 'perfStatsOS', and 'perfStatsApp' operations, the operation word is prefixed to this file 
           to derive the spec file to be passed to the python script that collects stats.
         
@@ -282,12 +282,12 @@ def JAHelp():
     Examples:
         python JAAudit.py -o backup <-- save current environment, typically scheduled (cron or schedule) for periodic backup. 
             Save directory name of BackupYYYYMMDD is used.
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o save <-- save current environment, typically done before code install. 
             Default <saveDir> is used. (see <saveDir> for more details)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o save -s OS <-- save current OS environment, typically done before OS updates. 
@@ -302,13 +302,13 @@ def JAHelp():
 
         python JAAudit.py -o save -d PreReleaseX.Y <-- save current environment in PreReleaseX.Y directory
                as a pre-upgrade step, before installing ReleaseX.Y
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o compare <-- compare current environment to previously saved snapshot, 
                 typically done aafter the code install. 
             Default <saveDir> is used to compare the files under that directory. (see <saveDir> for more details)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o compare -s OS <-- compare current OS environment to previously saved snapshot, 
@@ -319,20 +319,20 @@ def JAHelp():
         
         python JAAudit.py -o compare -d PreReleaseX.Y <-- compare current environment to snapshot saved in 
                 PreReleaseX.Y directory. Typically used after the upgrade. 
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o save,upload <-- save current environment and upload to SCM host, 
                 typically done before code install. 
             Default <saveDir> is used. (see <saveDir> for more details)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
             Default SCM hostname is used (see <SCMHostName> for more details)
 
         python JAAudit.py -o save,upload -D 2 <-- save current environment and upload to SCM host, 
                 typically done before code install. 
             Default <saveDir> is used. (see <saveDir> for more details)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
             Default SCM hostname is used (see <SCMHostName> for more details)
             DebugLevel of 2 is used.
@@ -340,7 +340,7 @@ def JAHelp():
         python JAAudit.py -o download,compare -k SCM1 -H RefHostName <-- download environment from SCM1 
                 for the hostname RefHostName and compare to current host, typically done to perform host to host complare. 
             Default <saveDir> is used. (see <saveDir> for more details)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o download,compare -k SCM1 -H RefHostName -i yes <-- download environment from SCM1 
@@ -363,7 +363,7 @@ def JAHelp():
                 given in fromTime and toTome.
 
         python JAAudit.py -o conn <-- run connectivity test from current host to other host(s)
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o conn,upload <-- run connectivity test from current host to other host(s) and 
@@ -374,12 +374,12 @@ def JAHelp():
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o cert <-- check certificats on current host and certs used by running processes
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o cert,upload <-- check certificats on current host, certs used by running processes and
                 upload results to SCM host
-            Default <subsystem> of 'App' is used (see <subsystem> for more details)
+            Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
             Default base config file name specified in environment config file is used for the current hostname
 
         python JAAudit.py -o health,upload <-- collect health and upload to SCM
@@ -458,7 +458,7 @@ if '-s' in argsPassed:
     # substem name passed
     subsystem = argsPassed['-s']
 else:
-    subsystem = ''
+    subsystem = 'Apps'
 
 if '-p' in argsPassed:
     # substem name passed
@@ -690,7 +690,7 @@ else:
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-if subsystem == 'App' or subsystem == None:
+if subsystem == 'Apps' or subsystem == None:
     ### get application version, this is used to derive host/component specific specification file(s)
     if 'CommandToGetAppVersion' in defaultParameters:
         commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']

@@ -63,7 +63,7 @@ def JAOperationReadConfig(
 #
    Parameters passed:
         baseConfigFileName - Vaue of 'AppConfig' parameter defined in JAEnvironment.yml for that host or component for that environment
-        subsystem - if not empty, it will be Prefixed to derive config file
+        subsystem - if not empty, it will be suffixed to derive config file
         version - if not empty, suffixed to the baseConfigFileName to find release specific config file
         OSType,
         outputFileHandle, colorIndex, HTMLBRTag, myColors,
@@ -84,7 +84,7 @@ def JAOperationReadConfig(
 
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationReadConfig() subsystem:{0}, AppConfig:{1}, version:{2} ".format(
+            "DEBUG-1 JAOperationReadConfig()  AppConfig:{0}, subsystem:{1}, version:{2} ".format(
                 subsystem, baseConfigFileName, version),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -110,7 +110,7 @@ def JAOperationReadConfig(
     returnStatus, saveCompareSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCustom']),
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCommon']),
-          subsystem, baseConfigFileName, version, debugLevel )
+           baseConfigFileName, subsystem, 'compare', version, debugLevel )
     if returnStatus == False:
         JAGlobalLib.LogLine(
             "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),
@@ -423,7 +423,7 @@ def JAPrepareUploadFileList(
     """
 
     ### save file to the list, this will be used to download files later.
-    fileName = "{0}{1}.save".format( subsystem, baseConfigFileName  )
+    fileName = "{0}.{1}.save".format( baseConfigFileName, subsystem  )
     fileList = []
     fileList.append(fileName)
 
@@ -765,8 +765,8 @@ def JAOperationSaveCompare(
 
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationSaveCompare() subsystem:{0}, AppConfig:{1}, version:{2}".format(
-                subsystem, baseConfigFileName, version),
+            "DEBUG-1 JAOperationSaveCompare()  AppConfig:{0}, subsystem:{1}, version:{2}".format(
+                 baseConfigFileName, subsystem, version),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -893,8 +893,8 @@ def JAOperationSaveCompare(
         compareCommandH2H = defaultParameters['CompareCommandH2H']
         compareCommandH2HSedCommand = defaultParameters['CompareCommandH2HSedCommand']
 
-    discoveredSpecFileName = "{0}/{1}{2}.{3}".format(
-        saveDir, subsystem, baseConfigFileName, operation  )
+    discoveredSpecFileName = "{0}/{1}.{2}.{3}".format(
+        saveDir, baseConfigFileName, subsystem, operation  )
     ### write the current AppConfig spec info to saveDir. 
     # This info will be used later while comparing the current environment to saved environment
     with open(discoveredSpecFileName, "w") as file:
@@ -908,8 +908,8 @@ def JAOperationSaveCompare(
                 ))
         file.close()
     if operation == 'compare':
-        discoveredSpecSaveFileName = "{0}/{1}{2}.save".format(
-            saveDir, subsystem, baseConfigFileName  )
+        discoveredSpecSaveFileName = "{0}/{1}.{2}.save".format(
+            saveDir, baseConfigFileName, subsystem  )
         ### compare two files as text files to find delta between the two
         returnStatus, fileDiffer, errorMsg = JAOperationCompareFiles(
             discoveredSpecFileName, discoveredSpecSaveFileName, 

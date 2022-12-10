@@ -803,12 +803,12 @@ def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defa
 
     return returnStatus
 
-def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseConfigFileName:str, version:str, debugLevel:int ):
+def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str, subsystem:str, operation:str, version:str, debugLevel:int ):
     """
     Prepare operation specific configuration file
-    <path>/<subsystem><baseConfigFileName>[.<version>].<fileType>
+    <path>/<baseConfigFileName>.<subsystem>.<operation>.[.<version>].<fileType>
     
-    if subsystem passed is empty, 'App' subsystem is used by default
+    if subsystem passed is empty, 'Apps' subsystem is used by default
     if version is not empty, it is added to the filename
     
     """
@@ -817,8 +817,8 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
     errorMsg = ''
     
     if debugLevel > 1:
-        print("DEBUG-2 JADeriveConfigFileName() pathName1:{0}, pathName2:{1}, subsystem:{2}, baseConfigFileName:{3}, version:{4}".format(
-                pathName1, pathName2, subsystem, baseConfigFileName, version))
+        print("DEBUG-2 JADeriveConfigFileName() pathName1:{0}, pathName2:{1}, baseConfigFileName:{2}, subsystem:{3}, operation:{4}, version:{5}".format(
+                pathName1, pathName2, baseConfigFileName, subsystem, operation, version))
 
     # remove file type from baseConfigFileName
     baseConfigFileNameWithoutFileType, fileType = baseConfigFileName.split('.')
@@ -830,12 +830,12 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
     ### first try with version, if version is passed
     if version != '':
         ### first try under path1
-        tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
-            pathName1, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
+        tempConfigFileName = '{0}/{1}.{2}.{3}.{4}.{5}'.format(
+            pathName1, baseConfigFileNameWithoutFileType, subsystem, operation, version, fileType)
         if os.path.exists( tempConfigFileName ) == False:
             ### Now try under pathName2
-            tempConfigFileName = '{0}/{1}{2}.{3}.{4}'.format(
-                pathName2, subsystem, baseConfigFileNameWithoutFileType, version, fileType)
+            tempConfigFileName = '{0}/{1}.{2}.{3}.{4}.{5}'.format(
+                pathName2, baseConfigFileNameWithoutFileType, subsystem, operation, version, fileType)
             if os.path.exists( tempConfigFileName ) == False:
                 returnStatus = False
             else:
@@ -845,15 +845,15 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, subsystem:str, baseCon
 
     if returnStatus == False:
         ### try without the version string
-        tempConfigFileName = '{0}/{1}{2}.{3}'.format(
-            pathName1, subsystem, baseConfigFileNameWithoutFileType, fileType)
+        tempConfigFileName = '{0}/{1}.{2}.{3}.{4}'.format(
+            pathName1, baseConfigFileNameWithoutFileType, subsystem, operation, fileType)
         if os.path.exists( tempConfigFileName ) == False:
-            tempConfigFileName = '{0}/{1}{2}.{3}'.format(
-                pathName2, subsystem, baseConfigFileNameWithoutFileType, fileType)
+            tempConfigFileName = '{0}/{1}.{2}.{3}.{4}'.format(
+                pathName2, baseConfigFileNameWithoutFileType, subsystem, operation, fileType)
             if os.path.exists( tempConfigFileName ) == False:
                 ### file does exist, return error
-                errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, subsystem:{3}, AppConfig:{4}, version:{5}".format(
-                    tempConfigFileName, pathName1, pathName2, subsystem, baseConfigFileName, version)
+                errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, AppConfig:{3}, subsystem:{4}, operation:{5}, version:{6}".format(
+                    tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
                 returnStatus = False
                 tempConfigFileName = ''
             else:

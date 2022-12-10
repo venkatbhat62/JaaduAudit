@@ -52,12 +52,12 @@ AppsCode:
   # python files under AppsCommon 
   # need to specify full path while referring to files (powershell defaults to home directory)
   # Use "Select-object -expandproperty fullname" to get pathname and filename
-  FileNames: get-childitem C:\Users\${username}\documents\github\jaaduAudit/Common -Filter "*.py" | Select-object -expandproperty fullname
+  FileNames: get-childitem C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Common -Filter "*.py" | Select-object -expandproperty fullname
   CompareType: Checksum
   Environment: Dev
 AppsConfig:
   # need to specify full path while referring to files (powershell defaults to home directory)
-  FileNames: C:\Users\${username}\documents\github\jaaduAudit/Custom/JAEnvironment.yml, C:\Users\${username}\documents\github\jaaduAudit/Custom/AppsWindowsAPP.yml
+  FileNames: C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Custom/JAEnvironment.yml, C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.compare.yml
 AppsCmdEnv:
   ### take a snapshot of current environment
   Command: 'Get-ChildItem -Path Env:'
