@@ -1,18 +1,2 @@
 
-JAAudit.log.20221120
-JAAudit.log.20221119
-Common/try.py
-Common/test.log
-test.log
-__pycache__/JAReadEnvironmentConfig.cpython-39.pyc
-__pycache__/JAOperationSync.cpython-39.pyc
-__pycache__/JAOperationConn.cpython-39.pyc
-__pycache__/JAGlobalLib.cpython-39.pyc
-__pycache__/JAExecuteOperations.cpython-39.pyc
-__pycache__/JAOperationCompare.cpython-39.pyc
 JAAudit.profile
-AppsCommon.PrevVersion/JAReadEnvironmentConfig.py
-AppsCommon.PrevVersion/try.py
-AppsCommon.PrevVersion/JAOperationSync.py
-AppsCommon.PrevVersion/JAOperationConn.py
-AppsCommon.PrevVersion/JAGlobalLib.py
