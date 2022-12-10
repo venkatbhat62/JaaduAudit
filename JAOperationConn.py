@@ -52,6 +52,33 @@ def JAOperationReadConfig(
         returnStatus - True on success, False upon file read error
         numberOfItems - number of items read
 
+
+    Connectivity spec format:
+#   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
+#             get-process -name <processName> in windows
+#             to check whether a process is running before doing connection check to listen port on local host
+#           Optional parameters, default None
+#   Condition: <number> - if above command results in a number greater than or equal to the given <number>
+#         connectivity check will be performed, else it will be skipped.
+#           Optional parameters, default None
+#   Environment: perform this check for the desired environment only
+#           Optional parameters, default - match to all enviormnet
+#   HostNames: destination hostname in short form or in FQDN form, can be IP address also. Can be single or in CSV format
+#         destination hostname can be localhost, in which case the connectivity to local port is verified. 
+#         This is be useful to check the local process listening in on expected LISTEN port
+#         If more then one hostname is specified via CSV, connectivity check is performed for to all those hosts
+#           for each of the ports specified under Ports.
+#           Mandatory Parameter
+#   Ports: single port or ports in CSV format, or port range like startingPort-(dash)-endingPort
+#          if more than one port is specified or range is specified, connectivity is checked to all those ports
+#            from current host to destination host
+#           Mandatory Parameter
+#   Protocol: TCP|UDP
+#         If UDP, it will send UDP packets, so that one can check the receipt of packets on other end manually or using other tools
+#           UDP does not provide any conclusive test results
+#         Optional parameter, defaults to TCP
+#
+
     """
     returnStatus = False
     errorMsg = ''
@@ -68,9 +95,12 @@ def JAOperationReadConfig(
 
     ### parameter names supported in SaveCompare object definition file
     connAttributes = [
-        'Ports',
-        'Hostnames',
+        'Command',
+        'Condition'
         'Environment',
+        'Hostnames',
+        'Ports',
+        'Protocol'
         ]
     baseConfigFileNameParts = baseConfigFileName.split('.')
     if len(baseConfigFileNameParts) != 2:
