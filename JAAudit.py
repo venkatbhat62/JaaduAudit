@@ -422,7 +422,7 @@ if '-D' in argsPassed:
     debugLevel = int(argsPassed['-D'])
     
 if debugLevel > 0 :
-    print("DEBUG-1 JAAudit.py() Version {0}\nParameters passed: {1}".format(JAVersion, argsPassed))
+    print("DEBUG-1 JAAudit() Version {0}\nParameters passed: {1}".format(JAVersion, argsPassed))
 
 baseConfigFileName = None
 if '-f' in argsPassed:
@@ -506,8 +506,6 @@ if SCMHostName != '':
     defaultParameters['SCMHostName'] = defaultParameters['SCMHostName1'] = defaultParameters['SCMHostName2']  \
         = SCMHostName
 
-### this will be used to find other operations opted while handling upload, download operations
-defaultParameters['operations'] = operations
 
 ### define colors to print messages in different color
 myColors = {
@@ -604,12 +602,40 @@ else:
     interactiveMode = True
     randomizationWindow = 0
 
-errorMsg  = "INFO JAAudit.py() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
+errorMsg  = "INFO JAAudit() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
     JAVersion, OSType, OSName, OSVersion)
 JAGlobalLib.LogLine(
 	errorMsg, 
     interactiveMode,
     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+### get current time in seconds
+currentTime = time.time()
+
+if operations == 'default':
+    ### check elapsed time since last time this operation was run,
+    ###   if it is time to run again, add that operation to the operations CSV string
+    defaultOperations = ['sync','backup','conn', 'cert', 'heal', 'health', 'inventory', 'license', \
+                'perfStatsOS','perfStatsApp', 'task', 'test', 'upload']
+    operations = ''
+
+    for myOperation in defaultOperations:
+
+        returnStatus = JAGlobalLib.JAIsItTimeToRunOperation(
+            currentTime, subsystem, myOperation, defaultParameters, debugLevel)
+        if returnStatus == True :
+            if operations == '':
+                operations = "{0}".format(myOperation)
+            else:
+                operations += ",{0}".format(myOperation)
+    defaultParameters['operations'] = operations
+    JAGlobalLib.LogLine(
+        "INFO JAAudit() Default operations to run:{0}".format(operations), 
+        interactiveMode,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+else:
+    ### this will be used to find other operations opted while handling upload, download operations
+    defaultParameters['operations'] = operations
 
 ### if PATH and LD_LIBRARY are defined, set those environment variables
 if 'PATH' in defaultParameters:
@@ -653,8 +679,6 @@ with open(fileName, "r") as file:
         allowedCommands.append(line)
     file.close()
 
-### get current time in seconds
-currentTime = time.time()
 
 fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 

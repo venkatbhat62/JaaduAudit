@@ -76,8 +76,8 @@ OS:
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
     LocalRepositoryHome: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository'
-    LogFilePath: 'C:\Users\${username}\documents\github\jaaduAudit\Logs'
-    ReportsPath: 'C:\Users\${username}\documents\github\jaaduAudit\Reports'
+    LogFilePath: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository\Logs'
+    ReportsPath: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository\Reports'
 
   All:
     ### default applies to all OS versions

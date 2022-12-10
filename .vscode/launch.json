@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-D", "3", "-o", "save,upload", "-d", "Temp", "-r", "color", "-l", "test.log"]
+            "args": ["-D", "0", "-o", "default", "-d", "Temp", "-r", "color", "-l", "test.log"]
         }
     ]
 }

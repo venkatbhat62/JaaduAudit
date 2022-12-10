@@ -3,12 +3,13 @@ This file contains the functions to handle connectivity check
 Author: havembha@gmail.com, 2022-11-06
 
 Execution Flow
-    Read connectivity spec yaml file to buffer
-    Extract connectivity check specific parametrs from yaml buffer
+    Read connectivity spec yml file to buffer
+    Extract connectivity check specific parametrs from yml buffer
     Run connectivity check
     If interactive mode, display results
-    Else, store the results to a JAAuditConn.log.YYYYMMDD file
-    If upload is enabled, upload the file to SCM host
+    Else, store the results to a JAAudit.conn.log.YYYYMMDD file
+    If upload is enabled, add report file to upload file list
+    Add OperationConn=<current time in seconds> to Audit.profile
 
 """
 
@@ -45,7 +46,7 @@ def JAOperationReadConfig(
         outputFileHandle, colorIndex, HTMLBRTag, myColors,
         interactiveMode, yamlModulePresent,
         defaultParameters, debugLevel, 
-        saveCompareSpec - full details, along with default parameters assigned, are returned in this dictionary
+        connSpec - full details, along with default parameters assigned, are returned in this dictionary
 
     Returned Values:
         returnStatus - True on success, False upon file read error
@@ -66,12 +67,10 @@ def JAOperationReadConfig(
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     ### parameter names supported in SaveCompare object definition file
-    saveCompareAttributes = [
-        'Command',
-        'CompareType',
+    connAttributes = [
+        'Ports',
+        'Hostnames',
         'Environment',
-        'FileNames',
-        'SkipH2H'
         ]
     baseConfigFileNameParts = baseConfigFileName.split('.')
     if len(baseConfigFileNameParts) != 2:
@@ -140,7 +139,7 @@ def JAOperationReadConfig(
             ### if the value is True or False type, it is treated as boolean, can't use .strip() on that paramValue
             if paramName != "SkipH2H":
                 paramValue = paramValue.strip()
-            if paramName not in saveCompareAttributes:
+            if paramName not in connAttributes:
                 JAGlobalLib.LogLine(
                     "ERROR JAOperationReadConfig() Unknown parameter name:|{0}|, parameter value:|{1}| for the object:|{2}|".format(
                         paramName, paramValue, objectName),

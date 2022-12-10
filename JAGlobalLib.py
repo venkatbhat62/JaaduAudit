@@ -746,7 +746,7 @@ def JASetProfile(fileName:str, paramName:str, paramValue:str):
     return returnStatus
 
 def JADeriveHistoryFileName( subsystem:str, operation:str, defaultParameters):
-    historyFileName = "{0}/{1}JAAudit.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], subsystem, operation)
+    historyFileName = "{0}/JAAudit.{1}.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], subsystem, operation)
     return historyFileName
 
 def JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters ):
