@@ -984,5 +984,70 @@ def JACheckConnectivityToHosts(
         returnStatus = False    
     return returnStatus, passCount, failureCount, detailedResults
     
+def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParameters, integerParameters, floatParameters):
+    """
+    Read environment spec for a given environment
+    This function can be called recursively
 
+    Parameters passed:
+        storeCurrentValue - True or False. If True, even if previous value was present for that parameter name,
+                new value will be stored in defaultParameters{}
+        values - parameter key,value pairs
+        debugLevel - 0 to 3, 3 being max level
+        defaultParameters - dictionary where values are to be stored
+        integerParameters - if current parameter name is in this list, value read will be converted to integer and stored
+        floatParameters - if current parameter name is in this list, value read will be converted to float and stored
+
+    Returned value:
+        True
+
+    """
+
+    for myKey, myValue in values.items():
+        if debugLevel > 1:
+            print('DEBUG-2 JAGatherEnvironmentSpecs() key: {0}, value: {1}'.format(myKey, myValue))
+
+        if myKey not in defaultParameters or storeCurrentValue == True:
+            if myKey in integerParameters:
+                defaultParameters[myKey] = int(myValue)
+            elif myKey in floatParameters:
+                defaultParameters[myKey] = float(myValue)
+            else:
+                # string value, store as is.
+                defaultParameters[myKey] = myValue
+    return True
+
+def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
+    """
+    searches for the given command in allowed commands list
+    If not found, returns False,
+    If found, returns True
+    """
+    returnStatus = True
+
+    ### separate command words in param value. commands may be separated by ; or |
+    commands = re.split(r';|\|', paramValue)
+    for command in commands:
+        ## remove leading space if any
+        command = command.lstrip()
+
+        ### separate words
+        commandWords = command.split()
+        if len(commandWords) > 0:
+            ### get first word from this command sentence
+            command = commandWords[0]
+        if OSType == "Windows":
+            ### convert the command to lower case
+            command = command.lower()
+        if command not in allowedCommands:
+            ### look for commands inside (), search for contents inside the braket
+            tempCommand =  re.search(r'\((.+)\)', command)
+            if tempCommand != None:
+                if tempCommand.group() not in allowedCommands:
+                    returnStatus = False
+            else:
+                returnStatus = False
+            break
+
+    return returnStatus
     

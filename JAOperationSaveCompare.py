@@ -11,7 +11,7 @@ from collections import defaultdict
 import hashlib
 import shutil
 
-def JAOperationReadConfig( 
+def JAReadConfigCompare( 
         baseConfigFileName, 
         subsystem, 
         version, 
@@ -84,7 +84,7 @@ def JAOperationReadConfig(
 
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationReadConfig()  AppConfig:{0}, subsystem:{1}, version:{2} ".format(
+            "DEBUG-1 JAReadConfigCompare()  AppConfig:{0}, subsystem:{1}, version:{2} ".format(
                 subsystem, baseConfigFileName, version),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -100,7 +100,7 @@ def JAOperationReadConfig(
     baseConfigFileNameParts = baseConfigFileName.split('.')
     if len(baseConfigFileNameParts) != 2:
         JAGlobalLib.LogLine(
-            "ERROR JAOperationReadConfig() AppConfig name not in expected format, no . (dot) in filename:|{0}|".format(baseConfigFileName),
+            "ERROR JAReadConfigCompare() AppConfig name not in expected format, no . (dot) in filename:|{0}|".format(baseConfigFileName),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -113,14 +113,14 @@ def JAOperationReadConfig(
            baseConfigFileName, subsystem, 'compare', version, debugLevel )
     if returnStatus == False:
         JAGlobalLib.LogLine(
-            "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),
+            "ERROR JAReadConfigCompare() AppConfig:|{0}| not present, error:|{1}|".format(baseConfigFileName, errorMsg),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
         return returnStatus, numberOfItems
         
     if debugLevel > 1:
         JAGlobalLib.LogLine(
-            "DEBUG-2 JAOperationReadConfig() Derived AppConfig file name using subsystem and version as part of file name:|{0}|".format(saveCompareSpecFileName),
+            "DEBUG-2 JAReadConfigCompare() Derived AppConfig file name using subsystem and version as part of file name:|{0}|".format(saveCompareSpecFileName),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -133,10 +133,10 @@ def JAOperationReadConfig(
                 saveCompareSpec = yaml.load(file, Loader=yaml.FullLoader)
                 file.close()
         except OSError as err:
-            errorMsg = "ERROR JAOperationReadConfig() Can not open configFile:|{0}|, OS error:|{1}|\n".format(
+            errorMsg = "ERROR JAReadConfigCompare() Can not open configFile:|{0}|, OS error:|{1}|\n".format(
                 saveCompareSpecFileName, err)
             JAGlobalLib.LogLine(
-                "ERROR JAOperationReadConfig() AppConfig:|{0}| not present, error:|{1}|".format(saveCompareSpecFileName, errorMsg),
+                "ERROR JAReadConfigCompare() AppConfig:|{0}| not present, error:|{1}|".format(saveCompareSpecFileName, errorMsg),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -156,7 +156,7 @@ def JAOperationReadConfig(
         
         if debugLevel > 1:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationReadConfig() processing objectName:|{0}|".format(objectName),
+                "DEBUG-2 JAReadConfigCompare() processing objectName:|{0}|".format(objectName),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -166,7 +166,7 @@ def JAOperationReadConfig(
                 paramValue = paramValue.strip()
             if paramName not in saveCompareAttributes:
                 JAGlobalLib.LogLine(
-                    "ERROR JAOperationReadConfig() Unknown parameter name:|{0}|, parameter value:|{1}| for the object:|{2}|".format(
+                    "ERROR JAReadConfigCompare() Unknown parameter name:|{0}|, parameter value:|{1}| for the object:|{2}|".format(
                         paramName, paramValue, objectName),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -192,7 +192,7 @@ def JAOperationReadConfig(
                             numberOfItems +=1
                             saveParamValue = False
                             JAGlobalLib.LogLine(
-                                "WARN JAOperationReadConfig() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and objectName:|{3}|, Skipping this object definition".format(
+                                "WARN JAReadConfigCompare() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and objectName:|{3}|, Skipping this object definition".format(
                                     command, paramValue, paramName, objectName),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -204,7 +204,7 @@ def JAOperationReadConfig(
                         ### skip current object spec, current host's environment is not matching
                         if debugLevel > 2:
                             JAGlobalLib.LogLine(
-                                "DEBUG-3 JAOperationReadConfig() Skipped objectName:|{0}|, desired environment:{1}, current environment:{2}".format(
+                                "DEBUG-3 JAReadConfigCompare() Skipped objectName:|{0}|, desired environment:{1}, current environment:{2}".format(
                                         objectName, paramValue, defaultParameters['Environment']),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -231,7 +231,7 @@ def JAOperationReadConfig(
                 saveCompareParameters[objectName]['FileNames'] = None
 
                 if tempAttributes['FileNames'] != None:
-                    errorMsg = "WARN JAOperationReadConfig() Both 'Command' and 'FileNames' are specified for objectName:|{0}|, saved Command spec:|{1}|, ignored FileNames spec:|{2}|".format(
+                    errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' are specified for objectName:|{0}|, saved Command spec:|{1}|, ignored FileNames spec:|{2}|".format(
                                 objectName, tempAttributes['Command'], tempAttributes['FileNames'])
                     JAGlobalLib.LogLine(
                         errorMsg,
@@ -265,7 +265,7 @@ def JAOperationReadConfig(
                                 command = command.lower()
                             if command not in allowedCommands:
                                 JAGlobalLib.LogLine(
-                                    "WARN JAOperationReadConfig() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and objectName:|{3}|, Skipping this object definition".format(
+                                    "WARN JAReadConfigCompare() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and objectName:|{3}|, Skipping this object definition".format(
                                         command, paramValue, paramName, objectName),
                                     interactiveMode,
                                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -289,7 +289,7 @@ def JAOperationReadConfig(
                             if returnResult == False:
                                 if re.match(r'File not found', errorMsg) != True:
                                     JAGlobalLib.LogLine(
-                                        "WARN JAOperationReadConfig() File not found, error getting file list by executing command:|{0}|, error:|{1}|".format(
+                                        "WARN JAReadConfigCompare() File not found, error getting file list by executing command:|{0}|, error:|{1}|".format(
                                                 tempCommandToGetFileDetails, errorMsg), 
                                         interactiveMode,
                                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -300,7 +300,7 @@ def JAOperationReadConfig(
                             else:
                                 if debugLevel > 1:
                                     JAGlobalLib.LogLine(
-                                        "DEBUG-2 JAOperationReadConfig() Execution of command:|{0}|, resulted in output:|{1}|".format(
+                                        "DEBUG-2 JAReadConfigCompare() Execution of command:|{0}|, resulted in output:|{1}|".format(
                                                 tempCommandToGetFileDetails, returnOutput), 
                                         interactiveMode,
                                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -354,7 +354,7 @@ def JAOperationReadConfig(
                         saveCompareParameters[tempObjectName]['Command'] = None
                         numberOfItems += 1
             else:
-                errorMsg = "WARN JAOperationReadConfig() Both 'Command' and 'FileNames' spec missing for objectName:|{0}|, ignored this object spec".format(
+                errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' spec missing for objectName:|{0}|, ignored this object spec".format(
                             objectName)
                 JAGlobalLib.LogLine(
                     errorMsg,
@@ -368,7 +368,7 @@ def JAOperationReadConfig(
 
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationReadConfig() Read {0} items with {1} warnings, {2} errors from AppConfig:{3}".format(
+            "DEBUG-1 JAReadConfigCompare() Read {0} items with {1} warnings, {2} errors from AppConfig:{3}".format(
                 numberOfItems, numberOfWarnings, numberOfErrors, baseConfigFileName),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -376,7 +376,7 @@ def JAOperationReadConfig(
         if debugLevel > 1:
             for objectName in saveCompareParameters:
                 JAGlobalLib.LogLine(
-                    "DEBUG-2 JAOperationReadConfig() ObjectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, SkipH2H:|{4}|".format(
+                    "DEBUG-2 JAReadConfigCompare() ObjectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, SkipH2H:|{4}|".format(
                         objectName, 
                         saveCompareParameters[objectName]['Command'],
                         saveCompareParameters[objectName]['FileNames'],
@@ -774,7 +774,7 @@ def JAOperationSaveCompare(
     saveCompareParameters = defaultdict(dict)
 
     ### read the object spec file contents
-    returnStatus, numberOfItems = JAOperationReadConfig( 
+    returnStatus, numberOfItems = JAReadConfigCompare( 
         baseConfigFileName, 
         subsystem, 
         version, 

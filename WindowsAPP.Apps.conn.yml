@@ -1,7 +1,12 @@
 # connectivity test spec 
 # Author: havembha@gmail.com,  2022-12-10
 # Format
-# ServiceName:
+# Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+# - Name:  free form name, needs to be unique within this spec file
+# - Value: output of a command assigned to this variable
+#
+# Services:
+# - Name: ServiceName
 #   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before doing connection check to listen port on local host
@@ -23,40 +28,67 @@
 #         If UDP, it will send UDP packets, so that one can check the receipt of packets on other end manually or using other tools
 #           UDP does not provide any conclusive test results
 #         Optional parameter, defaults to TCP
-#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
-#     Name:  free form name, needs to be unique within this spec file
-#     Value: output of a command assigned to this variable
 #
-XperConnectBroker:
-  Command: get-nettcpconnection -localport 6000
-  Condition: 2
-  Environment: Dev
-  HostNames: localhost
-  Ports: 6000
-SMB:
-  Command: get-nettcpconnection -localport 445
-  Condition: 2
-  HostNames: localhost
-  Ports: 445
-SCMWebServer:
-  HostNames: 192.168.1.169
-  Ports: 443
-InternetAccess:
-  HostNames: google.com,microsoft.com
-  Ports: 80,443
-PartialSuccess:
-  HostNames: google.com,microsoft.com
-  Ports: 80-81
-VariableFail:
-  HostNames: {{var1}}.com
-  Ports: 443
+Dev:
+  # specify hostname in regular expression 
+  HostName: (LAPTOP-QOCNVF0T)
   Variable:
-    Name: var1
-    Value: google
-VariablePass:
-  HostNames: {{var2}}{{var3}}
-  Ports: 6000
+    Var1: echo "microsoft.com"
+    ### separated the length with space so that first part of the command matach to the allowed command for windows
+    Var2: (hostname).substring( 5)
+    Var3: echo "-QOCNVF0T"
+  Services:
+    XperConnectBroker:
+      Command: get-nettcpconnection -localport 6000
+      Condition: 2
+      HostNames: localhost
+      Ports: 6000
+    SCMWebServer:
+      HostNames: 192.168.1.169
+      Ports: 443
+Test:
+  # specify hostname in regular expression 
+  HostName: ((...)(t)(...)([0-9][0-9]))
+UAT:
+  # specify hostname in regular expression 
+  HostName: ((...)(u)(...)([0-9][0-9]))
+Prod:
+  # specify hostname in regular expression 
+  HostName: ((...)(p)(...)([0-9][0-9]))
+#
+# Keep definition for 'All' environment at the end.
+# this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+# assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+# and that variable is defined under 'All', value under 'All' will be picked up
+# if variable is already defined under environment before, value under 'All' will be ignored.
+All:
   Variable:
-    Name: var2
-    Value: 
-
+    Var1: echo "google.com"
+    ### separated the length with space so that first part of the command matach to the allowed command for windows
+    Var2: (hostname).substring( 5 )
+    Var3: echo "-QOCNVF0T"
+  #
+  Services:
+    XperConnectBroker:
+      Command: get-nettcpconnection -localport 6000
+      Condition: 2
+      Environment: Dev
+      HostNames: localhost
+      Ports: 6000
+    SMB:
+      Command: get-nettcpconnection -localport 445
+      Condition: 2
+      HostNames: localhost
+      Ports: 445
+    InternetAccess:
+      HostNames: google.com,microsoft.com
+      Ports: 80,443
+    PartialSuccess:
+      HostNames: google.com,microsoft.com
+      Ports: 80-81
+    VariableGoogle:
+      HostNames: ${{ Var1 }}
+      Ports: 443
+    VariableLocalHost:
+      HostNames: ${{ Var2 }}${{ Var3 }}
+      Ports: 6000

@@ -12,37 +12,6 @@ import signal
 from collections import defaultdict
 import JAGlobalLib
 
-"""
-Read environment spec for a given environment
-This function can be called recursively
-
-Parameters passed:
-    storeCurrentValue - True or False. If True, even if previous value was present for that parameter name,
-            new value will be stored in defaultParameters{}
-    values - parameter key,value pairs
-    debugLevel - 0 to 3, 3 being max level
-    defaultParameters - dictionary where values are to be stored
-    integerParameters - if current parameter name is in this list, value read will be converted to integer and stored
-    floatParameters - if current parameter name is in this list, value read will be converted to float and stored
-
-Returned value:
-    True
-
-"""
-def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParameters, integerParameters, floatParameters):
-    for myKey, myValue in values.items():
-        if debugLevel > 1:
-            print('DEBUG-2 JAGatherEnvironmentSpecs() key: {0}, value: {1}'.format(myKey, myValue))
-
-        if myKey not in defaultParameters or storeCurrentValue == True:
-            if myKey in integerParameters:
-                defaultParameters[myKey] = int(myValue)
-            elif myKey in floatParameters:
-                defaultParameters[myKey] = float(myValue)
-            else:
-                # string value, store as is.
-                defaultParameters[myKey] = myValue
-    return True
 
 def JAReadEnvironmentConfig( 
     fileName, defaultParameters, yamlModulePresent, debugLevel, auditLogFileName, thisHostName, OSType):
@@ -152,14 +121,14 @@ def JAReadEnvironmentConfig(
                 # if parameters are not yet defined, read the values from this section
                 # values in this section work as default if params are defined for
                 # specific environment
-                JAGatherEnvironmentSpecs(
+                JAGlobalLib.JAGatherEnvironmentSpecs(
                         False, # store value if not present already
                         value, debugLevel, defaultParameters, integerParameters, floatParameters)
 
             # store definitions matching to current OSType
             if key == OSType:
                 # read all parameters defined for this environment
-                JAGatherEnvironmentSpecs(
+                JAGlobalLib.JAGatherEnvironmentSpecs(
                     True, # store current value if prev value is present
                     value, debugLevel, defaultParameters, integerParameters, floatParameters)
                 defaultParameters['OS']  = key
@@ -171,7 +140,7 @@ def JAReadEnvironmentConfig(
                 # if parameters are not yet defined, read the values from this section
                 # values in this section work as default if params are defined for
                 # specific environment
-                JAGatherEnvironmentSpecs(
+                JAGlobalLib.JAGatherEnvironmentSpecs(
                         False, # store value if not present already
                         value, debugLevel, defaultParameters, integerParameters, floatParameters)
 
@@ -181,7 +150,7 @@ def JAReadEnvironmentConfig(
                 if re.match(value['HostName'], thisHostName):
                     # current hostname match the hostname specified for this environment
                     # read all parameters defined for this environment
-                    JAGatherEnvironmentSpecs(
+                    JAGlobalLib.JAGatherEnvironmentSpecs(
                         True, # store current value if prev value is present
                         value, debugLevel, defaultParameters, integerParameters, floatParameters)
                     defaultParameters['Component'] = key
@@ -193,7 +162,7 @@ def JAReadEnvironmentConfig(
                 # if parameters are not yet defined, read the values from this section
                 # values in this section work as default if params are defined for
                 # specific environment
-                JAGatherEnvironmentSpecs(
+                JAGlobalLib.JAGatherEnvironmentSpecs(
                         False, # store value if not present already
                         value, debugLevel, defaultParameters, integerParameters, floatParameters)
 
@@ -203,7 +172,7 @@ def JAReadEnvironmentConfig(
                 if re.match(value['HostName'], thisHostName):
                     # current hostname match the hostname specified for this environment
                     # read all parameters defined for this environment
-                    JAGatherEnvironmentSpecs(
+                    JAGlobalLib.JAGatherEnvironmentSpecs(
                         True, # store current value if prev value is present, parameters under Environment takes precedence
                         value, debugLevel, defaultParameters, integerParameters, floatParameters)
                     defaultParameters['Environment']  = key

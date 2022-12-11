@@ -200,7 +200,7 @@ def JAOperationDownload(
     saveCompareParameters = defaultdict(dict)
 
     ### read the object spec file contents
-    returnStatus, numberOfItems = JAOperationSaveCompare.JAOperationReadConfig( 
+    returnStatus, numberOfItems = JAOperationSaveCompare.JAReadConfigCompare( 
         baseConfigFileName, 
         subsystem, 
         version, 
