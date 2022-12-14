@@ -27,7 +27,8 @@ def JAOperationUpload(
     OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, 
-    defaultParameters, debugLevel ):
+    defaultParameters, debugLevel,
+    saveDir, filesToUpload ):
 
     """
     This function posts the data to Source Code Manager URL passed.
@@ -91,9 +92,8 @@ def JAOperationUpload(
 
     numberOfFiles = sucessCount =  failureCount = localFileNotFound = 0
     uploadSuccess = True
-    saveDir = defaultParameters['SaveDir']
 
-    for shortFileName in defaultParameters['UploadFileNames']:
+    for shortFileName in filesToUpload:
         numberOfFiles += 1
 
         params = {  'fileName':shortFileName,

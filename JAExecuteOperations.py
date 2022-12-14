@@ -82,11 +82,25 @@ def JARun(
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation ) 
                             
         elif operation == 'upload':
-            returnStatus, errorMsg = JAOperationDownloadUpload.JAOperationUpload(
-                OSType, OSName, OSVersion,   
-                outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                interactiveMode, operations, thisHostName, 
-                defaultParameters, debugLevel  )                
+            ### upload saved files from 'SaveDir'
+            if len(defaultParameters['UploadFileNames']) > 0:
+                returnStatus, errorMsg = JAOperationDownloadUpload.JAOperationUpload(
+                    OSType, OSName, OSVersion,   
+                    outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                    interactiveMode, operations, thisHostName, 
+                    defaultParameters, debugLevel, 
+                    defaultParameters['SaveDir'],
+                    defaultParameters['UploadFileNames'] )
+            ### upload reports if present from 'ReportsPath'
+            if len( defaultParameters['ReportFileNames']) > 0:
+                returnStatus, errorMsg = JAOperationDownloadUpload.JAOperationUpload(
+                    OSType, OSName, OSVersion,   
+                    outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                    interactiveMode, operations, thisHostName, 
+                    defaultParameters, debugLevel,
+                    defaultParameters['ReportsPath'],
+                    defaultParameters['ReportFileNames']  )
+
         elif operation == 'compare':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,

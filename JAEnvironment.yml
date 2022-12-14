@@ -8,8 +8,7 @@
 LogFilePath: ./
 ### platform name or application name covering all components covered by this environment spec
 ### have one environment spec file per platform or application to manage many platforms/ application of an organization
-Platform:
-  Name: Platform1
+Platform: Platform1
 
 ### Parameter name needs to be unique across all sections - OS, Component, and Environment
 ### Parameters can be defined under OS, Component or Environment.

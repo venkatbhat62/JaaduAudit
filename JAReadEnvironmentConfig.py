@@ -334,6 +334,11 @@ def JAReadEnvironmentConfig(
     if 'DownloadBasePath' not in defaultParameters:
         defaultParameters['DownloadBasePath'] = 'UploadLocal'
 
+    ### set report file names to empty list. This will be populated by various operation related modules
+    ###   after executing the operation, if report upload to SCM is also opted
+    ### this file list assumes report files are at path 'ReportsPath', only file names are listed in this list.
+    defaultParameters['ReportFileNames'] = []
+
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 
