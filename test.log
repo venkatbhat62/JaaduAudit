@@ -1,0 +1,474 @@
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:['TBD\n', ''] 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'Environment': 'Dev', 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+[31m2022-12-11T16:25:01.238057 ERROR - expect to see in red color[0m
+[31m2022-12-11T16:25:01.238057 ERROR, - expect to see in red color[0m
+[36m2022-12-11T16:25:01.238057 DIFF   - expect to see in cyan color[0m
+[33m2022-12-11T16:25:01.238057 WARN   - expect to see in yellow color[0m
+[32m2022-12-11T16:25:01.238057 PASS   - expect to see in green color[0m
+[32m2022-12-11T16:25:01.238057  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'Environment': 'Dev', 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 2, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+INFO JAOperationConn() Total connection tests:7, conditions met:2, conditions NOT met:0, all passed:0, failed:0, errors:0
+[31m2022-12-11T18:35:52.579574 ERROR - expect to see in red color[0m
+[31m2022-12-11T18:35:52.579574 ERROR, - expect to see in red color[0m
+[36m2022-12-11T18:35:52.579574 DIFF   - expect to see in cyan color[0m
+[33m2022-12-11T18:35:52.579574 WARN   - expect to see in yellow color[0m
+[32m2022-12-11T18:35:52.579574 PASS   - expect to see in green color[0m
+[32m2022-12-11T18:35:52.579574  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|', '\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\x1b[0m|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:0, failed:0, errors:0
+[31m2022-12-13T13:45:16.395623 ERROR - expect to see in red color[0m
+[31m2022-12-13T13:45:16.395623 ERROR, - expect to see in red color[0m
+[36m2022-12-13T13:45:16.395623 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T13:45:16.395623 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T13:45:16.395623 PASS   - expect to see in green color[0m
+[32m2022-12-13T13:45:16.395623  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAAudit() sync interval not elapsed yet, skipping connectivity check to SCM host
+INFO JAOperationSync() Repository:Common, Number of new files fetched:0, number of updated files fetched:0
+INFO  JAOperationSync() Repository:Custom, Number of new files fetched:0, number of updated files fetched:0
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|["['", "', '\\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\\x1b[0m", "', '\\x1b[32;1m------------                        --------- -------------                       ---------- -----       -------------- -------------\\x1b[0m", "', '::                                  445       ::                                  0          Listen                     4", "', '", "', '']"]|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:0, failed:0, errors:0
+[31m2022-12-13T15:12:43.464458 ERROR - expect to see in red color[0m
+[31m2022-12-13T15:12:43.464458 ERROR, - expect to see in red color[0m
+[36m2022-12-13T15:12:43.464458 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T15:12:43.464458 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T15:12:43.464458 PASS   - expect to see in green color[0m
+[32m2022-12-13T15:12:43.464458  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T15:19:45.079512 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|["['", "', '\\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\\x1b[0m", "', '\\x1b[32;1m------------                        --------- -------------                       ---------- -----       -------------- -------------\\x1b[0m", "', '::                                  445       ::                                  0          Listen                     4", "', '", "', '']"]|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:0, failed:0, errors:0
+[31m2022-12-13T15:21:00.263610 ERROR - expect to see in red color[0m
+[31m2022-12-13T15:21:00.263610 ERROR, - expect to see in red color[0m
+[36m2022-12-13T15:21:00.263610 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T15:21:00.263610 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T15:21:00.263610 PASS   - expect to see in green color[0m
+[32m2022-12-13T15:21:00.263610  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T15:21:24.471372 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|["['", "', '\\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\\x1b[0m", "', '\\x1b[32;1m------------                        --------- -------------                       ---------- -----       -------------- -------------\\x1b[0m", "', '::                                  445       ::                                  0          Listen                     4", "', '", "', '']"]|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:0, failed:0, errors:0
+[31m2022-12-13T22:23:30.220682 ERROR - expect to see in red color[0m
+[31m2022-12-13T22:23:30.220682 ERROR, - expect to see in red color[0m
+[36m2022-12-13T22:23:30.220682 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T22:23:30.220682 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T22:23:30.220682 PASS   - expect to see in green color[0m
+[32m2022-12-13T22:23:30.220682  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T22:23:36.144294 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:23:42.312526 PASS  SCMWebServer 192.168.1.169            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|["['", "', '\\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\\x1b[0m", "', '\\x1b[32;1m------------                        --------- -------------                       ---------- -----       -------------- -------------\\x1b[0m", "', '::                                  445       ::                                  0          Listen                     4", "', '", "', '']"]|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:23:44.831565 PASS  InternetAccess google.com               80     TCP [0m
+[32m2022-12-13T22:23:46.480688 PASS  InternetAccess google.com               443    TCP [0m
+[32m2022-12-13T22:23:48.299694 PASS  InternetAccess microsoft.com            80     TCP [0m
+[32m2022-12-13T22:23:50.215808 PASS  InternetAccess microsoft.com            443    TCP [0m
+[32m2022-12-13T22:23:50.228688 PASS  InternetAccess google.com,microsoft.com 80,443 TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:23:51.884892 PASS  PartialSuccess google.com               80     TCP [0m
+[33m2022-12-13T22:24:31.409473 FAIL  PartialSuccess google.com               81     TCP [0m
+[32m2022-12-13T22:29:40.739186 PASS  PartialSuccess microsoft.com            80     TCP [0m
+[33m2022-12-13T22:30:59.256912 FAIL  PartialSuccess microsoft.com            81     TCP [0m
+[33m2022-12-13T22:30:59.256912 FAIL  PartialSuccess google.com,microsoft.com 80-81  TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:31:01.460925 PASS  VariableGoogle microsoft.com            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+TBD   VariableLocalHost P-QOCNVF0T-QOCNVF0T      6000   TCP INFO JAExecuteCommand() result of executing the command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection -ComputerName P-QOCNVF0T-QOCNVF0T -Port 6000|, result:
+['\x1b[33;1mWARNING: Name resolution of P-QOCNVF0T-QOCNVF0T failed\x1b[0m\n', '\n', '\x1b[32;1mComputerName   : \x1b[0mP-QOCNVF0T-QOCNVF0T\n', '\x1b[32;1mRemoteAddress  : \x1b[0m\n', '\x1b[32;1mInterfaceAlias : \x1b[0m\n', '\x1b[32;1mSourceAddress  : \x1b[0m\n', '\x1b[32;1mPingSucceeded  : \x1b[0mFalse\n', '\n', '\n', '']
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:1, failed:1, errors:0
+[31m2022-12-13T22:36:00.904498 ERROR - expect to see in red color[0m
+[31m2022-12-13T22:36:00.904498 ERROR, - expect to see in red color[0m
+[36m2022-12-13T22:36:00.904498 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T22:36:00.904498 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T22:36:00.904498 PASS   - expect to see in green color[0m
+[32m2022-12-13T22:36:00.904498  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-81'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5 ), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T22:36:06.748122 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:36:12.910891 PASS  SCMWebServer 192.168.1.169            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 9, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+DEBUG-2 JAOperationConn() Service Name:|SMB|, condition not met, command response:|["['", "', '\\x1b[32;1mLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\\x1b[0m", "', '\\x1b[32;1m------------                        --------- -------------                       ---------- -----       -------------- -------------\\x1b[0m", "', '::                                  445       ::                                  0          Listen                     4", "', '", "', '']"]|, condition:|9|, skipping the connectivity test
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:36:15.390423 PASS  InternetAccess google.com               80     TCP [0m
+[32m2022-12-13T22:36:17.017391 PASS  InternetAccess google.com               443    TCP [0m
+[32m2022-12-13T22:36:18.780885 PASS  InternetAccess microsoft.com            80     TCP [0m
+[32m2022-12-13T22:36:20.571391 PASS  InternetAccess microsoft.com            443    TCP [0m
+[32m2022-12-13T22:36:20.571621 PASS  InternetAccess google.com,microsoft.com 80,443 TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-81', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:36:22.183935 PASS  PartialSuccess google.com               80     TCP [0m
+[33m2022-12-13T22:36:52.220167 FAIL  PartialSuccess google.com               81     TCP [0m
+[32m2022-12-13T22:36:54.012130 PASS  PartialSuccess microsoft.com            80     TCP [0m
+[33m2022-12-13T22:37:24.047804 FAIL  PartialSuccess microsoft.com            81     TCP [0m
+[33m2022-12-13T22:37:24.048234 FAIL  PartialSuccess google.com,microsoft.com 80-81  TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:37:25.849265 PASS  VariableGoogle microsoft.com            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+TBD   VariableLocalHost P-QOCNVF0T-QOCNVF0T      6000   TCP INFO JAExecuteCommand() result of executing the command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection -ComputerName P-QOCNVF0T-QOCNVF0T -Port 6000|, result:
+['\x1b[33;1mWARNING: Name resolution of P-QOCNVF0T-QOCNVF0T failed\x1b[0m\n', '\n', '\x1b[32;1mComputerName   : \x1b[0mP-QOCNVF0T-QOCNVF0T\n', '\x1b[32;1mRemoteAddress  : \x1b[0m\n', '\x1b[32;1mInterfaceAlias : \x1b[0m\n', '\x1b[32;1mSourceAddress  : \x1b[0m\n', '\x1b[32;1mPingSucceeded  : \x1b[0mFalse\n', '\n', '\n', '']
+INFO JAOperationConn() Total connection tests:7, conditions met:1, conditions NOT met:1, all passed:4, failed:1, errors:0
+[31m2022-12-13T22:51:34.231077 ERROR - expect to see in red color[0m
+[31m2022-12-13T22:51:34.231077 ERROR, - expect to see in red color[0m
+[36m2022-12-13T22:51:34.231077 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T22:51:34.231077 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T22:51:34.231077 PASS   - expect to see in green color[0m
+[32m2022-12-13T22:51:34.231077  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 0,5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-82'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 0,5 ), value:LAPTO
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-82', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T22:51:40.105657 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:51:50.914244 PASS  SCMWebServer 192.168.1.169            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+[32m2022-12-13T22:51:54.405142 PASS  SMB          localhost                445    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:51:56.128030 PASS  InternetAccess google.com               80     TCP [0m
+[32m2022-12-13T22:51:57.752075 PASS  InternetAccess google.com               443    TCP [0m
+[32m2022-12-13T22:51:59.555317 PASS  InternetAccess microsoft.com            80     TCP [0m
+[32m2022-12-13T22:52:01.305488 PASS  InternetAccess microsoft.com            443    TCP [0m
+[32m2022-12-13T22:52:01.306504 PASS  InternetAccess google.com,microsoft.com 80,443 TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-82', 'Protocol': 'TCP'}|
+[31m2022-12-13T22:54:57.198356 ERROR - expect to see in red color[0m
+[31m2022-12-13T22:54:57.198356 ERROR, - expect to see in red color[0m
+[36m2022-12-13T22:54:57.198356 DIFF   - expect to see in cyan color[0m
+[33m2022-12-13T22:54:57.198356 WARN   - expect to see in yellow color[0m
+[32m2022-12-13T22:54:57.198356 PASS   - expect to see in green color[0m
+[32m2022-12-13T22:54:57.198356  PASS  - expect to see in green color[0m
+<      blue color line
+>      magenta color line
+INFO JAAudit() Version:JA01.00.00, OSType: Windows, OSName: Windows, OSVersion: 10
+DEBUG-1 JAOperationConn() Connectivity spec:WindowsAPP.yml, subsystem:Apps, appVersion:TBD, interactiveMode:True
+DEBUG-1 JAReadConfigConn() AppConfig:WindowsAPP.yml, subsystem:Apps, version:TBD 
+DEBUG-2 JAReadConfigConn() Derived AppConfig file name using subsystem and version as part of file name:|C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml|
+DEBUG-2 JAReadConfigConn() processing key:|Dev|, value:{'HostName': '(LAPTOP-QOCNVF0T)', 'Variable': {'Var1': 'echo "microsoft.com"', 'Var2': '(hostname).substring( 5)', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SCMWebServer': {'HostNames': '192.168.1.169', 'Ports': 443}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "microsoft.com", value:microsoft.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 5), value:P-QOCNVF0T
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:XperConnectBroker, attributes:{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:SCMWebServer, attributes:{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() processing key:|Test|, value:{'HostName': '((...)(t)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|UAT|, value:{'HostName': '((...)(u)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|Prod|, value:{'HostName': '((...)(p)(...)([0-9][0-9]))'}
+DEBUG-2 JAReadConfigConn() processing key:|All|, value:{'Variable': {'Var1': 'echo "google.com"', 'Var2': '(hostname).substring( 0,5 )', 'Var3': 'echo "-QOCNVF0T"'}, 'Services': {'XperConnectBroker': {'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000}, 'SMB': {'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445}, 'InternetAccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80,443'}, 'PartialSuccess': {'HostNames': 'google.com,microsoft.com', 'Ports': '80-82'}, 'VariableGoogle': {'HostNames': '${{ Var1 }}', 'Ports': 443}, 'VariableLocalHost': {'HostNames': '${{ Var2 }}${{ Var3 }}', 'Ports': 6000}}}
+DEBUG-2 JAReadConfigConn() variable name:Var1, command:echo "google.com", value:google.com
+DEBUG-2 JAReadConfigConn() variable name:Var2, command:(hostname).substring( 0,5 ), value:LAPTO
+DEBUG-2 JAReadConfigConn() variable name:Var3, command:echo "-QOCNVF0T", value:-QOCNVF0T
+DEBUG-2 JAReadConfigConn() Service name:SMB, attributes:{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:InternetAccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}
+DEBUG-2 JAReadConfigConn() Service name:PartialSuccess, attributes:{'HostNames': 'google.com,microsoft.com', 'Ports': '80-82', 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableGoogle|, original HostNames:|${{ Var1 }}|, HostNames after substituting the variable values:|microsoft.com|
+DEBUG-2 JAReadConfigConn() Service name:VariableGoogle, attributes:{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}
+DEBUG-3 JAReadConfigConn() Service Name:|VariableLocalHost|, original HostNames:|${{ Var2 }}${{ Var3 }}|, HostNames after substituting the variable values:|P-QOCNVF0T-QOCNVF0T|
+DEBUG-2 JAReadConfigConn() Service name:VariableLocalHost, attributes:{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}
+DEBUG-1 JAReadConfigConn() Read 8 items with 0 warnings, 0 errors from AppConfig:C:\Users\venka\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.conn.yml
+DEBUG-3 JAOperationConn() Processing service name:|XperConnectBroker|, service attributes:|{'Command': 'get-nettcpconnection -localport 6000', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 6000, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|XperConnectBroker|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 6000|
+[32m2022-12-13T22:55:03.090198 PASS  XperConnectBroker localhost                6000   TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SCMWebServer|, service attributes:|{'HostNames': '192.168.1.169', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:55:13.812022 PASS  SCMWebServer 192.168.1.169            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|SMB|, service attributes:|{'Command': 'get-nettcpconnection -localport 445', 'Condition': 6, 'HostNames': 'localhost', 'Ports': 445, 'Protocol': 'TCP'}|
+DEBUG-3 JAOperationConn() Service Name:|SMB|, executing command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command get-nettcpconnection -localport 445|
+[32m2022-12-13T22:55:17.230801 PASS  SMB          localhost                445    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|InternetAccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80,443', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:55:18.932981 PASS  InternetAccess google.com               80     TCP [0m
+[32m2022-12-13T22:55:20.627622 PASS  InternetAccess google.com               443    TCP [0m
+[32m2022-12-13T22:55:22.389899 PASS  InternetAccess microsoft.com            80     TCP [0m
+[32m2022-12-13T22:55:24.155982 PASS  InternetAccess microsoft.com            443    TCP [0m
+[32m2022-12-13T22:55:24.156489 PASS  InternetAccess google.com,microsoft.com 80,443 TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|PartialSuccess|, service attributes:|{'HostNames': 'google.com,microsoft.com', 'Ports': '80-82', 'Protocol': 'TCP'}|
+[32m2022-12-13T22:55:25.785137 PASS  PartialSuccess google.com               80     TCP [0m
+[33m2022-12-13T22:55:55.825666 FAIL  PartialSuccess google.com               81     TCP [0m
+[32m2022-12-13T22:55:57.608326 PASS  PartialSuccess microsoft.com            80     TCP [0m
+[33m2022-12-13T22:56:27.638083 FAIL  PartialSuccess microsoft.com            81     TCP [0m
+[33m2022-12-13T22:56:27.639102 FAIL  PartialSuccess google.com,microsoft.com 80-82  TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableGoogle|, service attributes:|{'HostNames': 'microsoft.com', 'Ports': 443, 'Protocol': 'TCP'}|
+[32m2022-12-13T22:56:29.537725 PASS  VariableGoogle microsoft.com            443    TCP [0m
+DEBUG-3 JAOperationConn() Processing service name:|VariableLocalHost|, service attributes:|{'HostNames': 'P-QOCNVF0T-QOCNVF0T', 'Ports': 6000, 'Protocol': 'TCP'}|
+TBD   VariableLocalHost P-QOCNVF0T-QOCNVF0T      6000   TCP INFO JAExecuteCommand() result of executing the command:|C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection -ComputerName P-QOCNVF0T-QOCNVF0T -Port 6000|, result:
+['\x1b[33;1mWARNING: Name resolution of P-QOCNVF0T-QOCNVF0T failed\x1b[0m\n', '\n', '\x1b[32;1mComputerName   : \x1b[0mP-QOCNVF0T-QOCNVF0T\n', '\x1b[32;1mRemoteAddress  : \x1b[0m\n', '\x1b[32;1mInterfaceAlias : \x1b[0m\n', '\x1b[32;1mSourceAddress  : \x1b[0m\n', '\x1b[32;1mPingSucceeded  : \x1b[0mFalse\n', '\n', '\n', '']
+INFO JAOperationConn() Total connection tests:7, conditions met:2, conditions NOT met:0, all passed:5, failed:1, errors:0

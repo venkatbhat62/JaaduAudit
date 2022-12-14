@@ -588,8 +588,10 @@ if environmentTERM == '' or environmentTERM == 'dumb':
         try:
             outputFileHandle = open ( tempOutputFileName, "a")
         except OSError as err:
-            print("ERROR JAAudit() Can't open output file:{0}, OSError: {1}".format( 
-                tempOutputFileName, err        ))
+            JAGlobalLib.LogLine(
+                    "ERROR JAAudit() Can't open output file:{0}, OSError: {1}".format( tempOutputFileName, err ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     # sleep for random time using RandomizationWindow spec
     if 'RandomizationWindowInSec' in defaultParameters:
@@ -693,7 +695,10 @@ if OSType == 'Windows':
             try:
                 os.remove(fileName)
                 if debugLevel > 3:
-                    print("DEBUG-4 JAAudit() Deleting the file:{0}".format(fileName))
+                    JAGlobalLib.LogLine(
+                        "DEBUG-4 JAAudit() Deleting the file:{0}".format(fileName),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             except OSError as err:
                 JAGlobalLib.LogLine(
 			        "ERROR JAAudit() Error deleting old log file:{0}, errorMsg:{1}".format(fileName, err), 
@@ -704,7 +709,10 @@ else:
     # delete log files covering logs of operations also.
     command = 'find {0} -name "JAAudit*.log.*" -mtime +{1} |xargs rm'.format(defaultParameters['LogFilePath'], fileRetencyDurationInDays)
     if debugLevel > 1:
-        print("DEBUG-2 JAAudit() purging files with command:{0}".format(command))
+        JAGlobalLib.LogLine(
+            "DEBUG-2 JAAudit() purging files with command:{0}".format(command),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel, OSType)
     if returnResult == False:
@@ -723,6 +731,14 @@ if subsystem == 'Apps' or subsystem == None:
         if returnResult == True:
             appVersion = returnOutput.rstrip("\n")
             appVersion = appVersion.lstrip()
+
+            if OSType == 'Windows':
+                ### strip leading string to extract desired output
+                ### output of the form "['<value>\r, '']"
+                lineParts = re.findall(r"^\['(.+)(\\)", appVersion)
+                if len(lineParts) > 0:
+                    appVersion = lineParts[0][0]
+
         else:
             appVersion = ''
             JAGlobalLib.LogLine(
@@ -785,7 +801,10 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
         currentTime, subsystem, "sync", defaultParameters, debugLevel)
     if returnStatus == False:
         if debugLevel > 0:
-            print("DEBUG-1 JAAudit() sync interval not elapsed yet, skipping connectivity check to SCM host")
+            JAGlobalLib.LogLine(
+                "DEBUG-1 JAAudit() sync interval not elapsed yet, skipping connectivity check to SCM host",
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         ### get SCMHostName used last time for file fetch
         returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
@@ -809,9 +828,12 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
                 prevSCMHostCheckStatus = True
                 defaultParameters['SCMHostName'] = SCMHostName = defaultParameters['SCMHostName1']
                 if debugLevel > 1:
-                    print("DEBUG-2 JAAudit() connectivity check to wget port:{0} on SCMHostName:{1} PASSED".format(
-                            defaultParameters['SCMPortHTTPS'], SCMHostName
-                        ))
+                    JAGlobalLib.LogLine(
+                        "DEBUG-2 JAAudit() connectivity check to wget port:{0} on SCMHostName:{1} PASSED".format(
+                            defaultParameters['SCMPortHTTPS'], SCMHostName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
             else:
                 # check connectivity to SCMHostName2
                 connectivitySpec = [
@@ -846,9 +868,12 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
                         
                     else:
                         if debugLevel > 1:
-                            print("DEBUG-2 JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} PASSED".format(
-                                    defaultParameters['SCMPortRsync'], SCMHostName
-                                ))
+                            JAGlobalLib.LogLine(
+                                    "DEBUG-2 JAAudit() connectivity check to rsync port:{0} on SCMHostName:{1} PASSED".format(
+                                        defaultParameters['SCMPortRsync'], SCMHostName ),
+                                        interactiveMode,
+                                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                            
             ### save SCMHostName in JAAudit.profile so that next time, it can be used without going through the 
             ###   connection check if sync interval is not passed yet
             JAGlobalLib.JASetProfile("JAAudit.profile", 'SCMHostName', SCMHostName)
@@ -880,7 +905,11 @@ if re.search("perfStatsApp", operations) != None:
 if randomizationWindow > 0:
     import random
     sleepTime = random.randint(0,randomizationWindow)
-    print("INFO JAAudit() sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime))
+    JAGlobalLib.LogLine(
+        "INFO JAAudit() sleeping for :{0} sec, if this is interactive session, set TERM environment variable (export TERM=vt100) ".format(sleepTime),
+        interactiveMode,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    
     time.sleep(sleepTime)
 
 ### if sync is opted, run it

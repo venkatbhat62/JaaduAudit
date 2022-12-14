@@ -2,17 +2,22 @@
 # Author: havembha@gmail.com,  2022-12-10
 # Format
 # Variable: typically used to derive local site partial name to formulate local site hostnames for local components
-# - Name:  free form name, needs to be unique within this spec file
-# - Value: output of a command assigned to this variable
-#
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#   VariableName:  command to be executed and output to be assigned this variable. Output can result in string or number
+# 
 # Services:
-# - Name: ServiceName
+#  ServiceName:
 #   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before doing connection check to listen port on local host
 #           Optional parameters, default None
-#   Condition: <number> - if above command results in a number greater than or equal to the given <number>
-#         connectivity check will be performed, else it will be skipped.
+#   Condition: <number> or <string> - 
+#          If the output of above command results in multiple lines, count of lines is compared to the condition number.
+#          If the output is single line and it is integer,
+#              the output is converted to integer and compared with integer number specified in condition
+#          Else output string is compared to the condition string.
+#                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
 #   HostNames: destination hostname in short form or in FQDN form, can be IP address also. Can be single or in CSV format
 #         destination hostname can be localhost, in which case the connectivity to local port is verified. 
@@ -33,14 +38,20 @@ Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
   Variable:
+    ### these definitions override the definitions under 'All' section
+    ### in DEV environment, connect to one remote host, in test environment, connect to diff host
     Var1: echo "microsoft.com"
+    ### take local site name using current hostname, use to derive other host names with that prefix later
     ### separated the length with space so that first part of the command matach to the allowed command for windows
-    Var2: (hostname).substring( 5)
+    Var2: (hostname).substring( 0,5)
+    ### dummy example to show use of multiple variables in single HostNames
     Var3: echo "-QOCNVF0T"
+    SMTPHostName: echo devhost
   Services:
+    ### these definitions override the definitions under 'All' section
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
-      Condition: 2
+      Condition: 6
       HostNames: localhost
       Ports: 6000
     SCMWebServer:
@@ -49,12 +60,18 @@ Dev:
 Test:
   # specify hostname in regular expression 
   HostName: ((...)(t)(...)([0-9][0-9]))
+  Variable:
+    SMTPHostName: echo testhost
 UAT:
   # specify hostname in regular expression 
   HostName: ((...)(u)(...)([0-9][0-9]))
+  Variable:
+    SMTPHostName: echo testhost
 Prod:
   # specify hostname in regular expression 
   HostName: ((...)(p)(...)([0-9][0-9]))
+  Variable:
+    SMTPHostName: echo testhost
 #
 # Keep definition for 'All' environment at the end.
 # this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
@@ -65,30 +82,39 @@ All:
   Variable:
     Var1: echo "google.com"
     ### separated the length with space so that first part of the command matach to the allowed command for windows
-    Var2: (hostname).substring( 5 )
+    Var2: (hostname).substring( 0,5 )
     Var3: echo "-QOCNVF0T"
   #
   Services:
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
-      Condition: 2
-      Environment: Dev
+      ### windows output heading has 5 lines, looking for additional lines in the output
+      Condition: 6
       HostNames: localhost
       Ports: 6000
     SMB:
       Command: get-nettcpconnection -localport 445
-      Condition: 2
+      ### windows output heading has 5 lines, looking for additional lines in the output
+      Condition: 6
       HostNames: localhost
       Ports: 445
     InternetAccess:
+      ### example of use of CSV format spec
       HostNames: google.com,microsoft.com
       Ports: 80,443
     PartialSuccess:
       HostNames: google.com,microsoft.com
-      Ports: 80-81
+      ### example of using port range
+      Ports: 80-82
     VariableGoogle:
       HostNames: ${{ Var1 }}
       Ports: 443
     VariableLocalHost:
+      ### use of multiple variables to formulate hostname
       HostNames: ${{ Var2 }}${{ Var3 }}
       Ports: 6000
+    SMTPService:
+      ### here, service is defined in common section, SMTPHostName variable defined in environment specific section
+      ###  so that connectivity test is done to diff hosts based on environment.
+      HostNames: ${{ SMTPHostName }}
+      Ports: 25

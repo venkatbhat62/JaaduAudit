@@ -311,12 +311,6 @@ def JAReadEnvironmentConfig(
             print( errorMsg)
             sys.exit(0)
 
-    if debugLevel > 1:
-        print('DEBUG-2 JAReadEnvironmentConfig() Content of config file: {0}, read to auditEnvironment: {1}'.format(
-            fileName, defaultParameters))
-    if errorMsg != '':
-        print(errorMsg)
-        JAGlobalLib.LogMsg(errorMsg, auditLogFileName, True, True)
 
     ### write the LocalRepositoryCustom value to JAAudit.profile 
     if 'LocalRepositoryCustom' in defaultParameters:
@@ -342,6 +336,16 @@ def JAReadEnvironmentConfig(
 
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
+
+    if debugLevel > 1:
+        print('DEBUG-2 JAReadEnvironmentConfig() Content of config file: {0}, read to auditEnvironment: {1}'.format(
+            fileName, defaultParameters))
+    elif debugLevel > 0:
+        print('DEBUG-1 JAReadEnvironmentConfig() Read environment config file:|{0}|'.format(fileName))
+
+    if errorMsg != '':
+        print(errorMsg)
+        JAGlobalLib.LogMsg(errorMsg, auditLogFileName, True, True)
 
     return True
     

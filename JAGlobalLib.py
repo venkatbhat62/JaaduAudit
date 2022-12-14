@@ -165,7 +165,7 @@ def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HT
             line = myColors['green'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]    
         elif re.match('^DIFF ', line) :
             line = myColors['cyan'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]   
-        elif re.match('^WARN ', line) :
+        elif re.match('^WARN |^FAIL ', line) :
             line = myColors['yellow'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]   
         if outputFile != None:
             outputFile.write( HTMLBRTag + line + '\n')
@@ -653,8 +653,8 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
     except Exception as err:
         errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0}|, exception:|{1}|".format(command, err)
 
-    if debugLevel > 0 :
-        print("DEBUG-1 JAExecuteCommand() command output:{0}, message:{1}".format(returnOutput, errorMsg))
+    if debugLevel > 2 :
+        print("DEBUG-3 JAExecuteCommand() command output:{0}, message:{1}".format(returnOutput, errorMsg))
     returnOutput = str(returnOutput)
     return returnResult, returnOutput, errorMsg
 
@@ -817,7 +817,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
     errorMsg = ''
     
     if debugLevel > 1:
-        print("DEBUG-2 JADeriveConfigFileName() pathName1:{0}, pathName2:{1}, baseConfigFileName:{2}, subsystem:{3}, operation:{4}, version:{5}".format(
+        print("DEBUG-2 JADeriveConfigFileName() pathName1:|{0}|, pathName2:|{1}|, baseConfigFileName:|{2}|, subsystem:|{3}|, operation:|{4}|, version:|{5}|".format(
                 pathName1, pathName2, baseConfigFileName, subsystem, operation, version))
 
     # remove file type from baseConfigFileName
@@ -852,7 +852,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
                 pathName2, baseConfigFileNameWithoutFileType, subsystem, operation, fileType)
             if os.path.exists( tempConfigFileName ) == False:
                 ### file does exist, return error
-                errorMsg = "ERROR JADeriveConfigFileName() config file:{0} not present for path1:{1}, path2:{2}, AppConfig:{3}, subsystem:{4}, operation:{5}, version:{6}".format(
+                errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present for path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
                     tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
                 returnStatus = False
                 tempConfigFileName = ''
@@ -862,7 +862,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
             returnStatus = True
 
     if debugLevel > 1:
-        print("DEBUG-2 JADeriveConfigFileName() derived config file:{0}".format(tempConfigFileName))
+        print("DEBUG-2 JADeriveConfigFileName() derived config file:|{0}|".format(tempConfigFileName))
     return returnStatus, tempConfigFileName, errorMsg
 
 def JACheckConnectivity( 
@@ -889,25 +889,41 @@ def JACheckConnectivity(
     else:
         options = udpOptions
 
-    if OSType == "Windows":
-        finalCommand = "{0} -ComputerName {1} -Port {2}".format(command, hostName, port)
+    if re.search(r'curl', command):
+        ### curl syntax is common for all OS
+        finalCommand = "{0} {1}:{2}".format(command, hostName, port)
+    elif OSType == "Windows":
+        if re.search('Test-NetConnection', command):
+            finalCommand = "{0} -ComputerName {1} -Port {2}".format(command, hostName, port)
+        else:
+            returnOutput = "ERROR JACheckConnectivity() Unknown command to do connectivity test"
+            return False, returnOutput, ""
+
     elif OSType == 'Linux':
         ###
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
     elif OSType == 'SunOS':
         finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
+
     returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel, OSType)
     
     if OSType == 'Windows':
+        
         ### translate returnOutput to Linux output format
         if re.findall(r'TcpTestSucceeded(.+):(.+)True', returnOutput, re.MULTILINE):
             returnOutput = "succeeded"
-        elif (re.findall(r'RemoteAddress(.+):\$', returnOutput, re.MULTILINE) and 
-            re.findall(r'PingSucceeded(.+):(.+)False', returnOutput, re.MULTILINE) ):
+            errorMsg = ''
+        elif (re.findall(r'WARNING: Name resolution of(.*)failed', returnOutput, re.MULTILINE)):
             returnOutput = "Could not resolve hostname"
+            errorMsg = ''
         elif (re.findall(r'TcpTestSucceeded(.+):(.+)False', returnOutput, re.MULTILINE) and 
             re.findall(r'PingSucceeded(.+):(.+)True', returnOutput, re.MULTILINE) ):
             returnOutput = "Connection timed out"
+            errorMsg = ''
+        elif re.findall(r'timed out after', errorMsg, re.MULTILINE):
+            returnOutput = "Connection timed out"
+            errorMsg = ''
+            returnStatus = True
     return returnStatus, returnOutput, errorMsg
 
 
@@ -931,7 +947,8 @@ def JACheckConnectivityToHosts(
     failureCount = passCount = 0
     detailedResults = ''
 
-    if OSType == 'Linux':
+    if OSType == 'Linux' and re.match(r'nc', command):
+        ### specifiy options for nc command
         if OSVersion < 6:
             tcpOptions = "-vz -w 8"
             udpOptions = "-u"
@@ -1004,8 +1021,8 @@ def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParam
     """
 
     for myKey, myValue in values.items():
-        if debugLevel > 1:
-            print('DEBUG-2 JAGatherEnvironmentSpecs() key: {0}, value: {1}'.format(myKey, myValue))
+        if debugLevel > 2:
+            print('DEBUG-3 JAGatherEnvironmentSpecs() key: {0}, value: {1}'.format(myKey, myValue))
 
         if myKey not in defaultParameters or storeCurrentValue == True:
             if myKey in integerParameters:

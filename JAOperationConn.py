@@ -202,7 +202,7 @@ def JAReadConfigConn(
                     if debugLevel > 1:
                         JAGlobalLib.LogLine(
                             "DEBUG-2 JAReadConfigConn() variable name:{0}, command:{1}, value:{2}".format(
-                                variableName, command, value),
+                                variableName, command, variableValue),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 else:
@@ -231,25 +231,56 @@ def JAReadConfigConn(
                     if serviceName in connParameters:
                         if 'HostNames' in connParameters[serviceName]:
                             ### value present for this service already, SKIP current definition
+                            ###  this is valid, DO NOT warn for this condition
+                            ### spec may be present under individual environment and later in All section
                             continue
+
+                ### If any of Command or Condion is present, other one needs to be present.
+                if 'Command' in serviceParams and 'Condition' not in serviceParams:
+                    JAGlobalLib.LogLine(
+                        "WARN JAReadConfigConn() Service name:{0}, 'Condition' not present, need 'Condition' attribute when 'Command' attribute is specified, Skipped this definition".format(
+                            serviceName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    numberOfWarnings += 1
+                    continue
+                if 'Command' not in serviceParams and 'Condition' in serviceParams:
+                    JAGlobalLib.LogLine(
+                        "WARN JAReadConfigConn() Service name:{0}, 'Command' not present, need 'Command' attribute when 'Condition' attribute is specified, Skipped this definition".format(
+                            serviceName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    numberOfWarnings += 1
+                    continue
 
                 for attribute in serviceParams:
                     attributeValue = serviceParams[attribute]
                     
                     if attribute == 'HostNames':
+                        ### hostnames may have variable in the form '${{ varName }}'
                         ### replace any variable name with variable value
                         variableNames = re.findall(r'\{\{ (\w+) \}\}', attributeValue)
                         if len(variableNames) > 0:
+                            originalAttributeValue = attributeValue
                             ### replace each variable name with variable value
                             for variableName in variableNames:
                                 if variables[variableName] != None:
-                                    replaceString = r'\$\{\{ {0} \}\}'.format( variableName)
+                                    replaceString = '${{ ' + variableName + ' }}'
                                     attributeValue = attributeValue.replace(replaceString, variables[variableName])
+
+                            if debugLevel > 2:
+                                JAGlobalLib.LogLine(
+                                    "DEBUG-3 JAReadConfigConn() Service Name:|{0}|, original HostNames:|{1}|, HostNames after substituting the variable values:|{2}|".format(
+                                        serviceName, originalAttributeValue, attributeValue),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
                     connParameters[serviceName][attribute] = attributeValue
 
                 if 'Protocol' not in serviceParams:
                     ### set default protocol
                     connParameters[serviceName]['Protocol'] = 'TCP'
+
                 if debugLevel > 1:
                     JAGlobalLib.LogLine(
                         "DEBUG-2 JAReadConfigConn() Service name:{0}, attributes:{1}".format(
@@ -288,10 +319,12 @@ def JAOperationConn(
     ### derive connectivity spec file using subsystem and application version info
         
     if debugLevel > 0:
-        print("DEBUG-1 JAOperationConn() Connectivity spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
-            baseConfigFileName, subsystem, appVersion, interactiveMode))
-    time.sleep(1)
-
+        JAGlobalLib.LogLine(
+            "DEBUG-1 JAOperationConn() Connectivity spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
+            baseConfigFileName, subsystem, appVersion, interactiveMode),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    
     ### dictionary to hold object definitions
     connParameters = defaultdict(dict)
 
@@ -308,5 +341,264 @@ def JAOperationConn(
     if returnStatus == False:
         ### fatal error, can't proceed.
         return returnStatus, numberOfItems
+
+    ### this file is used as temporary storage for output of commands
+    ### this temp file is deleted at the end of compare operation
+    currentDataFileName ="{0}/JAAudit.dat.{1}".format(
+        defaultParameters['LogFilePath'],
+         os.getpid() )
+
+    ### initialize counters to track summary
+    ### numberOfErrors - when connectivity fails to all hosts
+    ### numberOfFailures - when at least one connection fails to HostNames, 
+    ###       typically set when there are more than one host in HostNames
+    ### numberOfConditionsMet - connectivity test performed after conditions met
+    ### numberOfConditionsNotMet - connectivity test NOT performed since condition was not met
+    numberOfItems = numberOfErrors = numberOfFailures  = numberOfConditionsMet = numberOfConditionsNotMet = numberOfPasses = 0
+    numberOfConnectivityTests = 0
+
+    if OSType == 'Linux' and re.match(r'nc', command):
+        ### specifiy options for nc command
+        if OSVersion < 6:
+            tcpOptions = "-vz -w 8"
+            udpOptions = "-u"
+        else:
+            tcpOptions = "-i 1 -v -w 8"
+            udpOptions = "-u"
+    else:
+        tcpOptions = udpOptions = ''
+
+    connectionErrors = "Connection timed out|timed out: Operation now in progress|No route to host"
+    hostNameErrors = "host lookup failed|Could not resolve hostname|Name or service not known"
+    connectivityPassed = "succeeded|Connected to| open"
+    connectivityUnknown = "Connection refused"
+
+    if 'CommandConnCheck' in defaultParameters:
+        command = defaultParameters['CommandConnCheck']
+    else:
+        if OSType == 'Linux':
+            # connection check command not defined, use nc by default
+            command = 'nc'
+        elif OSType == 'windows':
+            command = 'Test-NetConnection'
+        elif OSType == 'SunOS':
+            command = 'telnet'
+        if debugLevel > 1:
+            JAGlobalLib.LogLine(
+                'DEBUG-2 JAOperationConn() CommandConnCheck parameter not defined in environment spec, using default command:{0}, tcpOptions:{1}, udpOptions:{2}'.format(
+                    command, tcpOptions, udpOptions),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    ### save or compare information of each object
+    for serviceName in connParameters:
+        numberOfItems += 1
+        serviceAttributes = connParameters[serviceName]
+
+        if debugLevel > 2:
+            JAGlobalLib.LogLine(
+                "DEBUG-3 JAOperationConn() Processing service name:|{0}|, service attributes:|{1}|".format(
+                serviceName, serviceAttributes),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        """
+        Service attributes are:
+            'Command',
+            'Condition'
+            'HostNames',
+            'Ports',
+            'Protocol'
+        """
+        conditionPresent = False
+        ### if command spec is present, run the command
+        if 'Command' in serviceAttributes:
+            conditionPresent = True
+            conditionMet = False
+            tempCommand = serviceAttributes['Command']
+
+            ### now execute the command to get result 
+            ###   command was checked for allowed command while reading the config spec
+            if OSType == "Windows":
+                tempCommandToEvaluateCondition = '{0} {1}'.format(
+                    defaultParameters['CommandPowershell'], tempCommand) 
+            else:
+                tempCommandToEvaluateCondition =  tempCommand
+            tempCommandToEvaluateCondition = os.path.expandvars( tempCommandToEvaluateCondition ) 
+
+            if debugLevel > 2:
+                JAGlobalLib.LogLine(
+                    "DEBUG-3 JAOperationConn() Service Name:|{0}|, executing command:|{1}|".format(
+                        serviceName, tempCommandToEvaluateCondition),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                                                tempCommandToEvaluateCondition, debugLevel, OSType)
+            if returnResult == False:
+                numberOfErrors += 1
+                if re.match(r'File not found', errorMsg) != True:
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationConn() Service name:{0}, File not found, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
+                                serviceName, tempCommandToEvaluateCondition, errorMsg), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                else:
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationConn() Service name:{0}, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
+                                serviceName, tempCommandToEvaluateCondition, errorMsg), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                conditionMet = False
+            else:
+                conditionResult = returnOutput.rstrip("\n")
+                conditionResult = conditionResult.lstrip()
+                if OSType == 'Windows':
+                    ### output of the form "['<value>\r, '']"
+                    # lineParts = re.findall(r"^\['(.+)(\\)", conditionResult)
+                    lineParts = conditionResult.split(r'\r')
+                    if len(lineParts) > 1:
+                        ### take the value from 2nd line 
+                        conditionResult = lineParts[1]
+                    ### assign all lines
+                    conditionResults = lineParts
+                else:
+                    lineParts = conditionResult.split()
+                    if len(lineParts) > 1:
+                        ### take the value from 2nd line 
+                        conditionResult = lineParts[1]
+                    ### assign all lines
+                    conditionResults = lineParts
+
+                ### if result is numberic, compare the numbers
+                if isinstance(conditionResult, int) :
+                    if int(conditionResult) >= int(serviceAttributes['Condition']):
+                        ### condition met
+                        conditionMet = True
+                else:
+                    ### if condition result is multiline string, compute the number of lines and compare that to the condition number
+                    if len(conditionResults) > 1:
+                        if len(conditionResults) >= int(serviceAttributes['Condition']):
+                            conditionMet = True   
+                    else:
+                        ### string comparison
+                        if conditionResult == serviceAttributes['Condition']:
+                            conditionMet = True              
+                if conditionMet == False:
+                    if debugLevel > 1:
+                        JAGlobalLib.LogLine(
+                            "DEBUG-2 JAOperationConn() Service Name:|{0}|, condition not met, command response:|{1}|, condition:|{2}|, skipping the connectivity test".format(
+                                serviceName, conditionResults, serviceAttributes['Condition']),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        if conditionPresent == True:
+            if conditionMet == False:
+                ### SKIP connectivity test, condition not met
+                numberOfConditionsNotMet += 1
+                continue
+            else:
+                numberOfConditionsMet += 1
+
+        ### if multiple hostnames, make a list to iterate later
+        tempHostNames = serviceAttributes['HostNames'].split(',')
+
+        ### if multiple ports or port range, make a list to iterate later
+        tempPorts = []
+        if re.search(r'-', str(serviceAttributes['Ports'])):
+            ### port range specified in the form startPort-endPort
+            ###  get all port numbers inclusive of start and end ports
+            tempPortRange = serviceAttributes['Ports'].split(r'-')
+            for tempPort in range(int(tempPortRange[0]), int(tempPortRange[1])+1):
+                tempPorts.append(str(tempPort))
+        else:
+            ### if ports are in CSV form, get those in to a list
+            tempPorts = str(serviceAttributes['Ports']).split(',')
+
+        tempProtocol = serviceAttributes['Protocol']
+
+        ### below are temp counters for current HostNames, Ports set only to iterate through
+        passCount = failureCount = numberOfConnectivityTestsPerService = 0
+
+        ### While testing single host and for single port, when it fails, declare ERROR.
+        ### while testing multiple hosts or multiple ports, when single test fails, declare FAIL.
+        numberOfHostNames = len(tempHostNames)
+        numberOfPorts = len(tempPorts)
+        if numberOfHostNames > 1 or numberOfPorts > 1:
+            errorString = 'FAIL '
+        else:
+            errorString = 'ERROR'
+
+        ### now check the conectivity for each destination host and each port
+        for tempHostName in tempHostNames:
+            for tempPort in tempPorts:
+                numberOfConnectivityTests += 1
+                numberOfConnectivityTestsPerService += 1
+                tempResult = 'TBD'
+                tempReturnStatus,returnOutput, errorMsg = JAGlobalLib.JACheckConnectivity( 
+                    tempHostName, tempPort, tempProtocol, command, tcpOptions, udpOptions, OSType, OSName, OSVersion, debugLevel)
+                if tempReturnStatus == False:
+                    failureCount += 1
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationConn() Error executing command:{0}, error msg:{1}".format(
+                            command,  errorMsg ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    tempResult = 'ERROR'
+                    break
+                else:
+                    # parse the returnOutput or command output
+                    if re.match(connectivityPassed, returnOutput):
+                        passCount += 1
+                        tempResult = "PASS "
+                    elif re.match(connectivityUnknown, returnOutput):
+                        failureCount += 1
+                        
+                        tempResult = errorString
+                    elif re.match(connectionErrors, returnOutput):
+                        failureCount += 1
+                        tempResult = errorString
+                    elif re.match(hostNameErrors, returnOutput):
+                        failureCount += 1
+                        tempResult = errorString
+                JAGlobalLib.LogLine(
+                    "{0:5s} {1:12s} {2:24s} {3:6s} {4:3s} {5}".format(
+                    tempResult, serviceName, tempHostName, tempPort, tempProtocol, returnOutput ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        tempResult = 'TBD'
+        if numberOfConnectivityTestsPerService > 1:
+            returnOutput = 'Overall Result for all hosts'
+            ### for the case of single hostname and single port, result is already printed before
+            if passCount == numberOfConnectivityTestsPerService:
+                ### all connectivity tests passed
+                numberOfPasses += 1
+                tempResult = "PASS "
+            elif failureCount == numberOfConnectivityTestsPerService:
+                ### if connectivity fail to all hosts, declare ERROR
+                numberOfErrors += 1
+                tempResult = "ERROR"
+            else:
+                ### at least one connectivity passed, indicate partial failure, DO NOT increment ERROR
+                numberOfFailures += 1
+                tempResult = "FAIL "
+            JAGlobalLib.LogLine(
+                "{0:5s} {1:12s} {2:24s} {3:6s} {4:3s} {5}".format(
+                tempResult, serviceName, serviceAttributes['HostNames'], serviceAttributes['Ports'], tempProtocol, returnOutput ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        else:
+            ### use single test results as final results
+            if passCount > 0:
+                numberOfPasses += 1
+            elif failureCount > 0:
+                numberOfErrors += 1
+
+    JAGlobalLib.LogLine(
+        "INFO JAOperationConn() Total Services:{0}, conditions met:{1}, conditions NOT met:{2}, \
+all passed:{3}, failed:{4}, errors:{5}".format(
+        numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, numberOfErrors ),
+        interactiveMode,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     return returnStatus, errorMsg

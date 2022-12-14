@@ -41,7 +41,8 @@ OS:
     PATH: ./
 
   Linux:
-    CommandConnCheck: nc
+    ### provide proper options so that nc will terminate itself after timeout, below example terminate in 5 seconds
+    CommandConnCheck: nc -i 5 -w 5
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 750 *.py *.bash *.ksh *.pl logfilter*
@@ -71,6 +72,8 @@ OS:
     CommandPowershell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
     ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
     CommandRsync: ''
+    ### Command to decode certificate, if X509Details is installed.
+    CommandToDecodeCert: C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Get-X509Details
     ### wget command with option to ignore cert check
     CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
     ### root path on target host where the contents of Common and Custom files will be copied
@@ -82,8 +85,13 @@ OS:
   All:
     ### default applies to all OS versions
     CommandCurl: curl
+    ### default command to check connectivity, works on windows with powershell also
+    CommandConnCheck: curl --connect-timeout 10
     ### rsync command to get artifacts from SCM to local host if rsync is to be used
     CommandRsync: 'rsync --exclude=".*.swp" --exclude="*/"  -avrL --progress --ignore-errors -e "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTime=10"'
+    ### Default command to decode certificate, file name will be passed while decoding the cert
+    ###   works on Unix/Linux hosts
+    CommandToDecodeCert: openssl x509 -dates -subject -noout -alias -issuer
     ### wget command used to get artifacts from SCM to local host
     CommandWget: wget
     ### files to copy from current directory to JAAudit.PrevVersion before getting latest files from SCM
