@@ -879,7 +879,7 @@ def JAOperationSaveCompare(
          os.getpid() )
         
     if defaultParameters['DownloadHostName'] == None:
-        if re.search(r'download', defaultParameters['operations']) :
+        if re.search(r'download', defaultParameters['Operations']) :
             ### if download operation was done before, need to assume compare current environment
             ###   to uploaded info from current host itself.
             compareH2H = True
@@ -1150,7 +1150,7 @@ changed command outputs:{4}, changed checksums:{5}, changed files:{6}, skipped o
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-    if re.search(r'upload', defaultParameters['operations']):
+    if re.search(r'upload', defaultParameters['Operations']):
         ### upload will follow, prepare upload file list
         JAPrepareUploadFileList(
             baseConfigFileName, 

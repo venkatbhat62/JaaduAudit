@@ -339,6 +339,10 @@ def JAReadEnvironmentConfig(
     ### this file list assumes report files are at path 'ReportsPath', only file names are listed in this list.
     defaultParameters['ReportFileNames'] = []
 
+    ### set upload file names to empty list. This will be populated by save or download operation modules
+    ### this file list assumes  files are at path 'SaveDir', only file names are listed in this list.
+    defaultParameters['UploadFileNames'] = []
+
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 

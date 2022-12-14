@@ -1,0 +1,54 @@
+# Certificate check spec 
+# Author: havembha@gmail.com,  2022-12-14
+# Format
+# 
+# Certs:
+# - Name: CertName
+#   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
+#             get-process -name <processName> in windows
+#             to check whether a process is running before connecting to get the cert in use and decode it
+#           Optional parameters, default None
+#   Condition: <number> or <string> - 
+#          If the output of above command results in multiple lines, count of lines is compared to the condition number.
+#          If the output is single line and it is integer,
+#              the output is converted to integer and compared with integer number specified in condition
+#          Else output string is compared to the condition string.
+#                This is useful to match the result of command like true, false, pass, fail etc to determin next step
+#           Optional parameters, default None
+#   FileName: Certificate file name including path
+#   PatternDate:  
+#   PatternAlias: Expected alias name(s), if not present, declare cert error
+#
+Dev:
+  # specify hostname in regular expression 
+  HostName: (LAPTOP-QOCNVF0T)
+  Certs:
+    ### these definitions override the definitions under 'All' section
+    Apache:
+      Command: ps -ef |grep -c httpd
+      Condition: 3
+      FileName: /etc/apache2/certificate/apache-certificate.
+      Alias: None
+Test:
+  # specify hostname in regular expression 
+  HostName: ((...)(t)(...)([0-9][0-9]))
+UAT:
+  # specify hostname in regular expression 
+  HostName: ((...)(u)(...)([0-9][0-9]))
+Prod:
+  # specify hostname in regular expression 
+  HostName: ((...)(p)(...)([0-9][0-9]))
+#
+# Keep definition for 'All' environment at the end.
+# this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+# assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+# and that variable is defined under 'All', value under 'All' will be picked up
+# if variable is already defined under environment before, value under 'All' will be ignored.
+All:
+  Certs:
+    ### these definitions override the definitions under 'All' section
+    Apache:
+      Command: ps -ef |grep -c apache
+      Condition: 5
+      FileName: /etc/apache2/certificate/apache-certificate.crt
+      Alias: None

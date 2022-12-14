@@ -27,6 +27,8 @@ OS:
     ### compare all white space and blank lines
     CompareCommand: diff -E
     CommandConnCheck: ../exe/telnet
+    ### command to get listen port
+    CommandToGetListenPorts: netstat -an |grep LISTEN | grep -E 'UDP|TCP' | awk -F' ' '{print $1" "$2}'
     CommandToGetOSType: uname
     CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
     ### use below command to change the file permission so that scripts can be executed after getting those from
@@ -60,21 +62,22 @@ OS:
     CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off --preserve-permissions
   Windows:
     ### Compare command to be used to find diff between two text files
-    CompareCommand: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command compare-object -SyncWindow 10'
+    CompareCommand: 'compare-object -SyncWindow 10'
     ### power shell command to check connectivity 
     ### C:\Program Files\PowerShell\7\pwsh
-    CommandConnCheck: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Test-NetConnection'
+    CommandConnCheck: 'Test-NetConnection'
     ### command to post data to SCM web server
-    CommandCurl: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Invoke-WebRequest'
+    CommandCurl: iwr
     ### powershell command used to gather environment details 
     ###   commands specified in <subsystem><platform><component>.yml are executed using this powershell command
+    ###  this will be used to execute other commands specified for Windows environment
     CommandPowershell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
     ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
     CommandRsync: ''
     ### Command to decode certificate, if X509Details is installed.
-    CommandToDecodeCert: C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command Get-X509Details
+    CommandToDecodeCert: Get-X509Details
     ### wget command with option to ignore cert check
-    CommandWget: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command iwr -SkipCertificateCheck' 
+    CommandWget: 'iwr -SkipCertificateCheck' 
     ### root path on target host where the contents of Common and Custom files will be copied
     ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
     LocalRepositoryHome: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository'
@@ -139,8 +142,10 @@ Component:
     ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: WindowsAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
-    CommandToGetAppVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
-    CommandToGetDBVersion: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command echo TBD'
+    CommandToGetAppVersion: 'echo TBD'
+    CommandToGetDBVersion: 'echo TBD'
+    ### command to get listen port
+    CommandToGetListenPorts: 'get-nettcpconnection|out-string -stream |select-string -Pattern Listen'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (LAPTOP-QOCNVF0T)
     ### datamask for this component
@@ -163,6 +168,8 @@ Component:
     AppConfig: LinuxAPP.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
+    ### command to get listen port
+    CommandToGetListenPorts: netstat -an |grep LISTEN | grep -E '^udp|^tcp^tcp6' | awk -F' ' '{print $1" "$4}'
     ### if the current hostname match to below spec, it is considered of component type APP
     HostName: (...)(d|t|u|p)(app)
     ### datamask for this component

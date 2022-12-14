@@ -630,14 +630,14 @@ if operations == 'default':
                 operations = "{0}".format(myOperation)
             else:
                 operations += ",{0}".format(myOperation)
-    defaultParameters['operations'] = operations
+    defaultParameters['Operations'] = operations
     JAGlobalLib.LogLine(
         "INFO JAAudit() Default operations to run:{0}".format(operations), 
         interactiveMode,
         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 else:
     ### this will be used to find other operations opted while handling upload, download operations
-    defaultParameters['operations'] = operations
+    defaultParameters['Operations'] = operations
 
 ### if PATH and LD_LIBRARY are defined, set those environment variables
 if 'PATH' in defaultParameters:
@@ -681,6 +681,40 @@ with open(fileName, "r") as file:
         allowedCommands.append(line)
     file.close()
 
+### one can customize below commands based on OS type and application needs.
+### parse those commands to ensure, they are in allowed commands list
+customizableCommands = [
+    'CommandToGetAppVersion',
+    'CommandToGetDBVersion',
+    'CommandToGetListenPorts',
+    'CommandCurl',
+    'CompareCommand',
+    'CommandConnCheck',
+    'CommandToGetOSType',
+    'CommandToGetOSVersion',
+    'CommandChmod',
+    'CommandWget',
+    'CompareCommandH2H',
+    'CommandRsync',
+    'CommandToDecodeCert',
+]
+for customCommand in customizableCommands:
+    if customCommand in defaultParameters:
+        if defaultParameters[customCommand] != 'TBD' and defaultParameters[customCommand] != '' \
+            and defaultParameters[customCommand] != None :
+            if not JAGlobalLib.JAIsSupportedCommand(
+                defaultParameters[customCommand],
+                allowedCommands,
+                OSType ) :
+                JAGlobalLib.LogLine(
+                    "ERROR JAAudit() Custom command:|{0}| for: {1} is not supported, check allowed commands config file:{2}".format(
+                        defaultParameters[customCommand], customCommand, fileName),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            elif OSType == 'Windows':
+                ### for windows, prefix the powershell command to the custom command so that it can be executed directly later
+                defaultParameters[customCommand] = "{0} {1}".format(
+                    defaultParameters['CommandPowershell'], defaultParameters[customCommand] )
 
 fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 

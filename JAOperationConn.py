@@ -656,6 +656,12 @@ Summary:\n\
     Fail: {4}\n\
     Error: {5}\n\
 ".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, numberOfErrors ) )
+
+
+        ### if command present to get listen port info, collect it.
+        if 'CommandToGetListenPorts' in defaultParameters:
+           doitlater = 1 
+
         reportFile.close()
 
         ### add current report file to upload list if upload is opted
