@@ -13,6 +13,7 @@ import JAGlobalLib
 import JAOperationSync
 import JAOperationSaveCompare
 import JAOperationConn
+import JAOperationCert
 import JAOperationDownloadUpload
 
 def JARun( 
@@ -117,6 +118,62 @@ def JARun(
                 defaultParameters, debugLevel, currentTime )
         elif operation == 'conn':
             returnStatus, errorMsg = JAOperationConn.JAOperationConn(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'cert':
+            returnStatus, errorMsg = JAOperationCert.JAOperationCert(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'license':
+            returnStatus, errorMsg = JAOperationLicense.JAOperationLicense(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'stats':
+            returnStatus, errorMsg = JAOperationStats.JAOperationStats(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'test':
+            returnStatus, errorMsg = JAOperationTest.JAOperationTest(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'task':
+            returnStatus, errorMsg = JAOperationTask.JAOperationTask(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'heal':
+            returnStatus, errorMsg = JAOperationHeal.JAOperationHeal(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'health':
+            returnStatus, errorMsg = JAOperationHealth.JAOperationHealth(
+                baseConfigFileName, subsystem, myPlatform, appVersion,
+                OSType, OSName, OSVersion,   
+                outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                interactiveMode, operations, thisHostName, yamlModulePresent,
+                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
+        elif operation == 'inventory':
+            returnStatus, errorMsg = JAOperationInventory.JAOperationInventory(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,

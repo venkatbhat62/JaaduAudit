@@ -12,7 +12,7 @@
 #             get-process -name <processName> in windows
 #             to check whether a process is running before doing connection check to listen port on local host
 #           Optional parameters, default None
-#   Condition: <number> or <string> - 
+#   Condition: '(>|<|=)(space)(<number> or <string>)' 
 #          If the output of above command results in multiple lines, count of lines is compared to the condition number.
 #          If the output is single line and it is integer,
 #              the output is converted to integer and compared with integer number specified in condition
@@ -51,7 +51,7 @@ Dev:
     ### these definitions override the definitions under 'All' section
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
-      Condition: 6
+      Condition: '> 6'
       HostNames: localhost
       Ports: 6000
     SCMWebServer:
@@ -89,13 +89,13 @@ All:
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
       ### windows output heading has 5 lines, looking for additional lines in the output
-      Condition: 6
+      Condition: '> 6'
       HostNames: localhost
       Ports: 6000
     SMB:
       Command: get-nettcpconnection -localport 445
       ### windows output heading has 5 lines, looking for additional lines in the output
-      Condition: 6
+      Condition: '< 10'
       HostNames: localhost
       Ports: 445
     InternetAccess:

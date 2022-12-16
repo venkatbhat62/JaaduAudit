@@ -9,7 +9,7 @@ Execution Flow
     If interactive mode, display results
     Else, store the results to a JAAudit.conn.log.YYYYMMDD file
     If upload is enabled, add report file to upload file list
-    Add OperationConn=<current time in seconds> to Audit.profile
+    Write history file
 
 """
 
@@ -68,14 +68,6 @@ def JAReadConfigConn(
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-    ### parameter names supported in SaveCompare object definition file
-    connAttributes = [
-        'Command',
-        'Condition'
-        'HostNames',
-        'Ports',
-        'Protocol'
-        ]
     baseConfigFileNameParts = baseConfigFileName.split('.')
     if len(baseConfigFileNameParts) != 2:
         JAGlobalLib.LogLine(
@@ -125,11 +117,7 @@ def JAReadConfigConn(
     errorMsg = ''
 
     ### temporary attributes to process the YML file contents with default values
-    tempAttributes = defaultdict(dict)
     variables = defaultdict(dict)
-
-    integerParameters = []
-    floatParameters = []
 
     saveParameter = False  
     overridePrevValue = False
@@ -175,13 +163,10 @@ def JAReadConfigConn(
                     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
                                                         tempCommandToComputeVariableValue, debugLevel, OSType)
                     if returnResult == True:
-                        variableValue = returnOutput.rstrip("\n")
-                        variableValue = variableValue.lstrip()
-                        if OSType == 'Windows':
-                            ### output of the form "['<value>\r, '']"
-                            lineParts = re.findall(r"^\['(.+)(\\)", variableValue)
-                            if len(lineParts) > 0:
-                                variableValue = lineParts[0][0]
+                        if len(returnOutput) > 0:
+                            variableValue = returnOutput[0]
+                        else:
+                            variableValue = ''
                     else:
                         JAGlobalLib.LogLine(
                             "ERROR JAReadConfigConn() Not able to compute variable value for variable name:{0}, command:{1}, error:{2}".format(
@@ -221,7 +206,7 @@ def JAReadConfigConn(
                 """ service params can have below attributes 
                     connAttributes = [
                         'Command',
-                        'Condition'
+                        'Condition',
                         'HostNames',
                         'Ports',
                         'Protocol'
@@ -424,92 +409,14 @@ Services:\n\
             """
             Service attributes are:
                 'Command',
-                'Condition'
+                'Condition',
                 'HostNames',
                 'Ports',
                 'Protocol'
             """
-            conditionPresent = False
-            tempCommand = serviceAttributes['Command']
-            ### if command spec is present, run the command
-            if tempCommand != None:
-                conditionPresent = True
-                conditionMet = False
-
-                ### now execute the command to get result 
-                ###   command was checked for allowed command while reading the config spec
-                if OSType == "Windows":
-                    tempCommandToEvaluateCondition = '{0} {1}'.format(
-                        defaultParameters['CommandPowershell'], tempCommand) 
-                else:
-                    tempCommandToEvaluateCondition =  tempCommand
-                tempCommandToEvaluateCondition = os.path.expandvars( tempCommandToEvaluateCondition ) 
-
-                if debugLevel > 2:
-                    JAGlobalLib.LogLine(
-                        "DEBUG-3 JAOperationConn() Service Name:|{0}|, executing command:|{1}|".format(
-                            serviceName, tempCommandToEvaluateCondition),
-                        interactiveMode,
-                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-
-                returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                                                    tempCommandToEvaluateCondition, debugLevel, OSType)
-                if returnResult == False:
-                    numberOfErrors += 1
-                    if re.match(r'File not found', errorMsg) != True:
-                        JAGlobalLib.LogLine(
-                            "ERROR JAOperationConn() Service name:{0}, File not found, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
-                                    serviceName, tempCommandToEvaluateCondition, errorMsg), 
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    else:
-                        JAGlobalLib.LogLine(
-                            "ERROR JAOperationConn() Service name:{0}, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
-                                    serviceName, tempCommandToEvaluateCondition, errorMsg), 
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    conditionMet = False
-                else:
-                    conditionResult = returnOutput.rstrip("\n")
-                    conditionResult = conditionResult.lstrip()
-                    if OSType == 'Windows':
-                        ### output of the form "['<value>\r, '']"
-                        # lineParts = re.findall(r"^\['(.+)(\\)", conditionResult)
-                        lineParts = conditionResult.split(r'\r')
-                        if len(lineParts) > 1:
-                            ### take the value from 2nd line 
-                            conditionResult = lineParts[1]
-                        ### assign all lines
-                        conditionResults = lineParts
-                    else:
-                        lineParts = conditionResult.split()
-                        if len(lineParts) > 1:
-                            ### take the value from 2nd line 
-                            conditionResult = lineParts[1]
-                        ### assign all lines
-                        conditionResults = lineParts
-
-                    ### if result is numberic, compare the numbers
-                    if isinstance(conditionResult, int) :
-                        if int(conditionResult) >= int(serviceAttributes['Condition']):
-                            ### condition met
-                            conditionMet = True
-                    else:
-                        ### if condition result is multiline string, compute the number of lines and compare that to the condition number
-                        if len(conditionResults) > 1:
-                            if len(conditionResults) >= int(serviceAttributes['Condition']):
-                                conditionMet = True   
-                        else:
-                            ### string comparison
-                            if conditionResult == serviceAttributes['Condition']:
-                                conditionMet = True              
-                    if conditionMet == False:
-                        if debugLevel > 1:
-                            JAGlobalLib.LogLine(
-                                "DEBUG-2 JAOperationConn() Service Name:|{0}|, condition not met, command response:|{1}|, condition:|{2}|, skipping the connectivity test".format(
-                                    serviceName, conditionResults, serviceAttributes['Condition']),
-                                interactiveMode,
-                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            conditionPresent, conditionMet = JAGlobalLib.JAEvaluateCondition(
+                                serviceName, serviceAttributes, defaultParameters, debugLevel,
+                                interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
 
             if conditionPresent == True:
                 if conditionMet == False:
@@ -554,6 +461,7 @@ Services:\n\
         Condition: {2}\n\
         HostNames: {3}\n\
         Ports: {4}\n\
+        Protocol: {5}\n\
         Results:\n".format(
             serviceName,
             serviceAttributes['Command'],
@@ -660,12 +568,28 @@ Summary:\n\
 
         ### if command present to get listen port info, collect it.
         if 'CommandToGetListenPorts' in defaultParameters:
-           doitlater = 1 
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                defaultParameters['CommandToGetListenPorts'], debugLevel, OSType)
+            if returnResult == True:
+                if len(returnOutput) > 0:
+                    reportFile.write("ListenPorts:\n")
+                    for line in returnOutput:
+                        reportFile.write("\
+    {0}\n".format(line))
+            else:
+                listenPorts = ''
+                JAGlobalLib.LogLine(
+                    errorMsg, 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         reportFile.close()
 
         ### add current report file to upload list if upload is opted
         if re.search(r'upload', defaultParameters['Operations']):
             defaultParameters['ReportFileNames'].append(reportFileNameWithoutPath)
+    
+    ### write history file
+    JAGlobalLib.JAUpdateHistoryFileName(subsystem, operation, defaultParameters )
 
     return returnStatus, errorMsg

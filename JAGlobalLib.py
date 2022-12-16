@@ -31,6 +31,14 @@ def UTCTime():
     return datetime.datetime.utcnow().strftime("%H:%M:%S")
 
 def JAConvertStringTimeToTimeInMicrosec( dateTimeString, format:str):
+    """
+    JAGlobalLib.JAConvertStringTimeToTimeInMicrosec( dateTimeString, format:str)
+
+    Converts date time string to time in microsec using the format string. 
+    If successful, returns time in microseconds
+    Else, returns 0
+
+    """
     # 2022-06-04 add logic to use timezone while converting time to UTC time ???
     try:
         datetime_obj = datetime.datetime.strptime(dateTimeString, format)
@@ -43,6 +51,13 @@ def JAConvertStringTimeToTimeInMicrosec( dateTimeString, format:str):
         return 0
 
 def JAParseArgs(argsPassed):
+    """
+    JAGlobalLib.JAParseArgs(argsPassed)
+
+    Parses the command level arguments in sys.argv[] to the list argsPassed
+    Returns argument count
+
+    """
     args = sys.argv[1:]
     argc = len(args)
     for index in range(0,argc,2):
@@ -52,6 +67,14 @@ def JAParseArgs(argsPassed):
     return argc
 
 def JAIsYamlModulePresent():
+    """
+    JAGlobalLib.JAIsYamlModulePresent()
+
+    This function checks whether yaml module is present.
+    If present, returns True
+    Else, returns False
+
+    """
     yamlModulePresent = False
     try:
         if sys.version_info.major >= 3 and sys.version_info.minor >= 3:
@@ -72,18 +95,37 @@ def JAIsYamlModulePresent():
     return yamlModulePresent
 
 def JAGetTime( deltaSeconds:int ):
+    """
+    JAGlobalLib.JAGetTime( deltaSeconds:int )
+
+    This function takes current time, subtracts the given time in seconds and 
+       returns the resulting time in HH:MM:SS format.
+
+    """
     tempTime = datetime.datetime.now()
     deltaTime = datetime.timedelta(seconds=deltaSeconds)
     newTime = tempTime - deltaTime
     return newTime.strftime("%H:%M:%S")
 
 def JAGetDateTime( deltaSeconds:int ):
+    """
+    JAGlobalLib.JAGetDateTime( deltaSeconds:int )
+    This function takes current time, subtracts the given time in seconds and 
+       returns the resulting time in YYYY-MM-DDTHH:MM:SS.mmmmmmZ format.
+
+    """
     tempTime = datetime.datetime.now()
     deltaTime = datetime.timedelta(seconds=deltaSeconds)
     newTime = tempTime - deltaTime
     return newTime.strftime("%Y-%m-%dT%H:%M:%S.%f%Z")
 
 def JAGetDayOfMonth( deltaSeconds:int ):
+    """
+    JAGlobalLib.JAGetDayOfMonth( deltaSeconds:int )
+    This function takes current time, subtracts the given time in seconds and 
+        returns day of the month
+
+    """
     tempTime = datetime.datetime.now()
     deltaTime = datetime.timedelta(seconds=deltaSeconds)
     newTime = tempTime - deltaTime
@@ -91,6 +133,14 @@ def JAGetDayOfMonth( deltaSeconds:int ):
     return newTimeString 
 
 def LogMsg(logMsg:str, fileName:str, appendDate=True, prefixTimeStamp=True):
+    """"
+    JAGlobalLib.LogMsg(logMsg:str, fileName:str, appendDate=True, prefixTimeStamp=True)
+
+    Logs the given message to a log file in append mode, 
+      if appendDate is True, file name ending with YYYYMMDD is assumed.
+      If prefixTimeStamp is True, current dateTime string is prefixed to the log line before logging
+
+    """
     if fileName == None:
         print(logMsg)
         return 0
@@ -112,29 +162,31 @@ def LogMsg(logMsg:str, fileName:str, appendDate=True, prefixTimeStamp=True):
         logFileStream.close()
         return 1
 
-"""
-This function logs the lines passed in myLines to terminal with colors based on first word seen in first line
-If tempPrintLine passed is True, formatted line will be printed to the terminal
-While printing first line, current timestamp is printed as first two words
-
-Formatting applied to all lines when first word is
-^ERROR |^ERROR, - red
-^DIFF - blue
-^PASS |^ PASS - gren
-^INFO - bold
-
-If subsequent lines start with 
-< - printed in blue color
-> - printed in cyan color
-These lines are considerd as output of diff command
-
-Parameters passed:
-    myLines - line to print
-    tempPrintLine - True or False, if True, formatted line will be printed to the terminal
-
-
-"""
 def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HTMLBRTag:str,  diffLine=False, OSType='Linux'):
+    """
+    JAGlobalLib.LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HTMLBRTag:str,  diffLine=False, OSType='Linux')
+
+    This function logs the lines passed in myLines to terminal with colors based on first word seen in first line
+    If tempPrintLine passed is True, formatted line will be printed to the terminal
+    While printing first line, current timestamp is printed as first two words
+
+    Formatting applied to all lines when first word is
+    ^ERROR |^ERROR, - red
+    ^DIFF - blue
+    ^PASS |^ PASS - gren
+    ^INFO - no color
+    ^FAIL |^WARN - yellow
+
+    If subsequent lines start with 
+    < - printed in blue color
+    > - printed in cyan color
+    These lines are considerd as output of diff command
+
+    Parameters passed:
+        myLines - line to print
+        tempPrintLine - True or False, if True, formatted line will be printed to the terminal
+
+    """
 
     currentTime = UTCDateTime() + ' '
     tempLines = myLines.splitlines(False)
@@ -172,12 +224,17 @@ def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HT
         if tempPrintLine == True:
             print( line )
 
-"""
-Basic function to read config file in yaml format
-Use this on host without python 3 or where yaml is not available
-
-"""
 def JAYamlLoad(fileName:str ):
+    """
+    JAGlobalLib.JAYamlLoad(fileName:str )
+
+    Basic function to read config file in yaml format
+    Use this on host without python 3 or where yaml is not available
+
+    Upon successful read, returns the yaml data in dictionary form
+
+    """
+
     from collections import defaultdict
     import re
     yamlData = defaultdict(dict)
@@ -312,6 +369,8 @@ def JAYamlLoad(fileName:str ):
 
 def JAFindModifiedFiles(fileName:str, sinceTimeInSec:int, debugLevel:int, thisHostName:str):
     """
+    JAGlobalLib.JAFindModifiedFiles(fileName:str, sinceTimeInSec:int, debugLevel:int, thisHostName:str)
+
         This function returns file names in a directory that are modified since given GMT time in seconds
         if sinceTimeInSec is 0, latest file is picked up regardless of modified time
         Can be used instead of find command 
@@ -392,6 +451,8 @@ def JAFindModifiedFiles(fileName:str, sinceTimeInSec:int, debugLevel:int, thisHo
 
 def JAGetOSInfo(pythonVersion, debugLevel:int):
     """
+    JAGlobalLib.JAGetOSInfo(pythonVersion, debugLevel:int)
+
     Returns 
         OSType like Linux, Windows
         OSName like rhel for Redhat Linux, ubuntu for Ubuntu, Windows for Windows
@@ -479,12 +540,15 @@ def JAGetOSInfo(pythonVersion, debugLevel:int):
 
 def JAGetOSType():
     """
+    JAGlobalLib.JAGetOSType()
         Returns values like Linux, Windows
     """
     return platform.system()
 
 def JAWriteCPUUsageHistory( CPUUsage:int, logFileName=None, debugLevel=0):
     """
+    JAGlobalLib.JAWriteCPUUsageHistory( CPUUsage:int, logFileName=None, debugLevel=0)
+
     Write CPU usage data to given file name
     Keep 10 sample values
 
@@ -524,6 +588,8 @@ def JAWriteCPUUsageHistory( CPUUsage:int, logFileName=None, debugLevel=0):
 
 def JAReadCPUUsageHistory( logFileName=None, debugLevel=0):
     """
+    JAGlobalLib.JAReadCPUUsageHistory( logFileName=None, debugLevel=0)
+
     Read CPU usage data from a file
     Return CPUUsage values in list form, return avarge value separtely
     Return None if file could not be read
@@ -556,11 +622,19 @@ def JAReadCPUUsageHistory( logFileName=None, debugLevel=0):
         return [0], 0
 
 def JAGetAverageCPUUsage( ):
+    """
+    JAGlobalLib.JAGetAverageCPUUsage( )
+
+    Return average cpu usage.
+
+    """
     tempCPUUsage, average = JAReadCPUUsageHistory()
     return average
 
 def JAWriteTimeStamp(fileName:str, currentTime=None):
     """
+    JAGlobalLib.JAWriteTimeStamp(fileName:str, currentTime=None)
+
     This function writes current time to given filename
     If currentTime is not passed, current time is taken and written to the file
     """
@@ -582,6 +656,8 @@ def JAWriteTimeStamp(fileName:str, currentTime=None):
 
 def JAReadTimeStamp( fileName:str):
     """
+    JAGlobalLib.JAReadTimeStamp( fileName:str)
+
     This function reads the time stamp from a given file
     """
     prevTime = 0
@@ -603,6 +679,8 @@ def JAReadTimeStamp( fileName:str):
 
 def JAGetUptime(OSType:str):
     """
+    JAGlobalLib.JAGetUptime(OSType:str)
+
     returns uptime in number of seconds
     if can't be computed, returns 0
     """
@@ -617,7 +695,11 @@ def JAGetUptime(OSType:str):
 
 def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=30):
     """
+    JAGlobalLib.JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=30)
+
     Execute given command
+      If OSType is windows, replace \r with \n, remove [...], 
+         normalize the output to standard multiline string similar to output from Unix host
 
     Return status
         returnResult - True on success, False on failure
@@ -635,12 +717,23 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
     try:
         result = subprocess.run( command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
         if result.returncode == 0:
-            returnOutput = result.stdout.decode('utf-8').split('\n')
+            if OSType == 'Windows':
+                ### takeout \r
+                returnOutput = result.stdout.decode('utf-8').replace('\r\n', '\n')
+                returnOutput = returnOutput.rstrip("\n")
+                returnOutput = returnOutput.split('\n')
+
+            else:
+                returnOutput = result.stdout.decode('utf-8').rstrip("\n")
+                returnOutput = returnOutput.split('\n')
             errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0}|, result:\n{1}'.format(command,returnOutput)
             returnResult = True
         else:
             ### execution failed
-            returnOutput = result.stderr.decode('utf-8').split('\n')
+            if OSType == 'Windows':
+                returnOutput = result.stdout.decode('utf-8').split('\r')
+            else:
+                returnOutput = result.stdout.decode('utf-8').split('\n')
             errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0}|, error:\n{1}'.format(command,returnOutput)
             returnResult = False
 
@@ -655,11 +748,13 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
 
     if debugLevel > 2 :
         print("DEBUG-3 JAExecuteCommand() command output:{0}, message:{1}".format(returnOutput, errorMsg))
-    returnOutput = str(returnOutput)
+    # returnOutput = str(returnOutput)
     return returnResult, returnOutput, errorMsg
 
 def JAGetProfile(fileName:str, paramName:str):
     """
+    JAGlobalLib.JAGetProfile(fileName:str, paramName:str)
+
     Searches for the paramName in given profile file having the values in the format
         paramName: paramValue 
     
@@ -696,6 +791,8 @@ def JAGetProfile(fileName:str, paramName:str):
 
 def JASetProfile(fileName:str, paramName:str, paramValue:str):
     """
+    JAGlobalLib.JASetProfile(fileName:str, paramName:str, paramValue:str)
+
     Searches for the paramName in given profile file having the values in the format
         paramName: paramValue 
     Replaces the maching line with new paramValue passed
@@ -746,11 +843,17 @@ def JASetProfile(fileName:str, paramName:str, paramValue:str):
     return returnStatus
 
 def JADeriveHistoryFileName( subsystem:str, operation:str, defaultParameters):
+    """
+    JAGlobalLib.JADeriveHistoryFileName( subsystem:str, operation:str, defaultParameters)
+
+    """
     historyFileName = "{0}/JAAudit.{1}.{2}.PrevStartTime".format(defaultParameters['LogFilePath'], subsystem, operation)
     return historyFileName
 
 def JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters ):
     """
+    JAGlobalLib.JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters )
+
     Write current time to history file indicating last time when this operation was performed
     """
     historyFileName = JADeriveHistoryFileName(subsystem, operation, defaultParameters )
@@ -761,6 +864,8 @@ def JAUpdateHistoryFileName(subsystem:str, operation:str, defaultParameters ):
 
 def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defaultParameters, debugLevel:int):
     """
+    JAGlobalLib.JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defaultParameters, debugLevel:int)
+
     This function derives the history filename baesd on subsystem and operation 
     Gets the last modified time of that history filename.
     If the time difference between modified time and current time is greater than
@@ -805,6 +910,8 @@ def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defa
 
 def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str, subsystem:str, operation:str, version:str, debugLevel:int ):
     """
+    JAGlobalLib.JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str, subsystem:str, operation:str, version:str, debugLevel:int )
+
     Prepare operation specific configuration file
     <path>/<baseConfigFileName>.<subsystem>.<operation>.[.<version>].<fileType>
     
@@ -869,6 +976,10 @@ def JACheckConnectivity(
     hostName:str, port:str, protocol:str, command:str, tcpOptions:str, udpOptions:str, 
     OSType:str, OSName:str, OSVersion:str, debugLevel:int):
     """
+    JAGlobalLib.JACheckConnectivity( 
+    hostName:str, port:str, protocol:str, command:str, tcpOptions:str, udpOptions:str, 
+    OSType:str, OSName:str, OSVersion:str, debugLevel:int)
+
     This function executes given command to check connectivity to local or remote host
     For TCP protocol, uses tcpOptions
     For UDP protocol, uses udpOptions
@@ -908,18 +1019,17 @@ def JACheckConnectivity(
     returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel, OSType)
     
     if OSType == 'Windows':
-        
-        ### translate returnOutput to Linux output format
-        if re.findall(r'TcpTestSucceeded(.+):(.+)True', returnOutput, re.MULTILINE):
-            returnOutput = "succeeded"
-            errorMsg = ''
-        elif (re.findall(r'WARNING: Name resolution of(.*)failed', returnOutput, re.MULTILINE)):
-            returnOutput = "Could not resolve hostname"
-            errorMsg = ''
-        elif (re.findall(r'TcpTestSucceeded(.+):(.+)False', returnOutput, re.MULTILINE) and 
-            re.findall(r'PingSucceeded(.+):(.+)True', returnOutput, re.MULTILINE) ):
-            returnOutput = "Connection timed out"
-            errorMsg = ''
+        if len(returnOutput) > 5:
+            if re.findall(r'TcpTestSucceeded(.+):(.+)True', returnOutput[6], re.MULTILINE):
+                returnOutput = "succeeded"
+                errorMsg = ''
+            elif (re.findall(r'WARNING: Name resolution of(.*)failed', returnOutput[0], re.MULTILINE)):
+                returnOutput = "Could not resolve hostname"
+                errorMsg = ''
+            elif (re.findall(r'TcpTestSucceeded(.+):(.+)False', returnOutput[6], re.MULTILINE) and 
+                re.findall(r'PingSucceeded(.+):(.+)True', returnOutput, re.MULTILINE) ):
+                returnOutput = "Connection timed out"
+                errorMsg = ''
         elif re.findall(r'timed out after', errorMsg, re.MULTILINE):
             returnOutput = "Connection timed out"
             errorMsg = ''
@@ -932,6 +1042,10 @@ def JACheckConnectivityToHosts(
     OSType:str, OSName:str, OSVersion:str, printResults:int, debugLevel:int): 
 
     """
+    JAGlobalLib.JACheckConnectivityToHosts( 
+    defaultParameters, connectivitySpec,
+    OSType:str, OSName:str, OSVersion:str, printResults:int, debugLevel:int)
+
     Checks connectivity to the hosts given in connectivitySpec
     If CommandConnCheck is defined in JAEnvironment.yml for the current host, it will be used
     Else, it will use default command based on OSType of current host.
@@ -1003,6 +1117,8 @@ def JACheckConnectivityToHosts(
     
 def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParameters, integerParameters, floatParameters):
     """
+    JAGlobalLib.JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParameters, integerParameters, floatParameters)
+
     Read environment spec for a given environment
     This function can be called recursively
 
@@ -1036,6 +1152,8 @@ def JAGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParam
 
 def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
     """
+    JAGlobalLib.JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str )
+
     searches for the given command in allowed commands list
     If not found, returns False,
     If found, returns True
@@ -1067,4 +1185,123 @@ def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
             break
 
     return returnStatus
+
+
+def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debugLevel:int,
+    interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType):
+
+    """
+    JAGlobalLib.JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debugLevel:int,
+    interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
     
+    Executes the serviceAttributes['Command'], and compares the result to the value specified in 
+      serviceAttributes['Condition'] 
+
+    The condition spec can be > | < | = and a value 
+        The value can be integer or string
+
+    """
+    tempCommand = serviceAttributes['Command']
+    ### if command spec is present, run the command
+    if tempCommand == None:
+        conditionPresent = False
+        conditionMet = False
+    else: 
+        conditionPresent = True
+        conditionMet = False
+
+        ### now execute the command to get result 
+        ###   command was checked for allowed command while reading the config spec
+        if OSType == "Windows":
+            tempCommandToEvaluateCondition = '{0} {1}'.format(
+                defaultParameters['CommandPowershell'], tempCommand) 
+        else:
+            tempCommandToEvaluateCondition =  tempCommand
+        tempCommandToEvaluateCondition = os.path.expandvars( tempCommandToEvaluateCondition ) 
+
+        if debugLevel > 2:
+            LogLine(
+                "DEBUG-3 JAEvaluateCondition() name:|{0}|, executing command:|{1}|".format(
+                    serviceName, tempCommandToEvaluateCondition),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        returnResult, returnOutput, errorMsg = JAExecuteCommand(
+                                            tempCommandToEvaluateCondition, debugLevel, OSType)
+        if returnResult == False:
+            numberOfErrors += 1
+            if re.match(r'File not found', errorMsg) != True:
+                LogLine(
+                    "ERROR JAEvaluateCondition() name:{0}, File not found, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
+                            serviceName, tempCommandToEvaluateCondition, errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            else:
+                LogLine(
+                    "ERROR JAEvaluateCondition() name:{0}, error evaluating the condition by executing command:|{1}|, error:|{2}|".format(
+                            serviceName, tempCommandToEvaluateCondition, errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            conditionMet = False
+        else:
+            if len(returnOutput) > 0:
+                ### take the value from 2nd line
+                conditionResult = returnOutput[1]    
+                ### assign all lines
+                conditionResults = returnOutput
+            else:
+                conditionResult = ''
+                conditionResults = []
+
+            ### separate the condition field spec ( >|<|=) (value)
+            conditionSpecParts = serviceAttributes['Condition'].split(' ')
+            if len(conditionSpecParts) > 0:
+
+                ### if condition result is multiline string, compute the number of lines and compare that to the condition number
+                lengthOfConditionResults = len(conditionResults)
+                if  lengthOfConditionResults > 1:
+                    if re.search('>', conditionSpecParts[0]):
+                        if int(lengthOfConditionResults) > int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                    elif re.search('<', conditionSpecParts[0]):
+                        if int(lengthOfConditionResults) < int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                    elif re.search('=', conditionSpecParts[0]):
+                        if int(lengthOfConditionResults) == int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                elif isinstance(conditionResult, int) :
+                    ### numeric string
+                    if re.search('>', conditionSpecParts[0]):
+                        if int(conditionResult) > int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                    elif re.search('<', conditionSpecParts[0]):
+                        if int(conditionResult) < int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                    elif re.search('=', conditionSpecParts[0]):
+                        if int(conditionResult) == int( conditionSpecParts[1]):
+                            ### condition met
+                            conditionMet = True
+                else:
+                    ### string comparison
+                    if conditionResult == conditionSpecParts[1] :
+                        conditionMet = True              
+                if conditionMet == False:
+                    if debugLevel > 1:
+                        LogLine(
+                            "DEBUG-2 JAEvaluateCondition() name:|{0}|, condition not met, command response:|{1}|, condition:|{2}|, skipping the connectivity test".format(
+                                serviceName, conditionResults, serviceAttributes['Condition']),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            else:
+                LogLine(
+                    "WARN JAEvaluateCondition() name:|{0}|, invalid condition:|{1}|, expecting spec in the form: (> | < | =) (value), example: > 5".format(
+                        serviceName, serviceAttributes['Condition']),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    return conditionPresent, conditionMet

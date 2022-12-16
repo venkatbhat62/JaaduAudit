@@ -763,16 +763,11 @@ if subsystem == 'Apps' or subsystem == None:
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
             commandToGetAppVersion, debugLevel, OSType)
         if returnResult == True:
-            appVersion = returnOutput.rstrip("\n")
-            appVersion = appVersion.lstrip()
-
-            if OSType == 'Windows':
-                ### strip leading string to extract desired output
-                ### output of the form "['<value>\r, '']"
-                lineParts = re.findall(r"^\['(.+)(\\)", appVersion)
-                if len(lineParts) > 0:
-                    appVersion = lineParts[0][0]
-
+            if len(returnOutput) > 0:
+                appVersion = returnOutput[0]
+                appVersion = appVersion.lstrip()
+            else:
+                appVersion = ''
         else:
             appVersion = ''
             JAGlobalLib.LogLine(
@@ -786,8 +781,9 @@ elif subsystem == 'DB':
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
             commandToGetDBVersion, debugLevel, OSType)
         if returnResult == True:
-            appVersion = returnOutput.rstrip("\n")
-            appVersion = appVersion.lstrip()
+            if len(returnOutput) > 0:
+                appVersion = returnOutput[0]
+                appVersion = appVersion.lstrip()
         else:
             appVersion = ''
             JAGlobalLib.LogLine(

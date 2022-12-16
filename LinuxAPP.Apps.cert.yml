@@ -8,26 +8,28 @@
 #             get-process -name <processName> in windows
 #             to check whether a process is running before connecting to get the cert in use and decode it
 #           Optional parameters, default None
-#   Condition: <number> or <string> - 
+#   Condition: '(>|<|=)(space)(<number> or <string>)' 
 #          If the output of above command results in multiple lines, count of lines is compared to the condition number.
 #          If the output is single line and it is integer,
 #              the output is converted to integer and compared with integer number specified in condition
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#   FileName: Certificate file name including path
-#   PatternDate:  
-#   PatternAlias: Expected alias name(s), if not present, declare cert error
+#   Cert: Command to decode the cert file or command to connect to a process, get cert and decode it
+#   Alias: Expected alias name(s), if not present, declare cert error
 #
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
   Certs:
     ### these definitions override the definitions under 'All' section
+    ApacheProcess:
+      Command: ps -ef |grep -c apache
+      Condition: '> 5'
+      Cert: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  |openssl x509 -dates -subject -noout -alias -issuer -subject
+      Alias: None
     Apache:
-      Command: ps -ef |grep -c httpd
-      Condition: 3
-      FileName: /etc/apache2/certificate/apache-certificate.
+      Cert: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/ssl/apache-certificate.crt
       Alias: None
 Test:
   # specify hostname in regular expression 
@@ -47,8 +49,17 @@ Prod:
 All:
   Certs:
     ### these definitions override the definitions under 'All' section
-    Apache:
+    ApacheProcess:
       Command: ps -ef |grep -c apache
-      Condition: 5
-      FileName: /etc/apache2/certificate/apache-certificate.crt
+      Condition: '> 5'
+      ### if apache is running, get cert used by apache, and decode it
+      Cert: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  |openssl x509 -dates -subject -noout -alias -issuer -subject
+      Alias: None
+    Apache:
+      ### use openssl to decode the cert file
+      Cert: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/ssl/apache-certificate.crt
+      Alias: None
+    Tomcat:
+      ### use keytool to decode the cert file
+      Cert: keytool -v -list -keystore cacert.jks </dev/null 2>/dev/null |grep -E '^Creation date|^Owner|^Issuer|^Valid from|^Alias name'
       Alias: None

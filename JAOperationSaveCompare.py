@@ -305,27 +305,7 @@ def JAReadConfigCompare(
                                         interactiveMode,
                                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                                 
-                                if OSType == "Windows":
-                                    ### skip first 3 items and last item from the returnOutput list, those have std info from powershell
-                                    returnOutput = returnOutput.replace(r'\r', r'\n')
-                                    returnOutputLines =returnOutput.split(r'\n')
-                                    ### delete last line (']') from the list
-                                    del returnOutputLines[-1:]
-
-                                    ### extract 2nd field value only to discoveredFileNames list
-
-                                for line in returnOutputLines:
-                                    if OSType == "Windows":
-                                        ### each line is of the form: 'JAAudit.py"
-                                        ###                                ^^^^^^^^^^ <--- file name 
-                                        lineParts = re.findall(r"', '(.+)$", line)
-                                        if len(lineParts) > 0:
-                                            line = lineParts[0]
-                                        else:
-                                            lineParts = re.findall(r"\['(.+)$", line)
-                                            if len(lineParts) > 0:
-                                                line = lineParts[0]
-                                        # print("line:|{0}|".format(line))
+                                for line in returnOutput:
                                     ### formulate objectName as ObjectName.fileNameWitoutPath
                                     tempObjectName = '{0}.{1}'.format( objectName, os.path.basename(line)  )
                                     saveCompareParameters[tempObjectName]['FileNames'] = line
@@ -595,14 +575,11 @@ def JAOperationCompareFiles(
             
             ### treat windows output 
             if OSType == 'Windows':
-                ### skip first 3 items and last item from the returnOutput list, those have std info from powershell
-                returnOutput = returnOutput.replace(r'\r', r'\n')
-                returnOutputLines =returnOutput.split(r'\n')
-                ### delete first three lines and last two lines from the list
-                del returnOutputLines[:3], returnOutputLines[-2:]
+                ### delete first three lines
+                del returnOutput[:3]
 
                 ### returnOutputLines is a list, can't pass it to LogLine directly.
-                for line in returnOutputLines:
+                for line in returnOutput:
                     JAGlobalLib.LogLine(
                             line,
                             interactiveMode,
@@ -1161,5 +1138,7 @@ changed command outputs:{4}, changed checksums:{5}, changed files:{6}, skipped o
             defaultParameters, saveCompareParameters,
             debugLevel )
 
+    ### write history file
+    JAGlobalLib.JAUpdateHistoryFileName(subsystem, operation, defaultParameters )
 
     return returnStatus, numberOfItems
