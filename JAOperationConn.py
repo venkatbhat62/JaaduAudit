@@ -153,14 +153,10 @@ def JAReadConfigConn(
                 ### check for valid commands
                 if JAGlobalLib.JAIsSupportedCommand( command, allowedCommands, OSType):
 
-                    if OSType == "Windows":
-                        tempCommandToComputeVariableValue = '{0} {1}'.format(
-                            defaultParameters['CommandPowershell'], command) 
-                    else:
-                        tempCommandToComputeVariableValue =  command
-                    tempCommandToComputeVariableValue = os.path.expandvars( tempCommandToComputeVariableValue ) 
+                    tempCommandToComputeVariableValue = os.path.expandvars( command ) 
 
                     returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                                                        defaultParameters['CommandShell'],
                                                         tempCommandToComputeVariableValue, debugLevel, OSType)
                     if returnResult == True:
                         if len(returnOutput) > 0:
@@ -199,9 +195,9 @@ def JAReadConfigConn(
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     numberOfWarnings += 1
 
-        if value.get('Services') != None:
+        if value.get('Items') != None:
             ### expect variable definition to be in dict form
-            for serviceName, serviceParams in value['Services'].items():
+            for serviceName, serviceParams in value['Items'].items():
                 numberOfItems += 1 
                 """ service params can have below attributes 
                     connAttributes = [
@@ -392,7 +388,7 @@ def JAOperationConn(
 Platform: {1}\n\
 HostName: {2}\n\
 Environment: {3}\n\
-Services:\n\
+Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
 
         ### save or compare information of each object
@@ -422,6 +418,23 @@ Services:\n\
                 if conditionMet == False:
                     ### SKIP connectivity test, condition not met
                     numberOfConditionsNotMet += 1
+                    ### log result, align the spaces so that yaml layout format is satisfied.
+                    reportFile.write(
+"   {0}:\n\
+        Command: {1}\n\
+        Condition: {2}\n\
+        HostNames: {3}\n\
+        Ports: {4}\n\
+        Protocol: {5}\n\
+        Results:\n\
+            Skipped, condition not met\n".format(
+            serviceName,
+            serviceAttributes['Command'],
+            serviceAttributes['Condition'],
+            serviceAttributes['HostNames'],
+            serviceAttributes['Ports'],
+            serviceAttributes['Protocol']
+        ))
                     continue
                 else:
                     numberOfConditionsMet += 1
@@ -478,7 +491,8 @@ Services:\n\
                     numberOfConnectivityTestsPerService += 1
                     tempResult = 'TBD'
                     tempReturnStatus,returnOutput, errorMsg = JAGlobalLib.JACheckConnectivity( 
-                        tempHostName, tempPort, tempProtocol, command, tcpOptions, udpOptions, OSType, OSName, OSVersion, debugLevel)
+                        tempHostName, tempPort, tempProtocol, command, tcpOptions, udpOptions, OSType, OSName, OSVersion, debugLevel,
+                        defaultParameters['CommandShell'])
                     if tempReturnStatus == False:
                         failureCount += 1
                         JAGlobalLib.LogLine(
@@ -569,7 +583,9 @@ Summary:\n\
         ### if command present to get listen port info, collect it.
         if 'CommandToGetListenPorts' in defaultParameters:
             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                defaultParameters['CommandToGetListenPorts'], debugLevel, OSType)
+                defaultParameters['CommandShell'], 
+                defaultParameters['CommandToGetListenPorts'], 
+                debugLevel, OSType)
             if returnResult == True:
                 if len(returnOutput) > 0:
                     reportFile.write("ListenPorts:\n")

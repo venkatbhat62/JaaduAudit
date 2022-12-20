@@ -693,9 +693,9 @@ def JAGetUptime(OSType:str):
          uptime_seconds = 0
     return uptime_seconds
 
-def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=30):
+def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", timeoutPassed=30):
     """
-    JAGlobalLib.JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=30)
+    JAGlobalLib.JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", timeoutPassed=30)
 
     Execute given command
       If OSType is windows, replace \r with \n, remove [...], 
@@ -712,10 +712,18 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
     returnOutput = ''
 
     if debugLevel > 2:
-        print("DEBUG-3 JAExecuteCommand() command:{0}".format(command))
+        print("DEBUG-3 JAExecuteCommand() shell:{0}, command:|{1}|".format(shell, command))
 
     try:
-        result = subprocess.run( command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+        if OSType == 'Windows':
+            result = subprocess.run( shell + " " + command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+
+        else:
+            ### separate words of given shell command to list
+            shell = re.split(' ', shell)
+            shell.append( command )
+            result = subprocess.run( args=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+
         if result.returncode == 0:
             if OSType == 'Windows':
                 ### takeout \r
@@ -726,7 +734,7 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
             else:
                 returnOutput = result.stdout.decode('utf-8').rstrip("\n")
                 returnOutput = returnOutput.split('\n')
-            errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0}|, result:\n{1}'.format(command,returnOutput)
+            errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0} {1}|, result:\n{2}'.format(shell, command,returnOutput)
             returnResult = True
         else:
             ### execution failed
@@ -734,20 +742,20 @@ def JAExecuteCommand(command:str, debugLevel:int, OSType="Linux", timeoutPassed=
                 returnOutput = result.stdout.decode('utf-8').split('\r')
             else:
                 returnOutput = result.stdout.decode('utf-8').split('\n')
-            errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0}|, error:\n{1}'.format(command,returnOutput)
+            errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, error:\n{2}'.format(shell, command,returnOutput)
             returnResult = False
 
     except (subprocess.CalledProcessError) as err :
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0}|, called process error:|{1}|".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, called process error:|{2}|".format(shell, command, err)
       
     except ( FileNotFoundError ) as err:
-        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:|{0}|, error:|{1}|".format(command, err)
+        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:|{0} {1}|, error:|{2}|".format(shell, command, err)
         
     except Exception as err:
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0}|, exception:|{1}|".format(command, err)
+        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, exception:|{2}|".format(shell, command, err)
 
     if debugLevel > 2 :
-        print("DEBUG-3 JAExecuteCommand() command output:{0}, message:{1}".format(returnOutput, errorMsg))
+        print("DEBUG-3 JAExecuteCommand() command output:|{0}|, message:|{1}|".format(returnOutput, errorMsg))
     # returnOutput = str(returnOutput)
     return returnResult, returnOutput, errorMsg
 
@@ -824,10 +832,10 @@ def JASetProfile(fileName:str, paramName:str, paramValue:str):
                         lineFound = True
                     else:
                         ### store original line as is
-                        fileContents += (line + '\n')
+                        fileContents += (line )
             if lineFound == False:
                 ### add new line
-                fileContents += replaceLine
+                fileContents += (replaceLine)
             file.close()
         
         with open(fileName, "w") as file:
@@ -878,7 +886,7 @@ def JAIsItTimeToRunOperation(currentTime:int, subsystem:str, operation:str, defa
         return False
 
     Parameters passed:
-        currentTime, subsystem, operation, defaultParameters, debugLevel
+        currentTime, subsystem, operation, defaultParameters, duration debugLevel
 
     Returned values:
         True - if it is time to run the operation
@@ -959,7 +967,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
                 pathName2, baseConfigFileNameWithoutFileType, subsystem, operation, fileType)
             if os.path.exists( tempConfigFileName ) == False:
                 ### file does exist, return error
-                errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present for path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
+                errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present in path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
                     tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
                 returnStatus = False
                 tempConfigFileName = ''
@@ -974,7 +982,7 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
 
 def JACheckConnectivity( 
     hostName:str, port:str, protocol:str, command:str, tcpOptions:str, udpOptions:str, 
-    OSType:str, OSName:str, OSVersion:str, debugLevel:int):
+    OSType:str, OSName:str, OSVersion:str, debugLevel:int, shell):
     """
     JAGlobalLib.JACheckConnectivity( 
     hostName:str, port:str, protocol:str, command:str, tcpOptions:str, udpOptions:str, 
@@ -1011,12 +1019,15 @@ def JACheckConnectivity(
             return False, returnOutput, ""
 
     elif OSType == 'Linux':
-        ###
-        finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
+        ### let the error message also be put in stdout
+        finalCommand = "{0} {1} {2} {3} 2>&1".format(command, options,  hostName, port)
     elif OSType == 'SunOS':
-        finalCommand = "{0} {1} {2} {3}".format(command, options,  hostName, port)
+        ### let the error message also be put in stdout
+        finalCommand = "{0} {1} {2} {3} 2>&1".format(command, options,  hostName, port)
 
-    returnStatus, returnOutput, errorMsg = JAExecuteCommand(finalCommand, debugLevel, OSType)
+    returnStatus, returnOutput, errorMsg = JAExecuteCommand(
+        shell,
+        finalCommand, debugLevel, OSType)
     
     if OSType == 'Windows':
         if len(returnOutput) > 5:
@@ -1034,6 +1045,10 @@ def JACheckConnectivity(
             returnOutput = "Connection timed out"
             errorMsg = ''
             returnStatus = True
+    elif OSType == 'Linux' or OSType == 'SunOS':
+        ### result is a 0th index of the list
+        returnOutput = returnOutput[0]
+
     return returnStatus, returnOutput, errorMsg
 
 
@@ -1061,21 +1076,12 @@ def JACheckConnectivityToHosts(
     failureCount = passCount = 0
     detailedResults = ''
 
-    if OSType == 'Linux' and re.match(r'nc', command):
-        ### specifiy options for nc command
-        if OSVersion < 6:
-            tcpOptions = "-vz -w 8"
-            udpOptions = "-u"
-        else:
-            tcpOptions = "-i 1 -v -w 8"
-            udpOptions = "-u"
-    else:
-        tcpOptions = udpOptions = ''
+    tcpOptions = udpOptions = ''
 
-    connectionErrors = "Connection timed out|timed out: Operation now in progress|No route to host"
-    hostNameErrors = "host lookup failed|Could not resolve hostname|Name or service not known"
-    connectivityPassed = "succeeded|Connected to| open"
-    connectivityUnknown = "Connection refused"
+    connectionErrors = r'Connection timed out|timed out: Operation now in progress|No route to host'
+    hostNameErrors = r'host lookup failed|Could not resolve hostname|Name or service not known'
+    connectivityPassed = r'succeeded|Connected to| open'
+    connectivityUnknown = r'Connection refused'
 
     if 'CommandConnCheck' in defaultParameters:
         command = defaultParameters['CommandConnCheck']
@@ -1083,6 +1089,14 @@ def JACheckConnectivityToHosts(
         if OSType == 'Linux':
             # connection check command not defined, use nc by default
             command = 'nc'
+            ### specifiy options for nc command
+            if OSVersion < 6:
+                tcpOptions = "-vz -w 8"
+                udpOptions = "-u"
+            else:
+                tcpOptions = "-i 1 -v -w 8"
+                udpOptions = "-u"
+
         elif OSType == 'windows':
             command = 'Test-NetConnection'
         elif OSType == 'SunOS':
@@ -1096,20 +1110,22 @@ def JACheckConnectivityToHosts(
         protocol = hostSpec[1]
         port = hostSpec[2]
         tempReturnStatus,returnOutput, errorMsg = JACheckConnectivity( 
-            hostName, port, protocol, command, tcpOptions, udpOptions, OSType, OSName, OSVersion, debugLevel)
+            hostName, port, protocol, command, tcpOptions, udpOptions, OSType, OSName, OSVersion, debugLevel,
+            defaultParameters['CommandShell'])
         if tempReturnStatus == False:
             failureCount += 1
             print("ERROR JACheckConnectivityToHosts() Error executing command:{0}, error msg:{1}".format(
                     command,  errorMsg  ))
         else:
-            # parse the returnOutput or command output
-            if re.match(connectivityPassed, returnOutput):
+            ### parse the returnOutput or command output in the list
+            ### 1st item of the list has the result text
+            if re.search(connectivityPassed, returnOutput):
                 passCount += 1
-            elif re.match(connectivityUnknown, returnOutput):
+            elif re.search(connectivityUnknown, returnOutput):
                 failureCount += 1
-            elif re.match(connectionErrors, returnOutput):
+            elif re.search(connectionErrors, returnOutput):
                 failureCount += 1
-            elif re.match(hostNameErrors, returnOutput):
+            elif re.search(hostNameErrors, returnOutput):
                 failureCount += 1
     if failureCount > 0:
         returnStatus = False    
@@ -1160,8 +1176,14 @@ def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
     """
     returnStatus = True
 
+    errorMsg = ''
+
+    ### first mask the contents inside '' and "" so that command separator characters
+    ###  inside that string/word is not interpretted as command separators
+    commands = re.sub(r'\'(.+)\'|\"(.+)\"', "__JAString__", paramValue)
+
     ### separate command words in param value. commands may be separated by ; or |
-    commands = re.split(r';|\|', paramValue)
+    commands = re.split(r';|\||&', commands)
     for command in commands:
         ## remove leading space if any
         command = command.lstrip()
@@ -1182,9 +1204,9 @@ def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
                     returnStatus = False
             else:
                 returnStatus = False
-            break
+            errorMsg += 'Unsupported command:|{0}|,'.format(command)
 
-    return returnStatus
+    return returnStatus,errorMsg
 
 
 def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debugLevel:int,
@@ -1201,6 +1223,8 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
         The value can be integer or string
 
     """
+    numberOfErrors = 0
+
     tempCommand = serviceAttributes['Command']
     ### if command spec is present, run the command
     if tempCommand == None:
@@ -1214,7 +1238,7 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
         ###   command was checked for allowed command while reading the config spec
         if OSType == "Windows":
             tempCommandToEvaluateCondition = '{0} {1}'.format(
-                defaultParameters['CommandPowershell'], tempCommand) 
+                defaultParameters['CommandShell'], tempCommand) 
         else:
             tempCommandToEvaluateCondition =  tempCommand
         tempCommandToEvaluateCondition = os.path.expandvars( tempCommandToEvaluateCondition ) 
@@ -1227,6 +1251,7 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         returnResult, returnOutput, errorMsg = JAExecuteCommand(
+                                            defaultParameters['CommandShell'],
                                             tempCommandToEvaluateCondition, debugLevel, OSType)
         if returnResult == False:
             numberOfErrors += 1
@@ -1305,3 +1330,91 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     return conditionPresent, conditionMet
+
+def JADatamaskMaskLine(line, datamaskSpec, debugLevel, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType):
+    """
+    JAGlobalLib.JADatamaskMaskLine(line, datamaskSpec, debugLevel, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
+    
+    if curent line has any of the search string defined in datamask spec,
+    replace those strings withe replace strings defined in datamask spec
+    
+    return line
+
+    """
+
+    if debugLevel > 2:
+            LogLine(
+                'DEBUG-3 JADatamaskMaskLine() initial input line:|{0}\n'.format(line),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+    for search, replace in datamaskSpec.items():
+
+        if debugLevel > 3:
+            LogLine(
+                'DEBUG-4 JADatamaskMaskLine() input:|{0}|, search:|{1}|, replace:|{2}|\n'.format(
+                    line, search, replace),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+        line = re.sub(r'{}'.format(search), r'{}'.format(replace),line )
+
+        if debugLevel > 3:
+            LogLine(
+                'DEBUG-4 JADatamaskMaskLine() output line :|{0}\n'.format(line),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+    if debugLevel > 2:
+        LogLine(
+            'DEBUG-3 - JADatamaskMaskLine() final output line:|{0}\n'.format(line),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+    return line
+
+def JADataMaskFile(fileName, datamaskSpec, debugLevel, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType):
+    """
+    JADatamaskMaskFile(fileName, logFilePath, datamaskSpec, debugLevel, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
+
+    This function applies datamask, translates given file to a temporary file with xlated strings.
+
+    """
+    returnStatus = True
+    newFileName = "{0}.datamasked".format(fileName)
+    try:
+        with open(newFileName, "w") as newFile:
+            try:
+                with open( fileName, "r") as origFile:
+                    while True:
+                        ### reach each line from origFile, xlate the string and write to new file
+                        oldLine = line = origFile.readline()
+                        if not line:
+                            break
+
+                        for datamaskWord in datamaskSpec:
+                            line = re.sub(r'{0}'.format(datamaskWord), '__JADatamask__', line)
+
+                        newFile.write(line)
+
+                        if debugLevel > 3:
+                            LogLine(
+                                "DEBUG-4 JADatamaskMaskFile() oldLine:|{0}\n, datamased line:|{1}|".format( oldLine, line ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+                    origFile.close()
+            except OSError as err:
+                LogLine(
+                    "ERROR JADatamaskMaskFile() Can't open file:|{0}|, OSError:{1}".format( fileName, err ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+                returnStatus = False
+            newFile.close()
+
+    except OSError as err:
+        LogLine(
+            "ERROR JADatamaskMaskFile() Can't write new file:|{0}|, OSError:{1}".format( newFileName, err ),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+        returnStatus = False
+    
+    return returnStatus, newFileName

@@ -1,35 +1,39 @@
 # connectivity test spec 
 # Author: havembha@gmail.com,  2022-12-10
 # Format
-# Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+# <environment>: like Dev, Test, UAT, Prod... or All -  free form text
+#   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
+#            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
 #            can also be used to define hostnames per environment under each environment section and have
 #             service definition under 'All' to optimize the definitions
-#   VariableName:  command to be executed and output to be assigned this variable. Output can result in string or number
-# 
-# Services:
-#  ServiceName:
-#   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#   Items:
+#     <serviceName> - unique name identifying the service
+#       Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before doing connection check to listen port on local host
 #           Optional parameters, default None
-#   Condition: '(>|<|=)(space)(<number> or <string>)' 
+#       Condition: '(>|<|=)(space)(<number> or <string>)' 
 #          If the output of above command results in multiple lines, count of lines is compared to the condition number.
 #          If the output is single line and it is integer,
 #              the output is converted to integer and compared with integer number specified in condition
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#   HostNames: destination hostname in short form or in FQDN form, can be IP address also. Can be single or in CSV format
+#       HostNames: destination hostname in short form or in FQDN form, can be IP address also. Can be single or in CSV format
 #         destination hostname can be localhost, in which case the connectivity to local port is verified. 
 #         This is be useful to check the local process listening in on expected LISTEN port
 #         If more then one hostname is specified via CSV, connectivity check is performed for to all those hosts
 #           for each of the ports specified under Ports.
 #         can use variable names like {{var1}} or {{var2}}<partialName>,{{var2}}<partialName>
 #             value of variable will be substitued to form full hostname
-#   Ports: single port or ports in CSV format, or port range like startingPort-(dash)-endingPort
+#       Ports: single port or ports in CSV format, or port range like startingPort-(dash)-endingPort
 #          if more than one port is specified or range is specified, connectivity is checked to all those ports
 #            from current host to destination host
-#   Protocol: TCP|UDP
+#       Protocol: TCP|UDP
 #         If UDP, it will send UDP packets, so that one can check the receipt of packets on other end manually or using other tools
 #           UDP does not provide any conclusive test results
 #         Optional parameter, defaults to TCP
@@ -47,7 +51,7 @@ Dev:
     ### dummy example to show use of multiple variables in single HostNames
     Var3: echo "-QOCNVF0T"
     SMTPHostName: echo devhost
-  Services:
+  Items:
     ### these definitions override the definitions under 'All' section
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
@@ -59,17 +63,17 @@ Dev:
       Ports: 443
 Test:
   # specify hostname in regular expression 
-  HostName: ((...)(t)(...)([0-9][0-9]))
+  HostName: (...)(t)(...)([0-9][0-9])
   Variable:
     SMTPHostName: echo testhost
 UAT:
   # specify hostname in regular expression 
-  HostName: ((...)(u)(...)([0-9][0-9]))
+  HostName: (...)(u)(...)([0-9][0-9])
   Variable:
     SMTPHostName: echo testhost
 Prod:
   # specify hostname in regular expression 
-  HostName: ((...)(p)(...)([0-9][0-9]))
+  HostName: (...)(p)(...)([0-9][0-9])
   Variable:
     SMTPHostName: echo testhost
 #
@@ -85,7 +89,7 @@ All:
     Var2: (hostname).substring( 0,5 )
     Var3: echo "-QOCNVF0T"
   #
-  Services:
+  Items:
     XperConnectBroker:
       Command: get-nettcpconnection -localport 6000
       ### windows output heading has 5 lines, looking for additional lines in the output

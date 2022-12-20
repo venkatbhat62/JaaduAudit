@@ -143,9 +143,9 @@ def JAReadConfigCert(
         if saveParameter == False:
             continue
 
-        if value.get('Certs') != None:
+        if value.get('Items') != None:
             ### expect variable definition to be in dict form
-            for certName, certParams in value['Certs'].items():
+            for certName, certParams in value['Items'].items():
                 numberOfItems += 1 
                 """ service params can have below attributes 
                     certAttributes = [
@@ -183,13 +183,13 @@ def JAReadConfigCert(
 
                 if 'Cert' not in certParams:
                     JAGlobalLib.LogLine(
-                        "WARN JAReadConfigCert() Cert name:{0}, 'Cert' attribute is specified, Skipped this definition".format(
+                        "WARN JAReadConfigCert() Cert name:{0}, 'Cert' attribute is NOT specified, Skipped this definition".format(
                             certName ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     numberOfWarnings += 1
                     continue
-                
+
                 ### store current cert details
                 certParameters[certName] = certParams
 
@@ -242,7 +242,7 @@ def JAOperationCert(
         
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationConn() Cert spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
+            "DEBUG-1 JAOperationCert() Cert spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
             baseConfigFileName, subsystem, appVersion, interactiveMode),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -277,7 +277,6 @@ def JAOperationCert(
     ### numberOfConditionsMet - connectivity test performed after conditions met
     ### numberOfConditionsNotMet - connectivity test NOT performed since condition was not met
     numberOfItems = numberOfErrors = numberOfFailures  = numberOfConditionsMet = numberOfConditionsNotMet = numberOfPasses = 0
-    numberOfCertChecks = 0
 
     reportFileNameWithoutPath = "JAAudit.cert.{0}".format( JAGlobalLib.UTCDateForFileName() )
     reportFileName = "{0}/{1}".format( defaultParameters['ReportsPath'], reportFileNameWithoutPath )
@@ -289,17 +288,32 @@ def JAOperationCert(
 Platform: {1}\n\
 HostName: {2}\n\
 Environment: {3}\n\
-Certs:\n\
+Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
+
+        currentTime = time.time()
 
         ### save or compare information of each object
         for certName in certParameters:
             numberOfItems += 1
             certAttributes = certParameters[certName]
+            reportFile.write(
+"   {0}:\n\
+        Command: {1}\n\
+        Condition: {2}\n\
+        Cert: {3}\n\
+        Alias: {4}\n\
+        Results:\n".format(
+            certName,
+            certAttributes['Command'],
+            certAttributes['Condition'],
+            certAttributes['Cert'],
+            certAttributes['Alias'],
+        ))
 
             if debugLevel > 2:
                 JAGlobalLib.LogLine(
-                    "DEBUG-3 JAOperationConn() Processing cert name:|{0}|, cert attributes:|{1}|".format(
+                    "DEBUG-3 JAOperationCert() Processing cert name:|{0}|, cert attributes:|{1}|".format(
                     certName, certAttributes),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -318,24 +332,87 @@ Certs:\n\
                 if conditionMet == False:
                     ### SKIP connectivity test, condition not met
                     numberOfConditionsNotMet += 1
+                    ### log result, align the spaces so that yaml layout format is satisfied.
+                    reportFile.write(
+"           Skipped, condition not met\n")
                     continue
                 else:
                     numberOfConditionsMet += 1
 
-            reportFile.write(
-"   {0}:\n\
-        Command: {1}\n\
-        Condition: {2}\n\
-        Cert: {3}\n\
-        Alias: {4}\n\
-        Results:\n".format(
-            certName,
-            certAttributes['Command'],
-            certAttributes['Condition'],
-            certAttributes['Cert'],
-            certAttributes['Alias'],
-        ))
+            ### decode the certificate
+            tempCommand = certAttributes['Cert']
 
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                defaultParameters['CommandShell'],
+                tempCommand, debugLevel, OSType)
+            if returnResult == False:
+                if re.match(r'File not found', errorMsg) != True:
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationCert() File not found, Error decoding cert:{0} ".format(returnOutput), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            else:
+                ### parse the output for out of range dates
+                if OSType == 'Windows':
+                    JAGlobalLib.LogLine(
+                        "ERROR JAOperationCert() parsing output in windows platform not ready yet, returnOutput:{0}".format(returnOutput), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    reportFile.write("\
+                            {0}".format(returnOutput))
+
+                else:
+                    """
+                    Unix/Linux output in the form
+notBefore=Nov 13 15:42:21 2022 GMT
+notAfter=Nov 13 15:42:21 2023 GMT
+issuer=C = US, ST = TX, L = Plano, O = Internet Widgits Pty Ltd, CN = havembha
+<No Alias>
+subject=C = US, ST = TX, L = Plano, O = Internet Widgits Pty Ltd, CN = havembha
+                    """
+                    errorMsg = ''
+
+                    for line in returnOutput:
+                        dates = line.split('=')
+                        
+                        if len(dates) > 1:
+                            if re.match(r'^notBefore', dates[0]):
+                                ### convert not before date to seconds
+                                timeInSec = JAGlobalLib.JAConvertStringTimeToTimeInMicrosec( 
+                                    dates[1], "%b %d %H:%M:%S %Y %Z")
+                                if timeInSec > currentTime:
+                                    ### cert notBefore date is in future, declare error
+                                    numberOfErrors += 1
+                                    errorMsg += "ERROR Cert {0} has future 'notBefore date' {1}".format(certName, dates[1] )
+                                    line = "ERROR {0}".format(line)
+
+                            elif re.match(r'^notAfter', dates[0]):
+                                ### convert not After date to seconds
+                                timeInSec = JAGlobalLib.JAConvertStringTimeToTimeInMicrosec( 
+                                    dates[1], "%b %d %H:%M:%S %Y %Z")
+                                if timeInSec < currentTime:
+                                    ### cert notAfter date is in the past, declare error
+                                    numberOfErrors += 1
+                                    errorMsg += "ERROR Cert {0} expired already, 'notAfter date' {1}".format(certName, dates[1] )
+                                    line = "ERROR {0}".format(line)
+
+                            elif re.match(r'^alias', dates[0]):
+                                if certAttributes['Alias'] != None:
+                                    if not re.search( certAttributes['Alias'], dates[1]):
+                                        ### alias not present, declare error
+                                        numberOfErrors += 1
+                                        errorMsg += "ERROR Cert {0} alias not matching, expected:{1}, present:{2}".format(
+                                            certName, certAttributes['Alias'], dates[1] )
+                                        line = "ERROR {0}".format(line) 
+                                    
+                        reportFile.write("\
+                            {0}".format(line))
+
+                if errorMsg != '':
+                    JAGlobalLib.LogLine(
+                        errorMsg,
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         JAGlobalLib.LogLine(
             "INFO JAOperationCert() Total Certs:{0}, conditions met:{1}, conditions NOT met:{2}, \

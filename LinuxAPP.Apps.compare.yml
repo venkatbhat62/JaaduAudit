@@ -1,6 +1,6 @@
-## WindowsAPP.Apps.compare.yml
+## LinuxAPP.Apps.compare.yml
 # Save, Compare config spec 
-# Author: havembha@gmail.com,  2022-11-24
+# Author: havembha@gmail.com,  2022-12-18
 # format:
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
@@ -25,7 +25,7 @@
 #                On Unix/Linux hosts, it uses 'file' command to determin the file type.
 #                On Windows, file type defined in environment spec file via the parameter 'BinaryFileTypes' is used
 #                For binary files, defaults to Checksum
-#                For ASCII text, defaults to Text 
+#                For ASCII text, defaults to Text       
 #        FileNames: file names in CSV form or find command that returns file names in multiple lines
 #            Each file name is suffixed with NameSuffix.
 #            If operation is save, save the contents of the files with <objectName>.<fileName> without the path name.
@@ -56,12 +56,13 @@
 #     Specify environment specific items under Dev, Test, UAT, Prod... 
 #     If an item with the same name and same command/filename is specified under 'All', 
 #       one specified under other environment takes precedence.
+#
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
   Items:
-    AppsCmdFirewall:
-      Command: get-netfirewallrule
+    OSIptables:
+      Command: sudo /usr/sbin/iptables -L
       SkipH2H: Yes
 Test:
   # specify hostname in regular expression 
@@ -69,38 +70,31 @@ Test:
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
+      SkipH2H: Yes
 UAT:
-  # specify hostname in regular expression 
-  HostName: (...)(u)(...)([0-9][0-9])
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
+      SkipH2H: Yes
 Prod:
-  # specify hostname in regular expression 
-  HostName: (...)(p)(...)([0-9][0-9])
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
+      SkipH2H: Yes
 All:
   Items:
+    AppsCmdEnv:
+      FileNames: $HOME/.profile, $HOME/.bashrc
     AppsCode:
       # python files under Common 
-      # need to specify full path while referring to files (powershell defaults to home directory)
-      # Use "Select-object -expandproperty fullname" to get pathname and filename
-      FileNames: get-childitem C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Common -Filter "*.py" | Select-object -expandproperty fullname
+      FileNames: find /var/www/JaaduAudit/Common -name "*.py"
       CompareType: Checksum
-    AppsConfig:
-      # need to specify full path while referring to files (powershell defaults to home directory)
-      FileNames: C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Custom/JAEnvironment.yml, C:\Users\${username}\documents\github\JaaduAuditLocalRepository/Custom/WindowsAPP.Apps.compare.yml
-    AppsCmdEnv:
-      ### take a snapshot of current environment
-      Command: 'Get-ChildItem -Path Env:'
+    AppsConfigCommon:
+      FileNames: find /var/www/JaaduAudit/Common -name "*.conf"
+    AppsConfigCustom:
+      FileNames: find /var/www/JaaduAudit/Custom -name "*.yml"
     OSCmdRelease:
-      Command: Get-WMIObject win32_operatingsystem
+      Command: cat /etc/os-release
     OSCmdFileSystem:
-      ### this will be executed using powershell
-      Command: Get-CimInstance Win32_LogicalDisk
-    OSCmdIPInfo:
-      Command: ipconfig
-      ### ignore IPV6  parameters
-      IgnorePatterns: [  '(\s+)Temporary IPv6 Address(.*)', '(\s+)Link-local IPv6 Address(.*)', '(\s+)IPv6 Address(.*)' ]
+      ### file system name and size in MB
+      Command: df -m | awk -F' ' '{print $2" "$6}'

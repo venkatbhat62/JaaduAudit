@@ -18,7 +18,7 @@ def JAReadEnvironmentConfig(
     """
     This function reads environment config file
     If JAAudit.profile exists, the environment file location is read from that file.
-    If JAAudit.profile does not exist, and environment file is read from ./AppsCustom direcotry if present
+    If JAAudit.profile does not exist, and environment file is read from ./Custom direcotry if present
 
     # Parameter name needs to be unique across all sections - OS, Component, and Environment
     # Parameters can be defined under OS, Component or Environment.
@@ -78,15 +78,15 @@ def JAReadEnvironmentConfig(
             fileName = tempFileName
         if debugLevel > 0:
             print("DEBUG-1 JAReadEnvironmentConfig() Using environment spec file:{0} from JAAudit.profile".format(fileName))
-    elif os.path.exists('./AppsCustom/{0}'.format(fileName)):
-        ### use the file in ./AppsCustom/ if present
-        fileName = './AppsCustom/{0}'.format(fileName)
+    elif os.path.exists('./Custom/{0}'.format(fileName)):
+        ### use the file in ./Custom/ if present
+        fileName = './Custom/{0}'.format(fileName)
         if debugLevel > 0:
             print("DEBUG-1 JAReadEnvironmentConfig() Using environment spec file:{0}".format(fileName))
 
     elif os.path.exists(fileName) == False:
-        print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./AppsCustom directory.\n\
-            Get the file from SCM, place it in directory as specified for environment 'LocalRepositoryCustom' or default location ./AppsCustom directory\n".format(fileName))
+        print("ERROR JAReadEnvironmentConfig() Not able to find {0} in current directory, or in ./Custom directory.\n\
+            Get the file from SCM, place it in directory as specified for environment 'LocalRepositoryCustom' or default location ./Custom directory\n".format(fileName))
         return False
 
     # use limited yaml reader when yaml is not available
@@ -235,32 +235,18 @@ def JAReadEnvironmentConfig(
     if 'BackupRetencyDurationInDays' not in defaultParameters:
         defaultParameters['BackupRetencyDurationInDays'] = 60
 
-    ### Default spec for host to host comparison custom commands
-    if 'CompareCommandH2H' not in defaultParameters:
-        if OSType == 'Linux':
-            defaultParameters['CompareCommandH2H'] = 'H2HDiff.bash'
-        else:
-            ### TBD expand this later for Windows
-            defaultParameters['CompareCommandH2H'] = 'TBD'
-    if 'CompareCommandH2HSedCommand' not in defaultParameters:
-        if OSType == 'Linux':
-            defaultParameters['CompareCommandH2HSedCommand'] = 'H2HDiff.SedCmd'
-        else:
-            ### TBD expand this later for windows
-            defaultParameters['CompareCommandH2HSedCommand'] = 'TBD'
-
     if OSType == "Windows":
-        if 'CommandPowershell' not in defaultParameters:
+        if 'CommandShell' not in defaultParameters:
             ### chekc if powershell 7 is present
             if os.path.exists('C:/Program Files/PowerShell/7/pwsh.exe'):
-                defaultParameters['CommandPowershell'] = 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
+                defaultParameters['CommandShell'] = 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
             else:
-                defaultParameters['CommandPowershell'] ="TBD"
+                defaultParameters['CommandShell'] ="TBD"
 
     ### setup default compare commands based on OSType
     if 'CompareCommand' not in defaultParameters:
         if OSType == "Windows":
-            defaultParameters['CompareCommand'] = defaultParameters['CommandPowershell'] + " compare-object -SyncWindow 10"
+            defaultParameters['CompareCommand'] = defaultParameters['CommandShell'] + " compare-object -SyncWindow 10"
         elif OSType == 'Linux':
             ### ignore blank lines
             defaultParameters['CompareCommand'] = 'diff -B'
@@ -272,6 +258,21 @@ def JAReadEnvironmentConfig(
         defaultParameters['LogFilePath'] = os.path.expandvars(defaultParameters['LogFilePath'])
     if 'ReportsPath' in defaultParameters:
         defaultParameters['ReportsPath'] = os.path.expandvars(defaultParameters['ReportsPath'])
+
+    ### SCMRepositoryBasePath is needed if rysnc command is present
+    if 'SCMRepositoryBasePath' not in defaultParameters and 'CommandRsync' in defaultParameters:
+        errorMsg = "ERROR JAReadEnvironmentConfig() Missing spec for 'SCMRepositoryBasePath', while rsync operation is enabled via 'CommandRsync':|{0}".format(
+            defaultParameters['CommandRsync'])
+        print( errorMsg)
+        sys.exit(0)
+
+    ### use defualt values for SCMRepositoryCommon and SCMRepositoryCustom if not defined
+    if 'SCMRepositoryCommon' not in defaultParameters:
+        defaultParameters['SCMRepositoryCommon'] = 'Common'
+    if 'SCMRepositoryCustom' not in defaultParameters:
+        defaultParameters['SCMRepositoryCustom'] = OSType
+    if 'SCMUploadPath' not in defaultParameters:
+        defaultParameters['SCMUploadPath'] = OSType
 
     ### create log file path if does not exist
     if 'LogFilePath' in defaultParameters:
@@ -342,6 +343,28 @@ def JAReadEnvironmentConfig(
     ### set upload file names to empty list. This will be populated by save or download operation modules
     ### this file list assumes  files are at path 'SaveDir', only file names are listed in this list.
     defaultParameters['UploadFileNames'] = []
+
+    ### operation name like save, upload, cert, conn... to Operation Interval spec variable in defaultParameters[]
+    operationTranslation = {
+        'cert': 'OperationCert',
+        'conn': 'OperationConn',
+        'compare': 'OperationCompare',
+        'heal': 'OperationHeal',
+        'health': 'OperationHealth',
+        'inventory': 'OperationInventory',
+        'license': 'OperationLicense',
+        'perfStatsApp': 'OperationPerfStatsApp',
+        'perfStatsOS': 'OperationPerfStatsOS',
+        'save': 'OperationSave',
+        'stats': 'OperationStats',
+        'sync': 'OperationSync',
+        'task': 'OperationTask',
+        'test': 'OperationTest',
+        'upload': 'OperationUpload',
+    }
+    ### convert OperationXXXX values in number of hours to number of seconds and save under <opration> key 
+    for tempOperation, value in operationTranslation.items():
+        defaultParameters[tempOperation] = defaultParameters[value] * 3600
 
     ### save LocalRepositoryCustom value in JAAudit.profile
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)

@@ -153,7 +153,7 @@ def JAOperationUpload(
         resultLength = len(resultText)
         if resultLength > 1 :
             try:            
-                if re.search(r'ERROR Could not save the file', resultText):
+                if re.search(r'ERROR Could not save the file|PermissionError: \[Errno 13\] Permission denied:', resultText, re.MULTILINE):
                     uploadSuccess = False 
                 else:   
                     uploadSuccess = True
@@ -208,7 +208,7 @@ def JAOperationDownload(
         outputFileHandle, colorIndex, HTMLBRTag, myColors,
         interactiveMode, yamlModulePresent,
         defaultParameters, debugLevel,
-        saveCompareParameters, allowedCommands )
+        saveCompareParameters, allowedCommands, thisHostName )
     if returnStatus == False:
         ### fatal error, can't proceed.
         return returnStatus, numberOfItems
@@ -361,7 +361,9 @@ def JAOperationDownload(
             wgetCommand = "{0} -i {1}".format( 
                     defaultParameters['CommandWget'],
                     downloadFileList )
-            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(wgetCommand, debugLevel, OSType)
+            returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+                defaultParameters['CommandShell'],
+                wgetCommand, debugLevel, OSType)
             if returnResult == True:
                 if debugLevel > 0:
                     JAGlobalLib.LogLine(

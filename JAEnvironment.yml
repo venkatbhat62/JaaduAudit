@@ -12,7 +12,7 @@ Platform: Platform1
 
 ### Parameter name needs to be unique across all sections - OS, Component, and Environment
 ### Parameters can be defined under OS, Component or Environment.
-### Parameter value can be redefined in other sections to override previous value.
+### Parameter value can be redefined in other sections to override previous value defined in prior section(s).
 ### Parameters under OS will be read first, under Component next and under Environment last.
 ### While reading parameters under Component, if a value is present under specific component, 
 ###   it will be stored as latest desired value, overriding the value previously defined under OS
@@ -20,6 +20,7 @@ Platform: Platform1
 ###   it will be stored as latest desired value, overriding the value previously defined under OS or Component
 ### In all cases (OS, Component, Environment sections), value under 'All' will be stored 
 ###   if the value is not yet stored before in any prior section.
+###
 OS:
   SunOS:
     CommandCurl: /usr/bin/curl
@@ -34,6 +35,8 @@ OS:
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 750 *.py *.bash *.ksh *.pl logfilter* 
+    ### ksh command used to run programs, used in subprocess.run(args=['ksh', '-c', command])
+    CommandShell: ksh -c
     ### wget command to get file from SCM
     CommandWget: ../exe/wget --read-timeout=10 -t 2 --no-check-certificate
     ### add current working directory to path
@@ -43,16 +46,15 @@ OS:
 
   Linux:
     ### provide proper options so that nc will terminate itself after timeout, below example terminate in 5 seconds
-    CommandConnCheck: nc -i 5 -w 5
+    CommandConnCheck: nc -v -i 1 -w 5
     ### use below command to change the file permission so that scripts can be executed after getting those from
     ###  WebServer using wget (wget does not retain original file permission on WebServer)
     CommandChmod: chmod 750 *.py *.bash *.ksh *.pl logfilter*
     ### Compare command to be used to find diff between two text files
     ### compare all white space and blank lines
     CompareCommand: diff -w -B
-    ### for a host to host compare, use special bash script that takes custom sed command file to ignore patterns
-    CompareCommandH2H: H2HDiff.bash
-    CompareCommandH2HSedCommand: H2HDiff.SedCmd
+    ### bash command used to run programs, used in subprocess.run(args=['bash', '-c', command])
+    CommandShell: bash -c
     ### wget command to get file from SCM
     ### for RHEL 4 or 5
     # CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k
@@ -60,18 +62,21 @@ OS:
     #CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off
     ###  on RHEL 7 or above
     CommandWget: wget --read-timeout=10 -t 2 --no-check-certificate --limit-rate=10000k -e robots=off --preserve-permissions
+    LocalRepositoryHome: '/var/www/JaaduAudit'
+    LogFilePath: '/var/www/JaaduAudit/Logs'
+    ReportsPath: '/var/www/JaaduAudit/Reports'
   Windows:
     ### Compare command to be used to find diff between two text files
     CompareCommand: 'compare-object -SyncWindow 10'
-    ### power shell command to check connectivity 
-    ### C:\Program Files\PowerShell\7\pwsh
+    ### powershell command to check connectivity 
+    ### C:\Program Files\PowerShell\7\pwsh -command Test-NetConnection
     CommandConnCheck: 'Test-NetConnection'
     ### command to post data to SCM web server
     CommandCurl: iwr
     ### powershell command used to gather environment details 
     ###   commands specified in <subsystem><platform><component>.yml are executed using this powershell command
     ###  this will be used to execute other commands specified for Windows environment
-    CommandPowershell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
+    CommandShell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
     ### NO rsync capability on windows host by default, enable it if your windows server has rsync installed
     CommandRsync: ''
     ### Command to decode certificate, if X509Details is installed.
@@ -88,9 +93,9 @@ OS:
     ### default applies to all OS versions
     CommandCurl: curl
     ### default command to check connectivity, works on windows with powershell also
-    CommandConnCheck: curl --connect-timeout 10
+    CommandConnCheck: curl --connect-timeout 5
     ### rsync command to get artifacts from SCM to local host if rsync is to be used
-    CommandRsync: 'rsync --exclude=".*.swp" --exclude="*/"  -avrL --progress --ignore-errors -e "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTime=10"'
+    CommandRsync: 'rsync --exclude=".*.swp" --exclude="*/"  -avrL --progress --ignore-errors --timeout=10 -e "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no"'
     ### Default command to decode certificate, file name will be passed while decoding the cert
     ###   works on Unix/Linux hosts
     CommandToDecodeCert: openssl x509 -dates -subject -noout -alias -issuer
@@ -136,6 +141,15 @@ Component:
   ###    Platform1APP.Apps.compare.yml, Platform1APP.OS.compare.yml, Platform1APP.DB.compare.yml
   ###    Platform1APP.Apps.compare.2.yml, Platform1APP.OS.compare.8.yml, Platform1APP.DB.compare.10.yml
   ###    Platform1APP.Apps.conn.yml, Platform1APP.OS.conn.yml, Platform1APP.DB.conn.yml
+  ###
+  ### Component spec is read when current hostname matches to the hostname regular expression defined under component name.
+  ### Include only the component type used while defining the hostname, not any environment indicator used as part of the hostname
+  ### Use wild card for site and environment portion of the hostname. If no such hostname convention exist, list all the
+  ###   possible hostnames under all environments for that component type here so that the component spec applies to all hosts of 
+  ###   that component type. 
+  ### Use environment indicator like d or dv for DEV, t or st, i or it for test, ut, u for UAT, p or pd for production environment
+  ###   in environment section so that variables can be defined that applies to all components in that environment.
+  ### Specification under environment overrides the spec under component.
   APPWin:
     ### start the app config name with platform name as prefix. this helps to associate the file easily to platform or application
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
@@ -171,7 +185,7 @@ Component:
     ### command to get listen port
     CommandToGetListenPorts: netstat -an |grep LISTEN | grep -E '^udp|^tcp^tcp6' | awk -F' ' '{print $1" "$4}'
     ### if the current hostname match to below spec, it is considered of component type APP
-    HostName: (...)(d|t|u|p)(app)
+    HostName: (...)(d|t|u|p)(app)|(havembha)
     ### datamask for this component
     SCMDataMaskSpec: Linux/DMAPP.yml
     ### fetch latest files from WebServer like SCMHostName1 + RepositoryCustom,
@@ -284,10 +298,25 @@ Component:
     SitePrefixLength: 3
 
 Environment:
+  ### HostName: Define this parameter so that environment specific variable values are picked up as last
+  ###  overriding value to supercede values defined in OS and component section(s) if any.
+  ###  When current hostname match to the regular expression spec, all definitions under that environment will be used.
+  ###  Spec under other environment without a regular expression match are ignored.
+  ###
+  ### Use environment indicator like d or dv for DEV, t or st, i or it for test, ut, u for UAT, p or pd for production environment
+  ###   in environment section so that variables can be defined that applies to all components in that environment.
+  ###
+  ### It is possible to define the hostname regular expression in a broader way like one that applies to non-prod (all dev, system test
+  ###   integration test or staging or pre-prod or uat) and another for prod (differest geographic locations or site groups) when
+  ###   the variable spec needs to apply to that broader group.
+  ### 
+  ### Specification under environment overrides the spec under component and OS sections.
    Dev:
      ### keep automatic backup for 60 days
      BackupRetencyDurationInDays: 60
-     # specify hostname in regular expression 
+     # specify hostname in regular expression form, when current hostname where JAAudit runs match to this expression,
+     #  specification under that environment will supercede specs at OS level and component level specs.
+     ### Windows PC to test the folws on Windows OS
      HostName: ((...)(d)(...)([0-9][0-9]))|(LAPTOP-QOCNVF0T)
      OperationSync: 0.5
      SCMPortRsync: 22
@@ -299,10 +328,12 @@ Environment:
      BackupRetencyDurationInDays: 60
      ### keep  logs and result files for 7 days 
      FileRetencyDurationInDays: 7
-     HostName: (...)(t)(...)([0-9][0-9])
+     ### ubuntu host to test the flows on Linux
+     HostName: (...)(t)(...)([0-9][0-9])|(havembha)
      OperationSync: 0.5
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
+     SCMUploadPath: Linux/
    UAT:
      HostName: (...)(u)(...)([0-9][0-9])
      ### will use the OperationSync value under ALL, thus, not specifying a value for UAT environment separately
@@ -328,6 +359,7 @@ Environment:
    ##  assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
    ##  and that variable is defined under 'All', value under 'All' will be picked up
    ##  if variable is already defined under environment before, value under 'All' will be ignored.
+   ## HostName definition not needed in 'All' section, it will not be used for any selection criteria.
    All:
      ### binary file type to check the diff by using MD5 checksum only
      BinaryFileTypes: (\.jar)|(\.war)|(\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)
@@ -401,8 +433,6 @@ Environment:
      OperationCert: 168
      ### run connectivity check
      OperationConn: 168
-     ### while running connectivity check, whether to check OS connectivity 
-     OperationConnOS: 168
      ### Compare application environment to default backup directory
      OperationCompare: 168
      ### perform heal operation, 0 is to disable by default
@@ -439,6 +469,12 @@ Environment:
      SCMPortRsync: 22
      SCMPortHTTPS: 443
 
+     ### base path on SCM for rsync.
+     ###   objects under 'SCMRepositoryCommon' are fetched with resulting SCM path 'SCMRepositoryBasePath'/'SCMRepositoryCommon'
+     ###   objects under 'SCMRepositoryCustom' are fetched with resulting SCM path 'SCMRepositoryBasePath'/'SCMRepositoryCustom'
+     ###   
+     SCMRepositoryBasePath: /var/www/JaaduAudit
+
      ### Common code & config for all applications / platforms. 
      ### This word will be appended to SCMHostName to derive the URL to be used in wget command to 
      ### fetch latest files from WebServer like SCMHostName1 + RepositoryCommon
@@ -452,7 +488,6 @@ Environment:
      ### Comment this line or set to None if rsync is not used
      SCMRsyncUserName: havembha
 
-     
      ### web server to pull the latest code & config from and to post the artifacts collected
      ###  can use single name if load balancer based FQDN is availabe
      SCMHostName1: 192.168.1.169

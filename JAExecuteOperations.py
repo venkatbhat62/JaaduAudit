@@ -26,8 +26,11 @@ def JARun(
 
     # file descriptors r, w for reading and writing
     readDescriptor, writeDescriptor = os.pipe() 
+    errorMsg = ''
 
-    if OSType != 'Windows':
+    if OSType != 'Windows' and debugLevel < 10 :
+        ### use debugLevel 10 and above for sequential execution without forking,
+        ###  useful while debugging using pdb
         startTime = time.time()
         processId = os.fork()
     else:
@@ -59,14 +62,17 @@ def JARun(
         readDescriptor = os.fdopen(readDescriptor)
         messageFromChild = readDescriptor.readlines()
         if debugLevel > 1 :
-            print("DEBUG-2 JARun() message from child:{0}".format(messageFromChild))
+            JAGlobalLib.LogLine(
+                "DEBUG-2 JARun() operation:|{0}|, message from child:|{1}|, time:{2}".format(operation, messageFromChild, time.time()), 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         return True, messageFromChild
     
     else:
         # This is the child process
         os.close(readDescriptor)
-        
+        returnStatus = False
         if operation == 'save' or operation == 'backup':
             returnStatus, errorMsg = JAOperationSaveCompare.JAOperationSaveCompare(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -187,13 +193,19 @@ def JARun(
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             returnStatus = False            
 
-        if OSType == "Windows":
+        if processId == 0 :
             ### did not fork, return
             return returnStatus, errorMsg 
 
         else:
             ### OS supports forking, write message to parent and exit
             try:
+                if debugLevel > 1:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-2 JARun() Operation:|{0}| completed with result:|{1}| time:{2}".format(operation, errorMsg, time.time()), 
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
                 ### write the result of executing operation to descriptor so that parent can read the result
                 writeDescriptor = os.fdopen(writeDescriptor, 'w')
                 writeDescriptor.write(errorMsg)
@@ -207,4 +219,4 @@ def JARun(
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
             # child process on non windows platform, exit child process
-            sys.exit(0)
+            sys.exit()

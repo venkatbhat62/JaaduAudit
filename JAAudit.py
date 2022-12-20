@@ -698,30 +698,36 @@ customizableCommands = [
     'CommandRsync',
     'CommandToDecodeCert',
 ]
+fatalError = False
 for customCommand in customizableCommands:
     if customCommand in defaultParameters:
         if defaultParameters[customCommand] != 'TBD' and defaultParameters[customCommand] != '' \
             and defaultParameters[customCommand] != None :
-            if not JAGlobalLib.JAIsSupportedCommand(
+            returnStatus, errorMsg = JAGlobalLib.JAIsSupportedCommand(
                 defaultParameters[customCommand],
                 allowedCommands,
-                OSType ) :
+                OSType ) 
+            if returnStatus == False:
                 JAGlobalLib.LogLine(
-                    "ERROR JAAudit() Custom command:|{0}| for: {1} is not supported, check allowed commands config file:{2}".format(
-                        defaultParameters[customCommand], customCommand, fileName),
+                    "ERROR JAAudit() Custom command:|{0}| for: {1} is not supported, check allowed commands config file:{2}\nDetails:|{3}|".format(
+                        defaultParameters[customCommand], customCommand, fileName, errorMsg),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            elif OSType == 'Windows':
-                ### for windows, prefix the powershell command to the custom command so that it can be executed directly later
-                defaultParameters[customCommand] = "{0} {1}".format(
-                    defaultParameters['CommandPowershell'], defaultParameters[customCommand] )
+                fatalError = True
+
+if fatalError == True:
+    JAGlobalLib.LogLine(
+        "ERROR JAAudit() FATAL ERROR, exiting",
+        interactiveMode,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    sys.exit()
 
 fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 
 if OSType == 'Windows':
     ### get list of files older than retency period
     filesToDelete = JAGlobalLib.JAFindModifiedFiles(
-            '{0}/JAAudit*.log.*'.format(defaultParameters['LogFilePath']), 
+            '{0}/JAAudit.log.*'.format(defaultParameters['LogFilePath']), 
             currentTime - (fileRetencyDurationInDays*3600*24), ### get files modified before this time
             debugLevel, thisHostName)
     if len(filesToDelete) > 0:
@@ -738,38 +744,81 @@ if OSType == 'Windows':
 			        "ERROR JAAudit() Error deleting old log file:{0}, errorMsg:{1}".format(fileName, err), 
                 	interactiveMode,
                 	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                
+
+    ### get list of files older than one day
+    filesToDelete = JAGlobalLib.JAFindModifiedFiles(
+            '{0}/JAAudit.rsync.*'.format(defaultParameters['LogFilePath']), 
+            currentTime - (3600*24), ### get files modified before this time
+            debugLevel, thisHostName)
+    if len(filesToDelete) > 0:
+        for fileName in filesToDelete:
+            try:
+                os.remove(fileName)
+                if debugLevel > 3:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-4 JAAudit() Deleting the file:{0}".format(fileName),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except OSError as err:
+                JAGlobalLib.LogLine(
+			        "ERROR JAAudit() Error deleting old rsync log file:{0}, errorMsg:{1}".format(fileName, err), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
 else:
     # delete log files covering logs of operations also.
-    command = 'find {0} -name "JAAudit*.log.*" -mtime +{1} |xargs rm'.format(defaultParameters['LogFilePath'], fileRetencyDurationInDays)
+    command = 'find {0} -name "JAAudit.log.*" -mtime +{1} |xargs rm'.format(
+        defaultParameters['LogFilePath'], fileRetencyDurationInDays)
     if debugLevel > 1:
         JAGlobalLib.LogLine(
             "DEBUG-2 JAAudit() purging files with command:{0}".format(command),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(command, debugLevel, OSType)
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
-            JAGlobalLib.LogLine(
-			    "INFO JAAudit() File not found, Error deleting old log files:{0} ".format(returnOutput), 
-                interactiveMode,
-                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                    "DEBUG-1 JAAudit() No older log files to delete, {0}".format(errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+    # delete rsync log files covering logs of operations also.
+    command = 'find {0} -name "JAAudit.rsync.*" -mtime +1 |xargs rm'.format(
+        defaultParameters['LogFilePath'])
+    if debugLevel > 1:
+        JAGlobalLib.LogLine(
+            "DEBUG-2 JAAudit() purging files with command:{0}".format(command),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
+    if returnResult == False:
+        if re.match(r'File not found', errorMsg) != True:
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                    "DEBUG-1 JAAudit() No older rsync log files to delete, {0}".format(errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+appVersion = ''
 if subsystem == 'Apps' or subsystem == None:
     ### get application version, this is used to derive host/component specific specification file(s)
     if 'CommandToGetAppVersion' in defaultParameters:
         commandToGetAppVersion = defaultParameters['CommandToGetAppVersion']
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
             commandToGetAppVersion, debugLevel, OSType)
         if returnResult == True:
             if len(returnOutput) > 0:
                 appVersion = returnOutput[0]
                 appVersion = appVersion.lstrip()
-            else:
-                appVersion = ''
         else:
-            appVersion = ''
             JAGlobalLib.LogLine(
                 errorMsg, 
                 interactiveMode,
@@ -779,21 +828,19 @@ elif subsystem == 'DB':
     if 'CommandToGetDBVersion' in defaultParameters:
         commandToGetDBVersion = defaultParameters['CommandToGetDBVersion']
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
             commandToGetDBVersion, debugLevel, OSType)
         if returnResult == True:
             if len(returnOutput) > 0:
                 appVersion = returnOutput[0]
                 appVersion = appVersion.lstrip()
         else:
-            appVersion = ''
             JAGlobalLib.LogLine(
                 errorMsg, 
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 elif subsystem == 'OS':
     appVersion = OSVersion
-else:
-    appVersion = ''
 
 if '-d' in argsPassed:
     """
@@ -828,7 +875,7 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
     ### within the sync interveral, NO need to check the connection again. 
     ### this is to speed up operation in interactive mode
     returnStatus = JAGlobalLib.JAIsItTimeToRunOperation(
-        currentTime, subsystem, "sync", defaultParameters, debugLevel)
+        currentTime, subsystem, 'sync', defaultParameters, debugLevel)
     if returnStatus == False:
         if debugLevel > 0:
             JAGlobalLib.LogLine(
@@ -838,15 +885,10 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
 
         ### get SCMHostName used last time for file fetch
         returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
-    
-    if returnStatus == True:
-        ### get SCMHostName used last time for file fetch
-        returnStatus, SCMHostName = JAGlobalLib.JAGetProfile("JAAudit.profile", 'SCMHostName' )
-        if returnStatus == True:        
+        if returnStatus == True:
             defaultParameters['SCMHostName'] = SCMHostName
-
-    if returnStatus == False:
-        ### SCMHostName used before is not known, proceed with connection checks
+            
+    if SCMHostName == None or SCMHostName == 'None' or SCMHostName == '':
         if 'SCMHostName1' in defaultParameters and 'SCMPortHTTPS' in defaultParameters:
             # check connectivity to SCM host
             connectivitySpec = [

@@ -1,27 +1,38 @@
 # Certificate check spec 
 # Author: havembha@gmail.com,  2022-12-13
 # Format
-# 
-# Certs:
-# - Name: CertName
-#   Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
+# <environment>: like Dev, Test, UAT, Prod... or All -  free form text
+#   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
+#            override the spec in 'All' environment section
+#   Items:
+#     <certName>: Unique name within this section
+#               Suggest to use a name correlates to a process or application that uses this certificate
+#       Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before connecting to get the cert in use and decode it
 #           Optional parameters, default None
-#   Condition: '(>|<|=)(space)(<number> or <string>)' 
+#       Condition: '(>|<|=)(space)(<number> or <string>)' 
 #          If the output of above command results in multiple lines, count of lines is compared to the condition number.
 #          If the output is single line and it is integer,
 #              the output is converted to integer and compared with integer number specified in condition
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#   Cert: Command to decode the cert file or command to connect to a process, get cert and decode it
-#   Alias: Expected alias name(s), if not present, declare cert error
+#       Cert: Command to decode the cert file or command to connect to a process, get cert and decode it
+#         On Linux host, can use openssl or keytool to decode the certs
+#            openssl x509 -dates -subject -noout -alias -issuer -in <path/fileName>
+#            keytool -v -list -keystore <path/fileName> </dev/null 2>/dev/null | grep -E '^Creation Date|^Owner|^Issuer|^Valid from|^Alias name'
+# 
+#       Alias: Expected alias name(s), if not present, declare cert error
 #
+#   Specify common certs under 'All' so that it applies to hosts in all environments.
+#     Specify environment specific certs under Dev, Test, UAT, Prod... 
+#     If a cert with the same name and same command/filename is specified under 'All', 
+#       one specified under other environment takes precedence.
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
-  Certs:
+  Items:
     ### these definitions override the definitions under 'All' section
     Apache:
       Command: get-nettcpconnection -localport 6000
@@ -42,8 +53,8 @@ Prod:
 # and that variable is defined under 'All', value under 'All' will be picked up
 # if variable is already defined under environment before, value under 'All' will be ignored.
 All:
-  Certs:
+  Items:
     Apache:
       Command: get-nettcpconnection -localport 6000
       Condition: '> 6'
-
+      Cert: DecodeCert.ps1 /etc/apache2/ssl/apache-certificate.crt
