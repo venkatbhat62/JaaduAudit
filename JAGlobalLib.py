@@ -1418,3 +1418,78 @@ def JADataMaskFile(fileName, datamaskSpec, debugLevel, interactiveMode, myColors
         returnStatus = False
     
     return returnStatus, newFileName
+
+def JAComparePatterns(
+        comparePatterns:dict, fileName:str,
+        interactiveMode, debugLevel,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType):
+    """
+    JAComparePatterns(
+        comparePatterns, saveFileName,
+        interactiveMode, debugLevel,
+        myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
+
+    This function searches for a presence of compare patterns in line(s) within a file.
+    If all patterns are found, returns True
+    If any pattern is not found, returns False
+
+    """
+    returnStatus = True
+    errorMsg = ''
+
+    lines = []
+    try:
+        with open( fileName, "r") as file:
+            lines = file.readlines()
+            file.close()
+
+    except OSError as err:
+        LogLine(
+            "ERROR JAComparePatterns() Can't open file:|{0}|, OSError:{1}".format( fileName, err ),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+        returnStatus = False
+
+    if returnStatus == True:
+        numberOfPatternsToFind = len(comparePatterns)
+        numberOfPatternsFound = 0
+        ### now search for compare patterns in the lines read
+        for line in lines:
+            ### search for each pattern in each line   
+            for comparePattern, conditions in comparePatterns.items():
+                myResults =  re.findall(r'{0}'.format(comparePattern), line)
+                if len(myResults) > 0:
+                    numberOfMatchedPatterns = len(myResults[0])
+                    myResults = myResults[0]
+                else:
+                    numberOfMatchedPatterns = 0
+                if numberOfMatchedPatterns > 0:
+                    ### for group values matching to the patterns,
+                    ###    check conditions one by one in the conditions list
+                    conditionsMet = 0
+                    numberOfConditions = len(conditions)
+                    for findAllGroupNumber, compareValue in conditions.items():
+                        if numberOfMatchedPatterns >= findAllGroupNumber:
+                            if isinstance(compareValue,int) == True:
+                                if int(myResults[findAllGroupNumber]) == int(compareValue):
+                                    conditionsMet += 1
+                            else:
+                                if str(myResults[findAllGroupNumber]) == str(compareValue):
+                                    conditionsMet += 1
+                    if conditionsMet == numberOfConditions:
+                        ### all patterns found in current conditions
+                        numberOfPatternsFound += 1
+                        
+            if numberOfPatternsToFind == numberOfPatternsFound:
+                ### found all items, get out of the loop
+                break
+
+        if numberOfPatternsToFind != numberOfPatternsFound:
+            LogLine(
+                "WARN  JAComparePatterns() fileName:|{0}|, ComparePatterns:|{1}|, expected pattern matches:{2}, actual pattern matches:{3}".format(
+                    fileName, comparePatterns, numberOfPatternsToFind, numberOfPatternsFound  ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+            returnStatus = False
+
+    return returnStatus, errorMsg

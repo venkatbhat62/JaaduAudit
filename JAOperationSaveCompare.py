@@ -58,6 +58,7 @@ def JAReadConfigCompare(
         'Command',
         'CompareType',
         'FileNames',
+        'ComparePatterns',
         'IgnorePatterns',
         'SkipH2H'
         ]
@@ -143,7 +144,7 @@ def JAReadConfigCompare(
                 saveParamValue = True
                 ### default attributes
                 tempAttributes['SkipH2H'] = 'no'
-                tempAttributes['FileNames'] = tempAttributes['Command'] = tempAttributes['IgnorePatterns'] = None
+                tempAttributes['FileNames'] = tempAttributes['Command'] = tempAttributes['IgnorePatterns'] = tempAttributes['ComparePatterns'] = None
                 tempAttributes['CompareType'] = 'text'
                 
                 if overridePrevValue == False:
@@ -163,7 +164,7 @@ def JAReadConfigCompare(
 
                 for paramName, paramValue in attributes.items():
                     ### if the value is True or False type, it is treated as boolean, can't use .strip() on that paramValue
-                    if paramName != "SkipH2H" and paramName != 'IgnorePatterns':
+                    if paramName != "SkipH2H" and paramName != 'IgnorePatterns' and paramName != 'ComparePatterns':
                         paramValue = paramValue.strip()
                     if paramName not in saveCompareAttributes:
                         JAGlobalLib.LogLine(
@@ -202,6 +203,7 @@ def JAReadConfigCompare(
                         saveCompareParameters[objectName]['SkipH2H'] = tempAttributes['SkipH2H']
                         saveCompareParameters[objectName]['CompareType'] = tempAttributes['CompareType']
                         saveCompareParameters[objectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                        saveCompareParameters[objectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
 
                         saveCompareParameters[objectName]['FileNames'] = None
 
@@ -272,6 +274,7 @@ def JAReadConfigCompare(
                                                 saveCompareParameters[tempObjectName]['SkipH2H'] = tempAttributes['SkipH2H'] 
                                                 saveCompareParameters[tempObjectName]['CompareType'] = tempAttributes['CompareType']
                                                 saveCompareParameters[tempObjectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                                                saveCompareParameters[tempObjectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
                                                 saveCompareParameters[tempObjectName]['Command'] = None
                                                 
                                         continue
@@ -295,6 +298,7 @@ def JAReadConfigCompare(
                                     saveCompareParameters[tempObjectName]['SkipH2H'] = tempAttributes['SkipH2H'] 
                                     saveCompareParameters[tempObjectName]['CompareType'] = tempAttributes['CompareType']
                                     saveCompareParameters[tempObjectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                                    saveCompareParameters[tempObjectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
                                     saveCompareParameters[tempObjectName]['Command'] = None
                                     
                     else:
@@ -321,11 +325,12 @@ def JAReadConfigCompare(
         if debugLevel > 1:
             for objectName in saveCompareParameters:
                 JAGlobalLib.LogLine(
-                    "DEBUG-2 JAReadConfigCompare() ObjectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, IgnorePatterns:|{4}|, SkipH2H:|{5}|".format(
+                    "DEBUG-2 JAReadConfigCompare() ObjectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
                         objectName, 
                         saveCompareParameters[objectName]['Command'],
                         saveCompareParameters[objectName]['FileNames'],
                         saveCompareParameters[objectName]['CompareType'],
+                        saveCompareParameters[objectName]['ComparePatterns'],
                         saveCompareParameters[objectName]['IgnorePatterns'],
                         saveCompareParameters[objectName]['SkipH2H']
                         ),
@@ -863,7 +868,7 @@ def JAOperationSaveCompare(
         
 
     ### initialize counters to track summary
-    numberOfItems = numberOfErrors = numberOfMatches = 0
+    numberOfItems = numberOfErrors = numberOfMatches = numberOfComparePatternsNotMatched = 0
     numberOfCommandOutputSaved = numberOfChecksumsSaved = numberOfFilesSaved = 0
     numberOfChangedFiles = numberOfChangedCommandOutput = numberOfChangedChecksum = numberOfItemsSkipped = 0
 
@@ -876,11 +881,12 @@ def JAOperationSaveCompare(
         if operation == 'compare' and compareH2H == True and objectAttributes['SkipH2H'] == True:
             if debugLevel > 0:
                 JAGlobalLib.LogLine(
-                    "DEBUG-1 JAOperationSaveCompare() Skipping objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, IgnorePatterns:|{4}|, SkipH2H:|{5}|".format(
+                    "DEBUG-1 JAOperationSaveCompare() Skipping objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
                     objectName,
                     objectAttributes['Command'],
                     objectAttributes['FileNames'],
                     objectAttributes['CompareType'],
+                    objectAttributes['ComparePatterns'],
                     objectAttributes['IgnorePatterns'],
                     objectAttributes['SkipH2H'] ), 
                     interactiveMode,
@@ -890,11 +896,12 @@ def JAOperationSaveCompare(
 
         if debugLevel > 1:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationSaveCompare() processing objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, IgnorePatterns:|{4}|, SkipH2H:|{5}|".format(
+                "DEBUG-2 JAOperationSaveCompare() processing objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
                    objectName,
                    objectAttributes['Command'],
                    objectAttributes['FileNames'],
                    objectAttributes['CompareType'],
+                   objectAttributes['ComparePatterns'],
                    objectAttributes['IgnorePatterns'],
                    objectAttributes['SkipH2H'] ), 
                 interactiveMode,
@@ -906,17 +913,21 @@ def JAOperationSaveCompare(
             saveFileName = "{0}/{1}".format(saveDir,objectName) 
 
             currentFileName = '{0}.current'.format(saveFileName)
+            comparePatternsFileName = ''
+
             if operation == 'compare':
                 ### for compare operation, need to take current environment data in separate file and
                 ###   compare it with saveFileName (data saved before)
                 tempCommand = '{0} > {1}'.format( 
                     objectAttributes['Command'],
                     currentFileName)
+                comparePatternsFileName = currentFileName
             else:
                 ### for save operation, save current data in saveFileName
                 tempCommand = '{0} > {1}'.format( 
                     objectAttributes['Command'],
                     saveFileName)
+                comparePatternsFileName = saveFileName
 
             if debugLevel > 1:
                 JAGlobalLib.LogLine(
@@ -946,6 +957,15 @@ def JAOperationSaveCompare(
                 ### done processing current object
                 continue
             else:
+                if objectAttributes['ComparePatterns'] != None:
+                    ### check whether the command output has search patterns
+                    returnStatus, errorMsg = JAGlobalLib.JAComparePatterns(
+                            objectAttributes['ComparePatterns'], comparePatternsFileName,
+                            interactiveMode, debugLevel,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
+                    if returnStatus == False: 
+                        numberOfComparePatternsNotMatched += 1
+
                 numberOfCommandOutputSaved += 1
                 ### if operation is compare, compare currentDataFileName content with saveFileName content
                 if operation == 'compare':
@@ -1047,6 +1067,15 @@ def JAOperationSaveCompare(
                 ### if CompareType is not checksum, save reference file contents as is
                 saveFileName = '{0}/{1}'.format( saveDir, objectName)
 
+                if objectAttributes['ComparePatterns'] != None:
+                    ### check whether the command output has search patterns
+                    returnStatus, errorMsg = JAGlobalLib.JAComparePatterns(
+                            objectAttributes['ComparePatterns'], saveFileName,
+                            interactiveMode, debugLevel,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
+                    if returnStatus == False: 
+                        numberOfComparePatternsNotMatched += 1
+
                 ### copy the file to save directory
                 if operation == 'save' or operation == 'backup':
                     try:
@@ -1086,8 +1115,8 @@ def JAOperationSaveCompare(
 
     if operation == 'save' or operation == 'backup':
         JAGlobalLib.LogLine(
-            "INFO JAOperationSaveCompare() total objects:{0}, Saved objects of commands:{1}, checksums:{2}, files:{3} with errors:{4}".format(
-                numberOfItems, numberOfCommandOutputSaved, numberOfChecksumsSaved,numberOfFilesSaved,numberOfErrors), 
+            "INFO JAOperationSaveCompare() total objects:{0}, Saved objects of commands:{1}, checksums of files:{2}, contents of files:{3} with compare patterns not found:{4}, and with errors:{5}".format(
+                numberOfItems, numberOfCommandOutputSaved, numberOfChecksumsSaved,numberOfFilesSaved, numberOfComparePatternsNotMatched, numberOfErrors), 
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     else:
@@ -1097,9 +1126,9 @@ def JAOperationSaveCompare(
             os.remove(currentFileName)
         JAGlobalLib.LogLine(
             "INFO JAOperationSaveCompare() compare summary - total objects:{0}, compared output of commands:{1}, checksums of files:{2}, contents of files:{3}, \
-with errors:{4}, matches: {5}, changed command outputs:{6}, changed checksums:{7}, changed files:{8}, skipped objects:{9}".format(
+with compare patterns not found:{4} and with errors:{5} matches: {6}, changed command outputs:{7}, changed checksums:{8}, changed files:{9}, skipped objects:{9}".format(
                 numberOfItems, 
-                numberOfCommandOutputSaved, numberOfChecksumsSaved, numberOfFilesSaved, numberOfErrors,
+                numberOfCommandOutputSaved, numberOfChecksumsSaved, numberOfFilesSaved, numberOfComparePatternsNotMatched, numberOfErrors,
                 numberOfMatches,
                 numberOfChangedCommandOutput, numberOfChangedChecksum, numberOfChangedFiles, numberOfItemsSkipped), 
             interactiveMode,
