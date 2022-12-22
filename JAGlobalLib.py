@@ -1437,10 +1437,14 @@ def JAComparePatterns(
     returnStatus = True
     errorMsg = ''
 
-    lines = []
+    lines = ''
     try:
         with open( fileName, "r") as file:
-            lines = file.readlines()
+            while True:
+                tempLine = file.readline()
+                if not tempLine:
+                    break
+                lines += tempLine
             file.close()
 
     except OSError as err:
@@ -1453,43 +1457,254 @@ def JAComparePatterns(
     if returnStatus == True:
         numberOfPatternsToFind = len(comparePatterns)
         numberOfPatternsFound = 0
-        ### now search for compare patterns in the lines read
-        for line in lines:
-            ### search for each pattern in each line   
-            for comparePattern, conditions in comparePatterns.items():
-                myResults =  re.findall(r'{0}'.format(comparePattern), line)
-                if len(myResults) > 0:
-                    numberOfMatchedPatterns = len(myResults[0])
-                    myResults = myResults[0]
-                else:
-                    numberOfMatchedPatterns = 0
-                if numberOfMatchedPatterns > 0:
-                    ### for group values matching to the patterns,
-                    ###    check conditions one by one in the conditions list
-                    conditionsMet = 0
-                    numberOfConditions = len(conditions)
-                    for findAllGroupNumber, compareValue in conditions.items():
-                        if numberOfMatchedPatterns >= findAllGroupNumber:
+        ### search for each pattern in lineS   
+        for comparePattern, conditions in comparePatterns.items():
+            if debugLevel > 1:
+                LogLine(
+                    "DEBUG-2 JAComparePatterns() searching for ComparePattern:|{0}| in the file:|{1}|".format( 
+                        comparePattern, fileName ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+            myResults =  re.findall(r'{0}'.format(comparePattern), lines, re.MULTILINE)
+            if len(myResults) > 0:
+                numberOfMatchedPatterns = len(myResults[0])
+                myResults = myResults[0]
+            else:
+                numberOfMatchedPatterns = 0
+            if numberOfMatchedPatterns > 0:
+                ### for group values matching to the patterns,
+                ###    check conditions one by one in the conditions list
+                ### group number spec uses index starting from 1, myResults[] index starts with 0
+                conditionsMet = 0
+                numberOfConditions = len(conditions)
+                if debugLevel > 2:
+                    LogLine(
+                        "DEBUG-3 JAComparePatterns()\t\tcomparing expected group values:|{0}| to current group values:|{1}|".format( 
+                            conditions, myResults ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+                for findAllGroupNumber, compareValue in conditions.items():
+                    if numberOfMatchedPatterns >= findAllGroupNumber:
+                        try:
+                            tempConditionsMet = False
                             if isinstance(compareValue,int) == True:
-                                if int(myResults[findAllGroupNumber]) == int(compareValue):
+                                ### group number spec uses index starting from 1, myResults[] index starts with 0
+                                ###   thus doing findAllGroupNumber-1 to pick up desired value from myResults
+                                if int(myResults[findAllGroupNumber-1]) == int(compareValue):
                                     conditionsMet += 1
+                                    tempConditionsMet = True
+                            elif isinstance(compareValue,float) == True:
+                                ### group number spec uses index starting from 1, myResults[] index starts with 0
+                                ###   thus doing findAllGroupNumber-1 to pick up desired value from myResults
+                                if float(myResults[findAllGroupNumber-1]) == float(compareValue):
+                                    conditionsMet += 1
+                                    tempConditionsMet = True
                             else:
-                                if str(myResults[findAllGroupNumber]) == str(compareValue):
+                                ### group number spec uses index starting from 1, myResults[] index starts with 0
+                                ###   thus doing findAllGroupNumber-1 to pick up desired value from myResults
+                                if str(myResults[findAllGroupNumber-1]) == str(compareValue):
                                     conditionsMet += 1
-                    if conditionsMet == numberOfConditions:
-                        ### all patterns found in current conditions
-                        numberOfPatternsFound += 1
-                        
+                                    tempConditionsMet = True
+
+                            if tempConditionsMet == True:
+                                if debugLevel > 2:
+                                    LogLine(
+                                        "DEBUG-3 JAComparePatterns()\t\tregex group:{0}, expected value:|{1}| matched to current value:|{2}|".format( 
+                                            findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1] ),
+                                        interactiveMode,
+                                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+                            else:
+                                LogLine(
+                                    "ERROR JAComparePatterns() regex group:{0}, expected value:|{1}| is NOT matching to current value:|{2}| in the file:|{3}|".format( 
+                                        findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], fileName ),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+                        except:
+                            LogLine(
+                                "ERROR JAComparePatterns() current value type conversion exception, regex group:{0}, expected value:|{1}| is NOT matching to current value:|{2}| in the file:|{3}| ".format( 
+                                    findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], fileName ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+                if conditionsMet == numberOfConditions:
+                    ### all patterns found in current conditions
+                    numberOfPatternsFound += 1
+                else:
+                    LogLine(
+                        "ERROR JAComparePatterns() NOT all regex groups matched from the comparePattern:|{0}|, expected regex groups to match:{1}, regex groups matched:{2} in the file:|{3}|".format( 
+                            comparePattern, numberOfConditions, conditionsMet, fileName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+
+            else:
+                LogLine(
+                    "ERROR JAComparePatterns() comparePattern:|{0}| NOT found in file:|{1}|".format( 
+                        comparePattern, fileName ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+                    
             if numberOfPatternsToFind == numberOfPatternsFound:
                 ### found all items, get out of the loop
                 break
 
         if numberOfPatternsToFind != numberOfPatternsFound:
             LogLine(
-                "WARN  JAComparePatterns() fileName:|{0}|, ComparePatterns:|{1}|, expected pattern matches:{2}, actual pattern matches:{3}".format(
-                    fileName, comparePatterns, numberOfPatternsToFind, numberOfPatternsFound  ),
+                "ERROR  JAComparePatterns() ComparePatterns:|{0}|, expected pattern matches:{1}, actual pattern matches:{2} in the file:|{3}|".format(
+                     comparePatterns, numberOfPatternsToFind, numberOfPatternsFound, fileName  ),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
             returnStatus = False
 
     return returnStatus, errorMsg
+
+def JAParseVariables(
+    environment:str, variableDefinitions:dict, overridePrevValue:bool, variables:dict,
+    defaultParameters, allowedCommands, 
+    interactiveMode:bool, debugLevel:int,
+    myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine:bool, OSType:str ):
+    
+    """
+    JAParseVariables(
+    environment:str, variableDefinitions:dict, overridePrevValue:bool, variables:dict,
+    defaultParameters, allowedCommands, 
+    interactiveMode:bool, debugLevel:int,
+    myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine:bool, OSType:str )
+
+    This function processes the variable definitions, executes the commands, assigns the values to 
+    variable dictionary
+
+    Returns status, warnings, errors
+    """
+    returnStatus = True
+    numberOfErrors = numberOfWarnings = 0
+
+    ### expect variable definition to be in dict form
+    for variableName, command in variableDefinitions.items():
+
+        ### check for valid commands
+        if JAIsSupportedCommand( command, allowedCommands, OSType):
+
+            tempCommandToComputeVariableValue = os.path.expandvars( command ) 
+
+            returnResult, returnOutput, errorMsg = JAExecuteCommand(
+                                                defaultParameters['CommandShell'],
+                                                tempCommandToComputeVariableValue, debugLevel, OSType)
+            if returnResult == True:
+                if len(returnOutput) > 0:
+                    variableValue = returnOutput[0]
+                else:
+                    variableValue = ''
+            else:
+                LogLine(
+                    "ERROR JAParseVariables() Not able to compute variable value for environment:{0}, variable name:{1}, command:{2}, error:{3}".format(
+                        environment, variableName, command, errorMsg),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+                variableValue = 'Error'
+
+            if overridePrevValue == True:
+                ### even if prev value present, override it to use current environment spec
+                variables[variableName] = variableValue
+            else:                
+                if variableName not in variables:
+                    ### value not defined yet, assign it
+                    variables[variableName] = variableValue
+
+            if debugLevel > 1:
+                LogLine(
+                    "DEBUG-2 JAParseVariables() environment:{0}, variable name:{1}, command:{2}, value:{3}".format(
+                        environment, variableName, command, variableValue),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        else:
+            ### not a valid command, log WARNing
+            LogLine(
+                "WARN JAParseVariables() Unsupported command, environment:{0}, variable name:{1}, command:{2}".format(
+                    environment, variableName, command),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            numberOfWarnings += 1
+
+    if debugLevel > 0:
+        LogLine(
+            "DEBUG-1 JAParseVariables() environment:{0}, number of variables parsed:{1}, with warnings:{2}, and errors:{3}".format(
+                environment, len(variables), numberOfWarnings, numberOfErrors),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    return returnStatus, numberOfWarnings, numberOfErrors
+
+def JAEvaluateComparePatternGroupValues(
+    objectName:str, paramValue:dict, variables:dict,
+    interactiveMode:bool, debugLevel:int,
+    myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine:bool, OSType:str ):
+
+    returnStatus = True
+
+    ### for condition list associated with each compare pattern,
+    ###    check whether the group value field has variable name.
+    ###    If yes, replace that variable name with current variable value
+    ###         so that current environment value is compared to this variable value based on environment 
+    for comparePattern, conditions in paramValue.items():
+        if debugLevel > 2:
+            LogLine(
+                "DEBUG-3 JAReadConfigCompare() processing ComparePattern:|{0}| of item:|{1}|".format( 
+                    comparePattern, objectName ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType) 
+
+        for findAllGroupNumber, compareValue in conditions.items():
+            if debugLevel > 2:
+                LogLine(
+                    "DEBUG-3 JAReadConfigCompare() \tprocessing match definition of group:{0}, groupValue:|{1}|".format( 
+                            findAllGroupNumber, compareValue),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType) 
+
+            if isinstance( compareValue, str) == True:
+                ### expected group value may have variable in the form '${{ varName }}' 
+                ### replace any variable name with variable value
+                variableNames = re.findall(r'\{\{ (\w+) \}\}', compareValue)
+                if len(variableNames) > 0:
+                    if debugLevel > 2:
+                        LogLine(
+                            "DEBUG-3 JAReadConfigCompare() \t\tprocessing group value variable(s):|{0}|".format( 
+                                variableNames),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType) 
+
+                    originalCompareValue = compareValue
+                    ### replace each variable name with variable value
+                    for variableName in variableNames:
+                        if variableName in variables:
+                            replaceString = '{{ ' + variableName + ' }}'
+                            try:
+                                compareValue = compareValue.replace(replaceString, variables[variableName])
+                            except:
+                                LogLine(
+                                    "DEBUG-3 JAReadConfigCompare() \t\texception while replacing variable:|{0}| with variable value:|{1}|, condition:|{2}|, ComparePatterns:|{3}|, item:|{4}|".format( 
+                                        compareValue, replaceString, conditions, paramValue, objectName),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType) 
+
+                        else:
+                            LogLine(
+                                "WARN JAReadConfigCompare() Unknown variable:{0} seen, Item Name:|{1}|, ComparePatterns:|{2}|, conditions:|{3}|, group:{4}, groupValue:|{5}|".format(
+                                    variableName, objectName, comparePattern, conditions, findAllGroupNumber, compareValue),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType)
+                            numberOfWarnings += 1
+                    if debugLevel > 2:
+                        LogLine(
+                            "DEBUG-3 JAReadConfigCompare() Item Name:|{0}|, original compare value:|{1}|, compare value after substituting the variable values:|{2}|".format(
+                                objectName, originalCompareValue, compareValue),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, diffLine, OSType)
+                            
+                    ### assign the value back to conditions list
+                    paramValue[comparePattern][findAllGroupNumber] =  compareValue
+                    
+    return returnStatus

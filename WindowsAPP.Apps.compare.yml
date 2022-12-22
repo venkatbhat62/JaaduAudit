@@ -35,6 +35,18 @@
 #               returned in the command response
 #            On Windows host, if the first word is 'get-childitem', it will execute the comamnd and work all files names
 #               returned in the command response
+#        ComparePatterns: optional parameter to check the presence of values in file - output of command stored as file 
+#             of in specified file under FileNames. Can be used to check for environment specific values in command output.
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Example use: file system size expected is different for test and prod environments. 
+#                          number of CPUs provisioned is different for test and prod envionments.
+#             Refer to examples to understand the usage possibilities.
+#               
 #        IgnorePatterns: [ 'pattern1', 'pattern2'...] - pattern in regular expression format
 #           while doing host to host comparison between two different hosts, first the text line is translated by removing these patterns from a line,
 #             resulting lines are written to a temporary file and after that difference is evaluated between the files. 
@@ -59,6 +71,9 @@
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
+  Variable:
+    WindowsRelease: echo "10.0.22000"
+
   Items:
     AppsCmdFirewall:
       Command: get-netfirewallrule
@@ -82,6 +97,8 @@ Prod:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
 All:
+  Variable:
+    WindowsRelease: echo "10.0.22000"
   Items:
     AppsCode:
       # python files under Common 
@@ -97,13 +114,23 @@ All:
       Command: 'Get-ChildItem -Path Env:'
     OSCmdRelease:
       Command: Get-WMIObject win32_operatingsystem
+      ### Version         : 10.0.22000
+      ###  1         2        3         <--- group numbers
+      ComparePatterns: { '(Version)(.*): (.+)': { 3: "{{ WindowsRelease }}" } }
+      ###                                                ^^^^^^^^^^^^^^ <-- using variable name, whose value will be replaced here
+      ###                                                                     before comparing to current environment
+      ### This variable value can be set for diff environment so that expected value is different for diff environment
+      ### variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
     OSCmdFileSystem:
       ### this will be executed using powershell
       Command: Get-CimInstance Win32_LogicalDisk | select-object deviceid,drivetype,volumename,size
       ###  C:               3 Windows-SSD 510770802688
       ###  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      ###   0               1   3              5        <-- group number to be used in match condition
-      ComparePatterns: { '(.*)(\d+)(\s+)(.+)(\s+)(\d+)': { 1: 3, 3: "Windows-SSD" } }
+      ###   1               2 3 4        5    6        <-- group number to be used in match condition, using index starting from 1
+      ComparePatterns: { '(.*)(\d+)(\s+)(.+)(\s+)(\d+)': { 2: 3, 4: "Windows-SSD" } }
+      ###                <-- pattern 1 -------------->   <conditions for pattern 1>
+      ###                                                  2: 3 <-- expect a value of 3 for group 2
+      ###                                                        4: "Windows-SSD"  <-- expect a value of "Windows-SSD" for group 4
     OSCmdIPInfo:
       Command: ipconfig
       ### ignore IPV6  parameters

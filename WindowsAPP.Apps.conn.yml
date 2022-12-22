@@ -28,8 +28,10 @@
 #         This is be useful to check the local process listening in on expected LISTEN port
 #         If more then one hostname is specified via CSV, connectivity check is performed for to all those hosts
 #           for each of the ports specified under Ports.
-#         can use variable names like {{var1}} or {{var2}}<partialName>,{{var2}}<partialName>
+#         can use variable names like '{{ var1 }}' or '{{ var2 }}<partialName>','{{ var2 }}<partialName>'
 #             value of variable will be substitued to form full hostname
+#             this format is similar to the one followed by ansible playbooks. 
+#               need to use single quote or doube quote around {{ and }} so that those curly brackets are not interpretted as dictionary
 #       Ports: single port or ports in CSV format, or port range like startingPort-(dash)-endingPort
 #          if more than one port is specified or range is specified, connectivity is checked to all those ports
 #            from current host to destination host
@@ -111,14 +113,14 @@ All:
       ### example of using port range
       Ports: 80-82
     VariableGoogle:
-      HostNames: ${{ Var1 }}
+      HostNames: '{{ Var1 }}'
       Ports: 443
     VariableLocalHost:
       ### use of multiple variables to formulate hostname
-      HostNames: ${{ Var2 }}${{ Var3 }}
+      HostNames: '{{ Var2 }}{{ Var3 }}'
       Ports: 6000
     SMTPService:
       ### here, service is defined in common section, SMTPHostName variable defined in environment specific section
       ###  so that connectivity test is done to diff hosts based on environment.
-      HostNames: ${{ SMTPHostName }}
+      HostNames: '{{ SMTPHostName }}'
       Ports: 25

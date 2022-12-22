@@ -147,53 +147,14 @@ def JAReadConfigConn(
             continue
 
         if value.get('Variable') != None:
-            ### expect variable definition to be in dict form
-            for variableName, command in value['Variable'].items():
-
-                ### check for valid commands
-                if JAGlobalLib.JAIsSupportedCommand( command, allowedCommands, OSType):
-
-                    tempCommandToComputeVariableValue = os.path.expandvars( command ) 
-
-                    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                                                        defaultParameters['CommandShell'],
-                                                        tempCommandToComputeVariableValue, debugLevel, OSType)
-                    if returnResult == True:
-                        if len(returnOutput) > 0:
-                            variableValue = returnOutput[0]
-                        else:
-                            variableValue = ''
-                    else:
-                        JAGlobalLib.LogLine(
-                            "ERROR JAReadConfigConn() Not able to compute variable value for variable name:{0}, command:{1}, error:{2}".format(
-                                variableName, command, errorMsg),
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-
-                        variableValue = 'Error'
-
-                    if overridePrevValue == True:
-                        ### even if prev value present, override it to use current environment spec
-                        variables[variableName] = variableValue
-                    else:                
-                        if variables[variableName] == None:
-                            ### value not defined yet, assign it
-                            variables[variableName] = variableValue
-
-                    if debugLevel > 1:
-                        JAGlobalLib.LogLine(
-                            "DEBUG-2 JAReadConfigConn() variable name:{0}, command:{1}, value:{2}".format(
-                                variableName, command, variableValue),
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                else:
-                    ### not a valid command, log WARNing
-                    JAGlobalLib.LogLine(
-                        "WARN JAReadConfigConn() Unsupported command, variable name:{0}, command:{1}".format(
-                            variableName, command),
-                        interactiveMode,
-                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    numberOfWarnings += 1
+            returnStatus, tempWarnings, tempErrors = JAGlobalLib.JAParseVariables(
+                    key, value['Variable'], overridePrevValue, variables,
+                    defaultParameters, allowedCommands, 
+                    interactiveMode, debugLevel,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType )
+            if returnStatus == True:
+                numberOfErrors += tempErrors
+                numberOfWarnings += tempWarnings
 
         if value.get('Items') != None:
             ### expect variable definition to be in dict form
@@ -245,9 +206,10 @@ def JAReadConfigConn(
                             originalAttributeValue = attributeValue
                             ### replace each variable name with variable value
                             for variableName in variableNames:
-                                if variables[variableName] != None:
-                                    replaceString = '${{ ' + variableName + ' }}'
-                                    attributeValue = attributeValue.replace(replaceString, variables[variableName])
+                                if variableName in variables:
+                                    if variables[variableName] != None:
+                                        replaceString = '{{ ' + variableName + ' }}'
+                                        attributeValue = attributeValue.replace(replaceString, variables[variableName])
 
                             if debugLevel > 2:
                                 JAGlobalLib.LogLine(

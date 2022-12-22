@@ -25,7 +25,18 @@
 #                On Unix/Linux hosts, it uses 'file' command to determin the file type.
 #                On Windows, file type defined in environment spec file via the parameter 'BinaryFileTypes' is used
 #                For binary files, defaults to Checksum
-#                For ASCII text, defaults to Text       
+#                For ASCII text, defaults to Text 
+#        ComparePatterns: optional parameter to check the presence of values in file - output of command stored as file 
+#             of in specified file under FileNames. Can be used to check for environment specific values in command output.
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Example use: file system size expected is different for test and prod environments. 
+#                          number of CPUs provisioned is different for test and prod envionments.
+#             Refer to examples to understand the usage possibilities.
 #        FileNames: file names in CSV form or find command that returns file names in multiple lines
 #            Each file name is suffixed with NameSuffix.
 #            If operation is save, save the contents of the files with <objectName>.<fileName> without the path name.
@@ -67,21 +78,43 @@ Dev:
 Test:
   # specify hostname in regular expression 
   HostName: (...)(t)(...)([0-9][0-9])|(havembha)
+  Variable:
+    ### environment specific file system size for file system /run and /boot/efi
+    ### this variable is used to define expected value of group under the item 'OSCmdFileSystem' under All environment
+    ###   this variable value are substitued to ComparePatterns conditions before matching to current value
+    ###
+    SizeOfFSRun: echo 787
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
       SkipH2H: Yes
 UAT:
+  HostName: (...)(u)(...)([0-9][0-9])
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
       SkipH2H: Yes
 Prod:
+  HostName: (...)(p)(...)([0-9][0-9])
+  Variable:
+    ### environment specific file system size for file system /run and /boot/efi
+    ### this variable is used to define expected value of group under the item 'OSCmdFileSystem' under All environment
+    ###   this variable value are substitued to ComparePatterns conditions before matching to current value
+    ###
+    SizeOfFSRun: echo 1787
+    ### expect 16 CPUs in prod
+    NumOfCPUs: echo 16
   Items:
     OSIptables:
       Command: sudo /usr/sbin/iptables -L
       SkipH2H: Yes
 All:
+  Variable:
+    ### default value for all environments
+    ###  size of /run file system
+    SizeOfFSRun: echo 1787
+    ###  number of CPUs
+    NumOfCPUs: echo 8
   Items:
     AppsCmdEnv:
       FileNames: $HOME/.profile, $HOME/.bashrc
@@ -98,3 +131,24 @@ All:
     OSCmdFileSystem:
       ### file system name and size in MB
       Command: df -m | awk -F' ' '{print $2" "$6}'
+      ### output is of the form
+      # 1M-blocks Mounted
+      # 787 /run      <-- check the size of this file system using pattern1 below in ComparePatterns
+      # 702645 /
+      # 3933 /dev/shm
+      # 511 /boot/efi <-- check the size of this file system using pattern2 below in ComparePatterns
+      # 787 /run/user/1000 
+      ### expect size of /run to be SizeOfFSRun, /boot/efi size to be 511
+      ComparePatterns: { '(\d+)(\s+)(/run)': { 1: '{{ SizeOfFSRun }}' }, '(\d+)(\s+)(/boot/efi)': { 1: 511 } }
+      #                  ^^^^^^^^^^^^^^^^  <--- pattern 1
+      #                                                   ^^^^^^^^^^^^^^^^^^^^^ <-- pattern 2
+      #                                             ^^^^^^^^^^^^^^^  <-- SizeOfFSRun variable was defined under Test and Prod
+      # environments to have diff values. Those are substituted before comparing to current value seen on a host
+    OSCmdCPUs:
+      Command: cat /proc/cpuinfo | grep -c '^processor'
+      ### expected output in the form
+      ### 8  <-- numeric value indicating number of VPUs on a host
+      ### this number can vary among environments like DEV, Test, Prod.
+      ### Define variable with expected value under each environment and refer to that variable below as expected value
+      ComparePatterns: { '(\d+)': { 1: '{{ NumOfCPUs }}' } }
+      ###                                  ^^^^^^^^^   <--- variable values defined under respective environments

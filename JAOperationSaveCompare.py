@@ -112,6 +112,9 @@ def JAReadConfigCompare(
 
     tempAttributes = defaultdict(dict)
 
+    ### temporary attributes to process the YML file contents with default values
+    variables = defaultdict(dict)
+
     saveParameter = False  
     overridePrevValue = False
 
@@ -137,6 +140,16 @@ def JAReadConfigCompare(
 
         if saveParameter == False:
             continue
+
+        if value.get('Variable') != None:
+            returnStatus, tempWarnings, tempErrors = JAGlobalLib.JAParseVariables(
+                    key, value['Variable'], overridePrevValue, variables,
+                    defaultParameters, allowedCommands, 
+                    interactiveMode, debugLevel,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType )
+            if returnStatus == True:
+                numberOfErrors += tempErrors
+                numberOfWarnings += tempWarnings
 
         if value.get('Items') != None:
             ### expect variable definition to be in dict form
@@ -165,7 +178,17 @@ def JAReadConfigCompare(
                 for paramName, paramValue in attributes.items():
                     ### if the value is True or False type, it is treated as boolean, can't use .strip() on that paramValue
                     if paramName != "SkipH2H" and paramName != 'IgnorePatterns' and paramName != 'ComparePatterns':
-                        paramValue = paramValue.strip()
+                        try:
+                            paramValue = paramValue.strip()
+                        except:
+                            JAGlobalLib.LogLine(
+                                "DEBUG-2 JAReadConfigCompare() excetion while strip() the value:{0} of paramName:{1}, objectName:|{2}|".format(
+                                    paramValue, paramName, objectName),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                            numberOfErrors += 1
+                            continue
+
                     if paramName not in saveCompareAttributes:
                         JAGlobalLib.LogLine(
                             "ERROR JAReadConfigCompare() Unknown parameter name:|{0}|, parameter value:|{1}| for the object:|{2}|".format(
@@ -190,6 +213,13 @@ def JAReadConfigCompare(
                                 break
                         elif paramName == 'CompareType' :
                             paramValue = paramValue.lower()
+
+                        elif paramName == 'ComparePatterns':
+                            ### evaluate group values using current variable values if group values have any variable spec
+                            returnStatus = JAGlobalLib.JAEvaluateComparePatternGroupValues(
+                                    objectName, paramValue, variables,
+                                    interactiveMode, debugLevel,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType )
 
                         if saveParamValue == True:   
                             tempAttributes[paramName] = paramValue
@@ -315,7 +345,13 @@ def JAReadConfigCompare(
                     saveCompareParameters[objectName]['FileNames'] = None
 
     numberOfItems = len(saveCompareParameters)
-    if debugLevel > 0:
+    if numberOfErrors > 0 or numberOfWarnings > 0:
+        JAGlobalLib.LogLine(
+            "WARN JAReadConfigCompare() Read {0} items with {1} warnings, {2} errors from AppConfig:{3}".format(
+                numberOfItems, numberOfWarnings, numberOfErrors, baseConfigFileName),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    elif debugLevel > 0:
         JAGlobalLib.LogLine(
             "DEBUG-1 JAReadConfigCompare() Read {0} items with {1} warnings, {2} errors from AppConfig:{3}".format(
                 numberOfItems, numberOfWarnings, numberOfErrors, baseConfigFileName),
