@@ -1,0 +1,5 @@
+### this is example license file to demonstrate the matching of host info to license info
+Number of ports: 1000
+Valid till: 2024-12-31
+MACAddress: d8:f8:83:0f:cc:d2
+IPAddress: 192.168.1.155

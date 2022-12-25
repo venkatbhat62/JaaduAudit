@@ -258,6 +258,8 @@ def JAReadEnvironmentConfig(
         defaultParameters['LogFilePath'] = os.path.expandvars(defaultParameters['LogFilePath'])
     if 'ReportsPath' in defaultParameters:
         defaultParameters['ReportsPath'] = os.path.expandvars(defaultParameters['ReportsPath'])
+    if 'JaaduVisionPath' in defaultParameters:
+        defaultParameters['JaaduVisionPath'] = os.path.expandvars(defaultParameters['JaaduVisionPath'])
 
     ### SCMRepositoryBasePath is needed if rysnc command is present
     if 'SCMRepositoryBasePath' not in defaultParameters and 'CommandRsync' in defaultParameters:
@@ -366,7 +368,9 @@ def JAReadEnvironmentConfig(
     for tempOperation, value in operationTranslation.items():
         defaultParameters[tempOperation] = defaultParameters[value] * 3600
 
-    ### save LocalRepositoryCustom value in JAAudit.profile
+    if 'SitePrefixLength' not in defaultParameters:
+        defaultParameters['SitePrefixLength'] = 3
+
     JAGlobalLib.JASetProfile("JAAudit.profile", 'LocalReposistoryCustom', localReposistoryCustom)
 
     if debugLevel > 1:

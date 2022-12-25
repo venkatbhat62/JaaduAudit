@@ -1,5 +1,5 @@
-# Certificate check spec 
-# Author: havembha@gmail.com,  2022-12-13
+# health check
+# Author: havembha@gmail.com,  2022-12-24
 # Format
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
@@ -27,12 +27,8 @@
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#       Certificate: Command to decode the cert file or command to connect to a process, get cert and decode it
-#         On Linux host, can use openssl or keytool to decode the certs
-#            openssl x509 -dates -subject -noout -alias -issuer -in <path/fileName>
-#            keytool -v -list -keystore <path/fileName> </dev/null 2>/dev/null | grep -E '^Creation Date|^Owner|^Issuer|^Valid from|^Alias name'
-#        ComparePatterns: optional parameter to check the presence of values in cert decode output
-#             Can be used to check for environment specific values in command output like DNS name, issuer, subject etc
+#        ComparePatterns: optional parameter to check the presence of values in license output
+#             Can be used to check for environment specific values in command output like license count, license end date etc
 #             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
 #             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
 #             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
@@ -40,6 +36,8 @@
 #             Value can also be variable name which can have different values for different environment.
 #             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
 #             Refer to examples to understand the usage possibilities.
+#       Health: Command to gather license info, can be cat of a file or specific command to decode & display the license file
+#
 #   Specify common certs under 'All' so that it applies to hosts in all environments.
 #     Specify environment specific certs under Dev, Test, UAT, Prod... 
 #     If an item with the same name and same name is specified under 'All', 
@@ -47,15 +45,15 @@
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
+  Variable:
+
   Items:
     ### these definitions override the definitions under 'All' section
-    Apache:
-      Command: get-nettcpconnection -localport 6000
-      Condition: '> 6'
-      Certificate: echo TBD
+    # Windows:
+    #  License: wmic path softwarelicensingservice get OA3xOriginalProductKey
 Test:
   # specify hostname in regular expression 
-  HostName: ((...)(t)(...)([0-9][0-9]))
+  HostName: ((...)(t)(...)([0-9][0-9]))|(havembha)
 UAT:
   # specify hostname in regular expression 
   HostName: ((...)(u)(...)([0-9][0-9]))
@@ -70,7 +68,24 @@ Prod:
 # if variable is already defined under environment before, value under 'All' will be ignored.
 All:
   Items:
-    Apache:
-      Command: get-nettcpconnection -localport 6000
-      Condition: '> 6'
-      Certificate: DecodeCert.ps1 /etc/apache2/ssl/apache-certificate.crt
+    CPUUsage:
+      ### get average CPU usage 
+      Health: sar |grep -E 'CPU|Average'
+    DiskSpace:
+      ### get disk space info,
+      Health: df -m | awk '{print $2" "$5" "$6}'
+    Processes:
+      ### below just an exmple to show how process info can be gathered
+      ### list expected process names under ComparePatterns. 
+      ### If those processes are missing, compare failure will be reported.
+      Health: ps -ef
+      ComparePatterns: {
+        '(.*)(systemd-timesyncd)(.*)' : { 2: 'systemd-timesyncd' },
+        '(.*)(JATest.py)(.*)':          { 2: 'JATest.py' },
+        '(.*)(JAGatherLogStats.py)(.*)': { 2: 'JAGatherLogStats.py' }
+      }
+    Memory:
+      ### mem info
+      Health: if [[ `uname -a |grep -c Ubuntu` -gt 0 ]]; then free; else free mem; fi | grep -E 'total|Swap|Mem' | sed 's/total/MemType total/' | awk '{print $1" "$2" "$3}'
+    Uptime:
+      Health: uptime | awk '{print $3}'

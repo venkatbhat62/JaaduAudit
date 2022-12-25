@@ -217,6 +217,8 @@ def LogLine(myLines, tempPrintLine, myColors, colorIndex:int, outputFile:str, HT
             line = myColors['green'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]    
         elif re.match('^DIFF ', line) :
             line = myColors['cyan'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]   
+        elif re.match('^INFO ', line) :
+            line = currentTime + line   
         elif re.match('^WARN |^FAIL ', line) :
             line = myColors['yellow'][colorIndex] + currentTime + line + myColors['clear'][colorIndex]   
         if outputFile != None:
@@ -726,11 +728,13 @@ def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", tim
 
         if result.returncode == 0:
             if OSType == 'Windows':
-                ### takeout \r
-                returnOutput = result.stdout.decode('utf-8').replace('\r\n', '\n')
+                ### replace \r\n with \n
+                returnOutput = result.stdout.decode('utf-8')
+                returnOutput = re.sub(r'\r\n', '\n', returnOutput)
+                returnOutput = re.sub(r'\r', '\n', returnOutput)
+                ### if only \r is present, replace it with \n
                 returnOutput = returnOutput.rstrip("\n")
                 returnOutput = returnOutput.split('\n')
-
             else:
                 returnOutput = result.stdout.decode('utf-8').rstrip("\n")
                 returnOutput = returnOutput.split('\n')
@@ -739,11 +743,35 @@ def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", tim
         else:
             ### execution failed
             if OSType == 'Windows':
-                returnOutput = result.stdout.decode('utf-8').split('\r')
+                errorMsg = result.stderr.decode('utf-8')
+                errorMsg = re.sub(r'\r', '\n', errorMsg)
+                ### if only \r is present, replace it with \n
+                errorMsg = errorMsg.rstrip("\n")
+                errorMsg = errorMsg.split('\n')
+            else:
+                errorMsg = result.stderr.decode('utf-8').split('\n')
+
+            if OSType == 'Windows':
+                returnOutput = result.stdout.decode('utf-8')
+                returnOutput = re.sub(r'\r', '\n', returnOutput)
+                ### if only \r is present, replace it with \n
+                returnOutput = returnOutput.rstrip("\n")
+                returnOutput = returnOutput.split('\n')
             else:
                 returnOutput = result.stdout.decode('utf-8').split('\n')
-            errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, error:\n{2}'.format(shell, command,returnOutput)
-            returnResult = False
+
+            lenErrorMsg = len(errorMsg)
+            if lenErrorMsg == 1:
+                lenErrorMsg = len(errorMsg[0])
+            if lenErrorMsg > 0:
+                errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, errorMsg:|{2}|'.format(shell, command, errorMsg)
+                returnResult = False
+            else:
+                ### this is a case where command itself was executed, returned result from that command is not 0 (not success)
+                ### since there was no error response, use stdout to process the result further.
+                ### when two files are different, diff command returns status code 1 with stderr empty, diff lines in stdout
+                errorMsg = ''
+                returnResult = True
 
     except (subprocess.CalledProcessError) as err :
         errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, called process error:|{2}|".format(shell, command, err)
@@ -1029,25 +1057,28 @@ def JACheckConnectivity(
         shell,
         finalCommand, debugLevel, OSType)
     
-    if OSType == 'Windows':
-        if len(returnOutput) > 5:
-            if re.findall(r'TcpTestSucceeded(.+):(.+)True', returnOutput[6], re.MULTILINE):
-                returnOutput = "succeeded"
-                errorMsg = ''
-            elif (re.findall(r'WARNING: Name resolution of(.*)failed', returnOutput[0], re.MULTILINE)):
-                returnOutput = "Could not resolve hostname"
-                errorMsg = ''
-            elif (re.findall(r'TcpTestSucceeded(.+):(.+)False', returnOutput[6], re.MULTILINE) and 
-                re.findall(r'PingSucceeded(.+):(.+)True', returnOutput, re.MULTILINE) ):
+    if returnStatus == True:
+
+        if OSType == 'Windows':
+            if len(returnOutput) > 6:
+                if re.findall(r'TcpTestSucceeded(.+):(.+)True', returnOutput[6], re.MULTILINE):
+                    returnOutput = "succeeded"
+                    errorMsg = ''
+                elif (re.findall(r'WARNING: Name resolution of(.*)failed', returnOutput[0], re.MULTILINE)):
+                    returnOutput = "Could not resolve hostname"
+                    errorMsg = ''
+                elif (re.findall(r'TcpTestSucceeded(.+):(.+)False', returnOutput[6], re.MULTILINE) and 
+                    re.findall(r'PingSucceeded(.+):(.+)True', returnOutput, re.MULTILINE) ):
+                    returnOutput = "Connection timed out"
+                    errorMsg = ''
+            elif re.findall(r'timed out after', errorMsg, re.MULTILINE):
                 returnOutput = "Connection timed out"
                 errorMsg = ''
-        elif re.findall(r'timed out after', errorMsg, re.MULTILINE):
-            returnOutput = "Connection timed out"
-            errorMsg = ''
-            returnStatus = True
-    elif OSType == 'Linux' or OSType == 'SunOS':
-        ### result is a 0th index of the list
-        returnOutput = returnOutput[0]
+                returnStatus = True
+        elif OSType == 'Linux' or OSType == 'SunOS':
+            if len(returnOutput) > 0:
+                ### result is a 0th index of the list
+                returnOutput = returnOutput[0]
 
     return returnStatus, returnOutput, errorMsg
 
@@ -1197,15 +1228,24 @@ def JAIsSupportedCommand( paramValue:str, allowedCommands, OSType:str ):
             ### convert the command to lower case
             command = command.lower()
         if command not in allowedCommands:
-            ### look for commands inside (), search for contents inside the braket
-            tempCommand =  re.search(r'\((.+)\)', command)
-            if tempCommand != None:
-                if tempCommand.group() not in allowedCommands:
-                    returnStatus = False
+            ### it is possible allowedCommands has options included to restrict commands like rpm to do "rpm -qa" only
+            ###   search two words from command words
+            if len(commandWords) > 1:
+                twoWordsCommand = "{0} {1}".format(commandWords[0], commandWords[1])
+                if twoWordsCommand not in allowedCommands:
+                    ### look for commands inside (), search for contents inside the braket
+                    ### this is to handle windows OS that supports commands like "(hostname).substring("
+                    tempCommand =  re.search(r'\((.+)\)', command)
+                    if tempCommand != None:
+                        if tempCommand.group() not in allowedCommands:
+                            returnStatus = False
+                    else:
+                        returnStatus = False
             else:
                 returnStatus = False
-            errorMsg += 'Unsupported command:|{0}|,'.format(command)
-
+            if returnStatus == False:
+                    errorMsg += 'Unsupported command:|{0}|,'.format(command)
+        
     return returnStatus,errorMsg
 
 
@@ -1270,64 +1310,165 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
             conditionMet = False
         else:
             if len(returnOutput) > 0:
-                ### take the value from 2nd line
-                conditionResult = returnOutput[1]    
+                ### take the value from 1st line
+                tempConditionResult = returnOutput[0]
+
+                ### based on float, int or string, convert them and assign to conditionResult
+                ###  this is to ensure comparison is done with proper data type later
+                if re.match(r'(\d+)(\.)(\d+)', tempConditionResult):
+                    conditionResult = float(tempConditionResult)
+                elif re.match(r'(\d+)', tempConditionResult):
+                     conditionResult = int(tempConditionResult) 
+                else:
+                    conditionResult = str(tempConditionResult)  
+
                 ### assign all lines
                 conditionResults = returnOutput
+
+                ### separate the condition field spec ( >|<|=) (value)
+                conditionSpecParts = serviceAttributes['Condition'].split(' ')
+                if len(conditionSpecParts) > 0:
+
+                    ### if condition result is multiline string, compute the number of lines and compare that to the condition number
+                    lengthOfConditionResults = len(conditionResults)
+                    if  lengthOfConditionResults > 1:
+                        if re.search('>=', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) >= int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<=', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) <= int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('>', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) > int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) < int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('=', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) == int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('!=', conditionSpecParts[0]):
+                            if int(lengthOfConditionResults) != int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+
+                    elif isinstance(conditionResult, int) :
+                        ### numeric string, single line 
+                        if re.search('>=', conditionSpecParts[0]):
+                            if conditionResult >= int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<=', conditionSpecParts[0]):
+                            if conditionResult < int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('>', conditionSpecParts[0]):
+                            if conditionResult > int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<', conditionSpecParts[0]):
+                            if conditionResult < int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('=', conditionSpecParts[0]):
+                            if conditionResult == int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('!=', conditionSpecParts[0]):
+                            if conditionResult != int( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                    elif isinstance(conditionResult, float) :
+                        ### numeric string float value, single line
+                        if re.search('>=', conditionSpecParts[0]):
+                            if conditionResult >= float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<=', conditionSpecParts[0]):
+                            if conditionResult <= float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('>', conditionSpecParts[0]):
+                            if conditionResult > float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<', conditionSpecParts[0]):
+                            if conditionResult < float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('=', conditionSpecParts[0]):
+                            if conditionResult == float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('!=', conditionSpecParts[0]):
+                            if conditionResult != float( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                    else:
+                        ### string comparison
+                        if re.search('>=', conditionSpecParts[0]):
+                            if conditionResult >= str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<=', conditionSpecParts[0]):
+                            if conditionResult <= str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('>', conditionSpecParts[0]):
+                            if conditionResult > str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('<', conditionSpecParts[0]):
+                            if conditionResult < str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('=', conditionSpecParts[0]):
+                            if conditionResult == str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+                        elif re.search('!=', conditionSpecParts[0]):
+                            if conditionResult != str( conditionSpecParts[1]):
+                                ### condition met
+                                conditionMet = True
+
+                        if conditionResult == conditionSpecParts[1] :
+                            conditionMet = True              
+                    
+                    if debugLevel > 1:
+                        if conditionMet == False:
+                            LogLine(
+                                "DEBUG-2 JAEvaluateCondition() item name:|{0}|, condition NOT met, command response:|{1}|, condition:|{2}|, skipping this item".format(
+                                    serviceName, conditionResults, serviceAttributes['Condition']),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        else:
+                            LogLine(
+                                "DEBUG-2 JAEvaluateCondition() item name:|{0}|, condition met, command response:|{1}|, condition:|{2}|".format(
+                                    serviceName, conditionResults, serviceAttributes['Condition']),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                else:
+                    LogLine(
+                        "WARN JAEvaluateCondition() name:|{0}|, invalid condition:|{1}|, expecting spec in the form: (> | < | =) (value), example: > 5".format(
+                            serviceName, serviceAttributes['Condition']),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             else:
+                ### empty response, nothing to compare to. Declare condition not met
                 conditionResult = ''
                 conditionResults = []
-
-            ### separate the condition field spec ( >|<|=) (value)
-            conditionSpecParts = serviceAttributes['Condition'].split(' ')
-            if len(conditionSpecParts) > 0:
-
-                ### if condition result is multiline string, compute the number of lines and compare that to the condition number
-                lengthOfConditionResults = len(conditionResults)
-                if  lengthOfConditionResults > 1:
-                    if re.search('>', conditionSpecParts[0]):
-                        if int(lengthOfConditionResults) > int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                    elif re.search('<', conditionSpecParts[0]):
-                        if int(lengthOfConditionResults) < int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                    elif re.search('=', conditionSpecParts[0]):
-                        if int(lengthOfConditionResults) == int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                elif isinstance(conditionResult, int) :
-                    ### numeric string
-                    if re.search('>', conditionSpecParts[0]):
-                        if int(conditionResult) > int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                    elif re.search('<', conditionSpecParts[0]):
-                        if int(conditionResult) < int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                    elif re.search('=', conditionSpecParts[0]):
-                        if int(conditionResult) == int( conditionSpecParts[1]):
-                            ### condition met
-                            conditionMet = True
-                else:
-                    ### string comparison
-                    if conditionResult == conditionSpecParts[1] :
-                        conditionMet = True              
-                if conditionMet == False:
-                    if debugLevel > 1:
-                        LogLine(
-                            "DEBUG-2 JAEvaluateCondition() name:|{0}|, condition not met, command response:|{1}|, condition:|{2}|, skipping the connectivity test".format(
-                                serviceName, conditionResults, serviceAttributes['Condition']),
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            else:
-                LogLine(
-                    "WARN JAEvaluateCondition() name:|{0}|, invalid condition:|{1}|, expecting spec in the form: (> | < | =) (value), example: > 5".format(
-                        serviceName, serviceAttributes['Condition']),
-                    interactiveMode,
-                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                conditionMet = False
+                if debugLevel > 0:
+                    LogLine(
+                        "DEBUG-1 JAEvaluateCondition() item name:|{0}|, condition NOT met, command response:|{1}|, condition:|{2}|, skipping this item".format(
+                            serviceName, conditionResults, serviceAttributes['Condition']),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     return conditionPresent, conditionMet
 
@@ -1420,11 +1561,13 @@ def JADataMaskFile(fileName, datamaskSpec, debugLevel, interactiveMode, myColors
     return returnStatus, newFileName
 
 def JAComparePatterns(
-        comparePatterns:dict, fileName:str,
+        itemName,
+        comparePatterns:dict, fileName:str, textBuffer:str,
         interactiveMode, debugLevel,
         myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType):
     """
     JAComparePatterns(
+        itemName,
         comparePatterns, saveFileName,
         interactiveMode, debugLevel,
         myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
@@ -1438,31 +1581,44 @@ def JAComparePatterns(
     errorMsg = ''
 
     lines = ''
-    try:
-        with open( fileName, "r") as file:
-            while True:
-                tempLine = file.readline()
-                if not tempLine:
-                    break
-                lines += tempLine
-            file.close()
+    ### text printed along with error message when pattern not found
+    linesFileNameMsg = ''
 
-    except OSError as err:
-        LogLine(
-            "ERROR JAComparePatterns() Can't open file:|{0}|, OSError:{1}".format( fileName, err ),
-            interactiveMode,
-            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
-        returnStatus = False
+    if fileName != None:
+        try:
+            with open( fileName, "r") as file:
+                while True:
+                    tempLine = file.readline()
+                    if not tempLine:
+                        break
+                    lines += tempLine
+                file.close()
+                linesFileNameMsg = fileName
+        except OSError as err:
+            LogLine(
+                "ERROR JAComparePatterns() item:{0}, can't open file:|{1}|, OSError:{2}".format(itemName, fileName, err ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
+            returnStatus = False
+    elif textBuffer != None:
+        ### if textBuffer is list, make a multi-line string to be used for search later.
+        if isinstance(textBuffer, list):
+            for line in textBuffer:
+                lines += (line + '\n')
+        else:
+            lines = textBuffer
+        linesFileNameMsg = lines
 
+    numberOfPatternsToFind = numberOfPatternsFound = 0
     if returnStatus == True:
         numberOfPatternsToFind = len(comparePatterns)
-        numberOfPatternsFound = 0
+        
         ### search for each pattern in lineS   
         for comparePattern, conditions in comparePatterns.items():
             if debugLevel > 1:
                 LogLine(
-                    "DEBUG-2 JAComparePatterns() searching for ComparePattern:|{0}| in the file:|{1}|".format( 
-                        comparePattern, fileName ),
+                    "DEBUG-2 JAComparePatterns() item:{0}, searching for ComparePattern:|{1}| in file or text:|{2}|".format( 
+                        itemName, comparePattern, linesFileNameMsg ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
             myResults =  re.findall(r'{0}'.format(comparePattern), lines, re.MULTILINE)
@@ -1516,15 +1672,15 @@ def JAComparePatterns(
                                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
                             else:
                                 LogLine(
-                                    "ERROR JAComparePatterns() regex group:{0}, expected value:|{1}| is NOT matching to current value:|{2}| in the file:|{3}|".format( 
-                                        findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], fileName ),
+                                    "ERROR JAComparePatterns() item:{0}, regex group:{1}, expected value:|{2}| is NOT matching to current value:|{3}| in the file or text:|{4}|".format( 
+                                        itemName, findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], linesFileNameMsg ),
                                     interactiveMode,
                                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
 
                         except:
                             LogLine(
-                                "ERROR JAComparePatterns() current value type conversion exception, regex group:{0}, expected value:|{1}| is NOT matching to current value:|{2}| in the file:|{3}| ".format( 
-                                    findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], fileName ),
+                                "ERROR JAComparePatterns() item:{0}, current value type conversion exception, regex group:{1}, expected value:|{2}| is NOT matching to current value:|{3}| in the file or text:|{4}| ".format( 
+                                    itemName, findAllGroupNumber, compareValue, myResults[findAllGroupNumber-1], linesFileNameMsg ),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
 
@@ -1533,15 +1689,15 @@ def JAComparePatterns(
                     numberOfPatternsFound += 1
                 else:
                     LogLine(
-                        "ERROR JAComparePatterns() NOT all regex groups matched from the comparePattern:|{0}|, expected regex groups to match:{1}, regex groups matched:{2} in the file:|{3}|".format( 
-                            comparePattern, numberOfConditions, conditionsMet, fileName ),
+                        "ERROR JAComparePatterns() item:{0}, NOT all regex groups matched from the comparePattern:|{1}|, expected regex groups to match:{2}, regex groups matched:{3} in the file or text:|{4}|".format( 
+                            itemName, comparePattern, numberOfConditions, conditionsMet, linesFileNameMsg ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
 
             else:
                 LogLine(
-                    "ERROR JAComparePatterns() comparePattern:|{0}| NOT found in file:|{1}|".format( 
-                        comparePattern, fileName ),
+                    "ERROR JAComparePatterns() item:{0}, comparePattern:|{1}| NOT found in file or text:|{2}|".format( 
+                        itemName, comparePattern, linesFileNameMsg ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
                     
@@ -1551,11 +1707,52 @@ def JAComparePatterns(
 
         if numberOfPatternsToFind != numberOfPatternsFound:
             LogLine(
-                "ERROR  JAComparePatterns() ComparePatterns:|{0}|, expected pattern matches:{1}, actual pattern matches:{2} in the file:|{3}|".format(
-                     comparePatterns, numberOfPatternsToFind, numberOfPatternsFound, fileName  ),
+                "ERROR  JAComparePatterns() item:{0}, ComparePatterns:|{1}|, expected pattern matches:{2}, actual pattern matches:{3} in the file or text:|{4}|".format(
+                     itemName, comparePatterns, numberOfPatternsToFind, numberOfPatternsFound, linesFileNameMsg  ),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType) 
             returnStatus = False
+
+    return returnStatus, numberOfPatternsFound, (numberOfPatternsToFind-numberOfPatternsFound), errorMsg
+
+def JASetSystemVariables( defaultParameters, thisHostName, variables):
+    """
+    This function add system variables to variable dictionary.
+    Variables added are:
+        {{ JASiteName }}
+        {{ JAHostName }}
+        {{ JAIPAddress }}
+        {{ JAMACAddress }}
+        {{ JAOSType }}
+        {{ JAOSName }}
+        {{ JAOSVersion }}
+        {{ JAComponent }}
+
+    """
+    returnStatus = True
+    errorMsg = ''
+    variables['JAHostName'] = thisHostName
+    variables['JAOSType'] = defaultParameters['OSType']
+    variables['JAOSName'] = defaultParameters['OSName']
+    variables['JAOSVersion'] = defaultParameters['OSVersion']
+    variables['JAComponent'] = defaultParameters['Component']
+    variables['JASiteName'] = defaultParameters['SiteName'] 
+
+    import uuid
+    import socket
+    variables['JAMACAddress'] = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+    variables['JAIPAddress'] = socket.gethostbyname(thisHostName)
+
+    """
+    TBD Add code to handle multiple interface info 
+    
+    import psutil
+    
+    nics = psutil.net_if_addrs()
+    for nic in nics.items():
+        for name in nic:
+            print("name:{0}".format(name))
+    """
 
     return returnStatus, errorMsg
 
@@ -1637,6 +1834,32 @@ def JAParseVariables(
 
     return returnStatus, numberOfWarnings, numberOfErrors
 
+def JASubstituteVariableValues( variables, attributeValue):
+    """
+    This function replaces variable occurence with variable value in given attributeValue string
+    Variable is of the form {{ varName }}
+    attributeValue can have more than one variable
+
+    Return True if at least one variable replaced,
+            False, if no variable found
+
+    """
+    returnStatus = False
+
+    ### attributeValue may have variable in the form '{{ varName }}'
+    ### replace any variable name with variable value
+    variableNames = re.findall(r'\{\{ (\w+) \}\}', attributeValue)
+    if len(variableNames) > 0:
+        ### replace each variable name with variable value
+        for variableName in variableNames:
+            if variableName in variables:
+                if variables[variableName] != None:
+                    replaceString = '{{ ' + variableName + ' }}'
+                    attributeValue = attributeValue.replace(replaceString, variables[variableName])
+                    returnStatus = True
+
+    return returnStatus, attributeValue
+
 def JAEvaluateComparePatternGroupValues(
     objectName:str, paramValue:dict, variables:dict,
     interactiveMode:bool, debugLevel:int,
@@ -1708,3 +1931,29 @@ def JAEvaluateComparePatternGroupValues(
                     paramValue[comparePattern][findAllGroupNumber] =  compareValue
                     
     return returnStatus
+
+def JAPrintFile( fileName ):
+    """
+    This function prints the given file
+
+    Returns True on success, False on failure along with errorMsg
+
+    """
+    returnStatus = True
+    errorMsg = ''
+    try:
+        with open( fileName, "r") as reportFile:
+            print("\nFileName: {0}\n".format(fileName))
+            while True:
+                line = reportFile.readline()
+                if not line:
+                    break
+                line = line.rstrip()
+                print( "{0}".format(line))
+            reportFile.close()
+
+    except OSError as err:
+        errorMsg = "ERROR could not open the file:{0}, errorMsg:{1}".format( fileName, err)
+        returnStatus = False
+
+    return returnStatus, errorMsg

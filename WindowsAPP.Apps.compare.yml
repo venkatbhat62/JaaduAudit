@@ -5,8 +5,17 @@
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
 #            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#     Note - predefined system variable names available for use are:
+#             JASiteName - this will be defined automatically if 'SitePrefixLength' is defined in environment spec file
+#             JAHostName  - this will be defined automatically all the time.
 #   Items:
-#    <ObjectName>: Unique name within this section, used as suffix to the file name under which the info is saved
+#    <ItemName>: Unique name within this section, used as suffix to the file name under which the info is saved
 #            Prefix used to formulate the filename of an object being saved or compared.
 #            If the operaton is save, the command output or reference file will be saved with this name as prefix. 
 #            If the operatoin is compare, object saved before with this name as prefix will be compared with current value.

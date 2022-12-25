@@ -1,0 +1,150 @@
+# Collect S/W inventory
+# Author: havembha@gmail.com,  2022-12-23
+# Format
+# <environment>: like Dev, Test, UAT, Prod... or All -  free form text
+#   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
+#            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#     Note - predefined system variable names available for use are:
+#             JASiteName - this will be defined automatically if 'SitePrefixLength' is defined in environment spec file
+#             JAHostName  - this will be defined automatically all the time.
+#   Items:
+#     <itemName>: Unique name within this section
+#               Suggest to use a name correlates to a process or application that uses this certificate
+#       Command: run command to gather current state of the process like "ps -ef|grep <processName>" in Linux or
+#             get-process -name <processName> in windows
+#             to check whether a process is running before connecting to get the cert in use and decode it
+#           Optional parameters, default None
+#       Condition: '(>|<|=|!=|>=|<=)(space)(<number> or <string>)' 
+#          If the output of above command results in multiple lines, count of lines is compared to the condition number.
+#          If the output is single line and it is integer,
+#              the output is converted to integer and compared with integer number specified in condition
+#          Else output string is compared to the condition string.
+#                This is useful to match the result of command like true, false, pass, fail etc to determin next step
+#           Optional parameters, default None
+#        ComparePatterns: optional parameter to check the presence of values in license output
+#             Can be used to check for environment specific values in command output like license count, license end date etc
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Refer to examples to understand the usage possibilities.
+#       Inventory: Command to gather S/W inventory, can be cat of a file or specific command to gather info.
+#
+#   Specify common certs under 'All' so that it applies to hosts in all environments.
+#     Specify environment specific certs under Dev, Test, UAT, Prod... 
+#     If an item with the same name and same name is specified under 'All', 
+#       one specified under other environment takes precedence.
+Dev:
+  # specify hostname in regular expression 
+  HostName: (LAPTOP-QOCNVF0T)
+  Items:
+    ### these definitions override the definitions under 'All' section
+Test:
+  # specify hostname in regular expression 
+  HostName: ((...)(t)(...)([0-9][0-9]))|(havembha)
+UAT:
+  # specify hostname in regular expression 
+  HostName: ((...)(u)(...)([0-9][0-9]))
+Prod:
+  # specify hostname in regular expression 
+  HostName: ((...)(p)(...)([0-9][0-9]))
+#
+# Keep definition for 'All' environment at the end.
+# this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+# assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+# and that variable is defined under 'All', value under 'All' will be picked up
+# if variable is already defined under environment before, value under 'All' will be ignored.
+All:
+  Items:
+    ### Recommend to keep below sections in all spec as standard section so that it will gather versions of common packages.
+    ApacheVersion:
+      ### gather apache version if apache or httpd is running
+      Command: ps -ef | grep -E 'apache|httpd' | grep -v grep | wc -l
+      Condition: ">= 1"
+      ### Below command is to find running apache instances, and print unique path name for those
+      ###   ps -ef |grep apache |grep -v grep | awk '{print $8" -V"}' | sort | uniq
+      ### Next get version number for those apache instances
+      Inventory: ps -ef |grep -E 'apache|httpd' |grep -v grep | awk '{print $8" -V"}' | sort | uniq |xargs -0 bash -c 2>/dev/null | grep 'Server version:' | awk  '{print $3}'
+    Component:
+      Inventory: echo '{{ JAComponent }}'
+    CPUCores:
+      Inventory: grep -c processor /proc/cpuinfo
+    DiskSpace:
+      ### output is of the form: "size in MB"  "fileSystemName"
+      Inventory: df -m | awk -F' ' '{print $2" "$6}'
+    MariadbVersion:
+      ### gather mariadb version if mysqld is running
+      Command: ps -ef | grep mysqld |grep -v grep | wc -l
+      Condition: '>= 1'
+      ### output of ps -ef |grep mysqld |grep -v grep is 
+      ###    mysql       1083       1  0 Nov13 ?        03:26:30 /usr/sbin/mysqld
+      ###                                                        ^^^^^^^^^^^^^^^^
+      ### print "/usr/sbin/mysqld" with "-V" so that xargs can execute that via bash to print the version number
+      ###  xargs -0 is to take the file name with space in pipe
+      ### final result expected on Ubuntu host is: 8.0.29
+      Inventory: ps -ef | grep mysqld | grep -v grep | awk '{print $8" -V"}' | xargs -0 bash -c | awk '{print $3}' | awk -F'-' '{print $1}'
+    JavaVersion:
+      ### gather java version if java is running
+      Command: ps -ef | grep -E 'java' | grep -v grep | wc -l
+      Condition: ">= 1"
+      ### Below command is to find running java instances, and print unique path name for those
+      ###   ps -ef |grep java |grep -v grep | awk '{print $8" -version"}' | sort | uniq
+      ### Next get version number for those java  instances
+      Inventory: ps -ef |grep -E 'java' |grep -v grep | awk '{print $8" -version"}' | sort | uniq |xargs -0 bash -c 2>/dev/null | grep 'java version' | awk  '{print $3}'
+    OpensslVersion:
+      ### on redhat systems, expect to see below file
+      Command: which openssl | wc -l
+      Condition: '> 0'
+      Inventory: openssl version | awk '{print $2}'
+    OraleVersion:
+      ### gather mariadb version if mysqld is running
+      Command: ps -ef | grep tnslsnr |grep -v grep | wc -l
+      Condition: '>= 1'
+      Inventory: ps -ef | grep tnslsnr | grep -v grep | awk -F'/oracle/' '{print $2}' | sed -r 's/(.*)\/bin\/(.*)/\1/'
+    OraleGoldenGateVersion:
+      ### gather mariadb version if mysqld is running
+      Command: ps -ef | grep oracle | grep ogg |grep -v grep | wc -l
+      Condition: '>= 1'
+      ### To extract golden gate verion number from string 
+      ###   /ogg/product/gg19db/extract
+      Inventory: ps -ef | grep oracle | grep ogg | grep -v grep | awk '{print $8}' | grep ogg | tail -1 | sed -r 's/(.*)ogg(.*)\/gg([0-9]+)(.*)\/(.*)/gg\3\4'
+    OSName:
+      ### on redhat systems, expect to see below file
+      Command: ls /etc/os-release | wc -l
+      Condition: '> 0'
+      Inventory: grep -E '^ID=' /etc/os-release | awk -F'=' '{print $2}'
+    OSVersion:
+      ### on redhat systems, expect to see below file
+      Command: ls /etc/os-release | wc -l
+      Condition: '> 0'
+      Inventory: grep -E '^VERSION_ID' /etc/os-release | awk -F'=' '{print $2}'
+    OSUbuntuPackages:
+      Command: grep -E '^ID=ubuntu' /etc/os-release | wc -l
+      Condition: '> 0'
+      Inventory: apt list --installed
+    OSRHRpms:
+      Command: grep -E '^ID="rhel"' /etc/os-release | wc -l
+      Condition: '> 0'
+      Inventory: rpm -qa | sort
+    SquidVersion:
+      Command: ps -ef | grep -E 'squid' | grep -v grep | wc -l
+      Condition: '> 0'
+      Inventory: ps -ef |grep -E 'squid' |grep -v grep | awk '{print $8" -version"}' | tail -1 |xargs -0 bash -c 2>/dev/null | grep 'Squid Cache' | awk  '{print $4}'
+    TomcatVersion:
+      ### gather java version if java is running
+      Command: ps -ef | grep -E 'catalina.base' | grep -v grep | wc -l
+      Condition: ">= 1"
+      ### Below command is to find running tomcat instances, and run version.sh under that tomcat path
+      Inventory: ps -ef |grep -E 'catalina.base' |grep -v grep | awk -F'catalina.base=' '{print $2}' | awk -F' ' '{print $1}' | while read -r line; do echo $line; $line/bin/version.sh; done
+    ### add custom package collection definitions below
+    AppVersion:
+      Inventory: echo "1.0.0"
+

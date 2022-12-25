@@ -4,47 +4,69 @@
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
 #            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#     Note - predefined system variable names available for use are:
+#             JASiteName - this will be defined automatically if 'SitePrefixLength' is defined in environment spec file
+#             JAHostName  - this will be defined automatically all the time.
 #   Items:
-#     <certName>: Unique name within this section
+#     <ItemName>: Unique name within this section
 #               Suggest to use a name correlates to a process or application that uses this certificate
-#       Command: run command to gather currnet state of the process like "ps -ef|grep <processName>" in Linux or
+#       Command: run command to gather current state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before connecting to get the cert in use and decode it
 #           Optional parameters, default None
-#       Condition: '(>|<|=)(space)(<number> or <string>)' 
+#       Condition: '(>|<|=|!=|>=|<=)(space)(<number> or <string>)' 
 #          If the output of above command results in multiple lines, count of lines is compared to the condition number.
 #          If the output is single line and it is integer,
 #              the output is converted to integer and compared with integer number specified in condition
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#       Cert: Command to decode the cert file or command to connect to a process, get cert and decode it
+#       Certificate: Command to decode the cert file or command to connect to a process, get cert and decode it
 #         On Linux host, can use openssl or keytool to decode the certs
 #            openssl x509 -dates -subject -noout -alias -issuer -in <path/fileName>
 #            keytool -v -list -keystore <path/fileName> </dev/null 2>/dev/null | grep -E '^Creation Date|^Owner|^Issuer|^Valid from|^Alias name'
-# 
-#       Alias: Expected alias name(s), if not present, declare cert error
-#
+#        ComparePatterns: optional parameter to check the presence of values in cert decode output
+#             Can be used to check for environment specific values in command output like DNS name, issuer, subject etc
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Refer to examples to understand the usage possibilities.
 #   Specify common certs under 'All' so that it applies to hosts in all environments.
 #     Specify environment specific certs under Dev, Test, UAT, Prod... 
-#     If a cert with the same name and same command/filename is specified under 'All', 
+#     If an item with the same name and same name is specified under 'All', 
 #       one specified under other environment takes precedence.
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
+  Variable:
+    ### these definitions override the definitions under 'All' section
+    ### DEV host alias in it's certificate
+    SubjectAlternateName: echo "LoadbalancerForDev.havembha.com"
+
   Items:
     ### these definitions override the definitions under 'All' section
     ApacheProcess:
       Command: ps -ef |grep -c apache
       Condition: '> 5'
-      Cert: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  |openssl x509 -dates -subject -noout -alias -issuer -subject
-      Alias: None
+      Certificate: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  |openssl x509 -dates -subject -noout -alias -issuer -subject
     Apache:
-      Cert: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/ssl/apache-certificate.crt
-      Alias: None
+      Certificate: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/ssl/apache-certificate.crt
 Test:
   # specify hostname in regular expression 
   HostName: ((...)(t)(...)([0-9][0-9]))
+  Variable:
+    ### these definitions override the definitions under 'All' section
+    ### Test host alias in it's certificate
+    SubjectAlternateName: echo "LoadbalancerForTest.havembha.com"
 UAT:
   # specify hostname in regular expression 
   HostName: ((...)(u)(...)([0-9][0-9]))
@@ -58,19 +80,24 @@ Prod:
 # and that variable is defined under 'All', value under 'All' will be picked up
 # if variable is already defined under environment before, value under 'All' will be ignored.
 All:
+  Variable:
+    ### these definitions override the definitions under 'All' section
+    ### All other hosts have below alias in it's certificate
+    SubjectAlternateName: echo "Loadbalancer.havembha.com"
   Items:
     ### these definitions override the definitions under 'All' section
     ApacheProcess:
       Command: ps -ef |grep -c apache
       Condition: '> 5'
       ### if apache is running, get cert used by apache, and decode it
-      Cert: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  |openssl x509 -dates -subject -noout -alias -issuer -subject
-      Alias: None
+      Certificate: openssl s_client --connect localhost:443 < /dev/null 2>/dev/null  | openssl x509 -dates -subject -noout -alias -issuer -subject
+      ### expect to get the string "<No Alias>", look for that pattern cert decode
+      ComparePatterns: { '(<)(.+)(>)': { 2: 'No Alias'} } 
     Apache:
       ### use openssl to decode the cert file
-      Cert: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/ssl/apache-certificate.crt
-      Alias: None
+      Certificate: openssl x509 -dates -subject -noout -alias -issuer -in /etc/apache2/certificate/apache-certificate.crt
+      ### look for environment specific alias using CertAlias variable
+      ComparePatterns: { '(DNS:)(.+),': { 2: '{{ SubjectAlternateName }}' } }
     Tomcat:
       ### use keytool to decode the cert file
-      Cert: keytool -v -list -keystore cacert.jks </dev/null 2>/dev/null |grep -E '^Creation date|^Owner|^Issuer|^Valid from|^Alias name'
-      Alias: None
+      Certificate: keytool -v -list -keystore cacert.jks </dev/null 2>/dev/null | grep -E '^Creation date|^Owner|^Issuer|^Valid from|^Alias name'

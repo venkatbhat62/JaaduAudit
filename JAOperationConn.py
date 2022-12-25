@@ -118,6 +118,12 @@ def JAReadConfigConn(
 
     ### temporary attributes to process the YML file contents with default values
     variables = defaultdict(dict)
+    returnStatus, errorMsg = JAGlobalLib.JASetSystemVariables( defaultParameters, thisHostName, variables)
+    if returnStatus == False:
+        JAGlobalLib.LogLine(
+            "{0}".format(errorMsg),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     saveParameter = False  
     overridePrevValue = False
@@ -199,18 +205,9 @@ def JAReadConfigConn(
                     attributeValue = serviceParams[attribute]
                     
                     if attribute == 'HostNames':
-                        ### hostnames may have variable in the form '${{ varName }}'
-                        ### replace any variable name with variable value
-                        variableNames = re.findall(r'\{\{ (\w+) \}\}', attributeValue)
-                        if len(variableNames) > 0:
-                            originalAttributeValue = attributeValue
-                            ### replace each variable name with variable value
-                            for variableName in variableNames:
-                                if variableName in variables:
-                                    if variables[variableName] != None:
-                                        replaceString = '{{ ' + variableName + ' }}'
-                                        attributeValue = attributeValue.replace(replaceString, variables[variableName])
-
+                        originalAttributeValue = attributeValue
+                        returnStatus, attributeValue = JAGlobalLib.JASubstituteVariableValues( variables, attributeValue)
+                        if returnStatus == True:
                             if debugLevel > 2:
                                 JAGlobalLib.LogLine(
                                     "DEBUG-3 JAReadConfigConn() Service Name:|{0}|, original HostNames:|{1}|, HostNames after substituting the variable values:|{2}|".format(
@@ -238,14 +235,6 @@ def JAReadConfigConn(
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 
-        else:
-            JAGlobalLib.LogLine(
-                "ERROR JAReadConfigConn() Unsupported key:{0}, value:{1}, skipped this object".format(
-                    key, value),
-                interactiveMode,
-                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            numberOfErrors += 1
-
     if debugLevel > 0:
         JAGlobalLib.LogLine(
             "DEBUG-1 JAReadConfigConn() Read {0} items with {1} warnings, {2} errors from AppConfig:{3}".format(
@@ -307,21 +296,13 @@ def JAOperationConn(
     numberOfItems = numberOfErrors = numberOfFailures  = numberOfConditionsMet = numberOfConditionsNotMet = numberOfPasses = 0
     numberOfConnectivityTests = 0
 
-    if OSType == 'Linux' and re.match(r'nc', command):
-        ### specifiy options for nc command
-        if OSVersion < 6:
-            tcpOptions = "-vz -w 8"
-            udpOptions = "-u"
-        else:
-            tcpOptions = "-i 1 -v -w 8"
-            udpOptions = "-u"
-    else:
-        tcpOptions = udpOptions = ''
+    ### environment spec has command with all options
+    tcpOptions = udpOptions = ''
 
-    connectionErrors = "Connection timed out|timed out: Operation now in progress|No route to host"
-    hostNameErrors = "host lookup failed|Could not resolve hostname|Name or service not known"
-    connectivityPassed = "succeeded|Connected to| open"
-    connectivityUnknown = "Connection refused"
+    connectionErrors = r"Connection timed out|timed out: Operation now in progress|No route to host"
+    hostNameErrors = r"host lookup failed|Could not resolve hostname|Name or service not known"
+    connectivityPassed = r"succeeded|Connected to| open"
+    connectivityUnknown = r"Connection refused"
 
     if 'CommandConnCheck' in defaultParameters:
         command = defaultParameters['CommandConnCheck']
@@ -329,6 +310,14 @@ def JAOperationConn(
         if OSType == 'Linux':
             # connection check command not defined, use nc by default
             command = 'nc'
+            ### assume nc is available on this host
+            ### specifiy options for nc command
+            if OSVersion < 6:
+                tcpOptions = "-vz -w 8"
+                udpOptions = "-u"
+            else:
+                tcpOptions = "-i 1 -v -w 8"
+                udpOptions = "-u"
         elif OSType == 'windows':
             command = 'Test-NetConnection'
         elif OSType == 'SunOS':
@@ -345,8 +334,8 @@ def JAOperationConn(
     with open( reportFileName, "w") as reportFile:
 
         ### write report header
-        reportFile.write(
-"TimeStamp: {0}\n\
+        reportFile.write("\
+TimeStamp: {0}\n\
 Platform: {1}\n\
 HostName: {2}\n\
 Environment: {3}\n\
@@ -378,11 +367,19 @@ Items:\n\
 
             if conditionPresent == True:
                 if conditionMet == False:
+                    if debugLevel > 1:
+                        JAGlobalLib.LogLine(
+                            "DEBUG-2 JAOperationConn() condition not met for service name:|{0}|, service attributes:|{1}|, skipping the test".format(
+                            serviceName, serviceAttributes),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
                     ### SKIP connectivity test, condition not met
                     numberOfConditionsNotMet += 1
                     ### log result, align the spaces so that yaml layout format is satisfied.
-                    reportFile.write(
-"   {0}:\n\
+                    ### leading space in write content is intentional, to align the data per yml format.
+                    reportFile.write("\
+    {0}:\n\
         Command: {1}\n\
         Condition: {2}\n\
         HostNames: {3}\n\
@@ -416,6 +413,13 @@ Items:\n\
                 ### if ports are in CSV form, get those in to a list
                 tempPorts = str(serviceAttributes['Ports']).split(',')
 
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAOperationConn() service name:|{0}|, service attributes:|{1}|, hosts:|{2}|, ports:|{3}|".format(
+                    serviceName, serviceAttributes, tempHostNames, tempPorts),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
             tempProtocol = serviceAttributes['Protocol']
 
             ### below are temp counters for current HostNames, Ports set only to iterate through
@@ -429,9 +433,10 @@ Items:\n\
                 errorString = 'FAIL '
             else:
                 errorString = 'ERROR'
-
-            reportFile.write(
-"   {0}:\n\
+            
+            ### leading space in write content is intentional, to align the data per yml format.
+            reportFile.write("\
+    {0}:\n\
         Command: {1}\n\
         Condition: {2}\n\
         HostNames: {3}\n\
@@ -466,17 +471,17 @@ Items:\n\
                         break
                     else:
                         # parse the returnOutput or command output
-                        if re.match(connectivityPassed, returnOutput):
+                        if re.search(connectivityPassed, returnOutput):
                             passCount += 1
                             tempResult = "PASS "
-                        elif re.match(connectivityUnknown, returnOutput):
+                        elif re.search(connectivityUnknown, returnOutput):
                             failureCount += 1
                             
                             tempResult = errorString
-                        elif re.match(connectionErrors, returnOutput):
+                        elif re.search(connectionErrors, returnOutput):
                             failureCount += 1
                             tempResult = errorString
-                        elif re.match(hostNameErrors, returnOutput):
+                        elif re.search(hostNameErrors, returnOutput):
                             failureCount += 1
                             tempResult = errorString
                     JAGlobalLib.LogLine(
@@ -484,6 +489,8 @@ Items:\n\
                         tempResult, serviceName, tempHostName, tempPort, tempProtocol, returnOutput ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    
+                    ### leading space in write content is intentional, to align the data per yml format.
                     reportFile.write("\
             - Name: {0}\n\
               Port: {1}\n\
@@ -511,8 +518,9 @@ Items:\n\
                     tempResult, serviceName, serviceAttributes['HostNames'], serviceAttributes['Ports'], tempProtocol, returnOutput ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                reportFile.write(
-"           - Name: {0}\n\
+                ### leading space in write content is intentional, to align the data per yml format.
+                reportFile.write("\
+            - Name: {0}\n\
               Port: {1}\n\
               Result: {2}\n\
               Details: {3}\n".format(serviceAttributes['HostNames'], serviceAttributes['Ports'], tempResult, returnOutput) )
@@ -544,10 +552,18 @@ Summary:\n\
 
         ### if command present to get listen port info, collect it.
         if 'CommandToGetListenPorts' in defaultParameters:
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAOperationConn() Executing command:|{0} {1}| to get ports in LISTEN state".format(
+                    defaultParameters['CommandShell'], defaultParameters['CommandToGetListenPorts']    ), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            
             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
                 defaultParameters['CommandShell'], 
                 defaultParameters['CommandToGetListenPorts'], 
                 debugLevel, OSType)
+
             if returnResult == True:
                 if len(returnOutput) > 0:
                     reportFile.write("ListenPorts:\n")
@@ -555,7 +571,6 @@ Summary:\n\
                         reportFile.write("\
     {0}\n".format(line))
             else:
-                listenPorts = ''
                 JAGlobalLib.LogLine(
                     errorMsg, 
                     interactiveMode,

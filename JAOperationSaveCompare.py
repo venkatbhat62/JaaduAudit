@@ -114,6 +114,12 @@ def JAReadConfigCompare(
 
     ### temporary attributes to process the YML file contents with default values
     variables = defaultdict(dict)
+    returnStatus, errorMsg = JAGlobalLib.JASetSystemVariables( defaultParameters, thisHostName, variables)
+    if returnStatus == False:
+        JAGlobalLib.LogLine(
+            "{0}".format(errorMsg),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     saveParameter = False  
     overridePrevValue = False
@@ -153,7 +159,7 @@ def JAReadConfigCompare(
 
         if value.get('Items') != None:
             ### expect variable definition to be in dict form
-            for objectName, attributes in value['Items'].items():
+            for itemName, attributes in value['Items'].items():
                 saveParamValue = True
                 ### default attributes
                 tempAttributes['SkipH2H'] = 'no'
@@ -161,8 +167,8 @@ def JAReadConfigCompare(
                 tempAttributes['CompareType'] = 'text'
                 
                 if overridePrevValue == False:
-                    if objectName in saveCompareParameters:
-                        if 'FileNames' in saveCompareParameters[objectName] or 'Command' in saveCompareParameters[objectName]:
+                    if itemName in saveCompareParameters:
+                        if 'FileNames' in saveCompareParameters[itemName] or 'Command' in saveCompareParameters[itemName]:
                             ### value present for this object already, SKIP current definition
                             ###  this is valid, DO NOT warn for this condition
                             ### spec may be present under individual environment and later in All section
@@ -171,7 +177,7 @@ def JAReadConfigCompare(
 
                 if debugLevel > 1:
                     JAGlobalLib.LogLine(
-                        "DEBUG-2 JAReadConfigCompare() processing objectName:|{0}|".format(objectName),
+                        "DEBUG-2 JAReadConfigCompare() processing itemName:|{0}|".format(itemName),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -182,8 +188,8 @@ def JAReadConfigCompare(
                             paramValue = paramValue.strip()
                         except:
                             JAGlobalLib.LogLine(
-                                "DEBUG-2 JAReadConfigCompare() excetion while strip() the value:{0} of paramName:{1}, objectName:|{2}|".format(
-                                    paramValue, paramName, objectName),
+                                "DEBUG-2 JAReadConfigCompare() excetion while strip() the value:{0} of paramName:{1}, itemName:|{2}|".format(
+                                    paramValue, paramName, itemName),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                             numberOfErrors += 1
@@ -192,7 +198,7 @@ def JAReadConfigCompare(
                     if paramName not in saveCompareAttributes:
                         JAGlobalLib.LogLine(
                             "ERROR JAReadConfigCompare() Unknown parameter name:|{0}|, parameter value:|{1}| for the object:|{2}|".format(
-                                paramName, paramValue, objectName),
+                                paramName, paramValue, itemName),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         numberOfErrors += 1
@@ -205,8 +211,8 @@ def JAReadConfigCompare(
                                 numberOfWarnings += 1
                                 saveParamValue = False
                                 JAGlobalLib.LogLine(
-                                    "WARN JAReadConfigCompare() Unsupported command:|{0}| in parameter:|{1}| and objectName:|{2}|, Skipping this object definition".format(
-                                        paramValue, paramName, objectName),
+                                    "WARN JAReadConfigCompare() Unsupported command:|{0}| in parameter:|{1}| and itemName:|{2}|, Skipping this object definition".format(
+                                        paramValue, paramName, itemName),
                                     interactiveMode,
                                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                                 ### discard the current object spec
@@ -217,7 +223,7 @@ def JAReadConfigCompare(
                         elif paramName == 'ComparePatterns':
                             ### evaluate group values using current variable values if group values have any variable spec
                             returnStatus = JAGlobalLib.JAEvaluateComparePatternGroupValues(
-                                    objectName, paramValue, variables,
+                                    itemName, paramValue, variables,
                                     interactiveMode, debugLevel,
                                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType )
 
@@ -229,17 +235,17 @@ def JAReadConfigCompare(
                         ### command definition takes precedence over FileNames spec
                         tempCommandToGetEnvDetails = os.path.expandvars(tempAttributes['Command'] ) 
 
-                        saveCompareParameters[objectName]['Command'] = tempCommandToGetEnvDetails
-                        saveCompareParameters[objectName]['SkipH2H'] = tempAttributes['SkipH2H']
-                        saveCompareParameters[objectName]['CompareType'] = tempAttributes['CompareType']
-                        saveCompareParameters[objectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
-                        saveCompareParameters[objectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
+                        saveCompareParameters[itemName]['Command'] = tempCommandToGetEnvDetails
+                        saveCompareParameters[itemName]['SkipH2H'] = tempAttributes['SkipH2H']
+                        saveCompareParameters[itemName]['CompareType'] = tempAttributes['CompareType']
+                        saveCompareParameters[itemName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                        saveCompareParameters[itemName]['ComparePatterns'] = tempAttributes['ComparePatterns']
 
-                        saveCompareParameters[objectName]['FileNames'] = None
+                        saveCompareParameters[itemName]['FileNames'] = None
 
                         if tempAttributes['FileNames'] != None:
-                            errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' are specified for objectName:|{0}|, saved Command spec:|{1}|, ignored FileNames spec:|{2}|".format(
-                                        objectName, tempAttributes['Command'], tempAttributes['FileNames'])
+                            errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' are specified for itemName:|{0}|, saved Command spec:|{1}|, ignored FileNames spec:|{2}|".format(
+                                        itemName, tempAttributes['Command'], tempAttributes['FileNames'])
                             JAGlobalLib.LogLine(
                                 errorMsg,
                                 interactiveMode,
@@ -260,8 +266,8 @@ def JAReadConfigCompare(
                                 ### check for valid commands
                                 if not JAGlobalLib.JAIsSupportedCommand( wordsInFileNames[0], allowedCommands, OSType):
                                     JAGlobalLib.LogLine(
-                                        "WARN JAReadConfigCompare() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and objectName:|{3}|, Skipping this object definition".format(
-                                            wordsInFileNames[0], paramValue, paramName, objectName),
+                                        "WARN JAReadConfigCompare() Unsupported command:|{0}| in paramValue:|{1}|, for parameter:|{2}| and itemName:|{3}|, Skipping this object definition".format(
+                                            wordsInFileNames[0], paramValue, paramName, itemName),
                                         interactiveMode,
                                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                                     numberOfWarnings += 1
@@ -298,14 +304,14 @@ def JAReadConfigCompare(
                                         
                                         for line in returnOutput:
                                             if len(line) > 0:
-                                                ### formulate objectName as ObjectName.fileNameWitoutPath
-                                                tempObjectName = '{0}.{1}'.format( objectName, os.path.basename(line)  )
-                                                saveCompareParameters[tempObjectName]['FileNames'] = line
-                                                saveCompareParameters[tempObjectName]['SkipH2H'] = tempAttributes['SkipH2H'] 
-                                                saveCompareParameters[tempObjectName]['CompareType'] = tempAttributes['CompareType']
-                                                saveCompareParameters[tempObjectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
-                                                saveCompareParameters[tempObjectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
-                                                saveCompareParameters[tempObjectName]['Command'] = None
+                                                ### formulate itemName as itemName.fileNameWitoutPath
+                                                tempitemName = '{0}.{1}'.format( itemName, os.path.basename(line)  )
+                                                saveCompareParameters[tempitemName]['FileNames'] = line
+                                                saveCompareParameters[tempitemName]['SkipH2H'] = tempAttributes['SkipH2H'] 
+                                                saveCompareParameters[tempitemName]['CompareType'] = tempAttributes['CompareType']
+                                                saveCompareParameters[tempitemName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                                                saveCompareParameters[tempitemName]['ComparePatterns'] = tempAttributes['ComparePatterns']
+                                                saveCompareParameters[tempitemName]['Command'] = None
                                                 
                                         continue
 
@@ -322,27 +328,27 @@ def JAReadConfigCompare(
                             for fileName in fileNames:
                                 fileName = fileName.strip()
                                 if len(fileName) > 0 :
-                                    ### formulate objectName as ObjectName.fileNameWitoutPath
-                                    tempObjectName = '{0}.{1}'.format( objectName, os.path.basename(fileName)  )
-                                    saveCompareParameters[tempObjectName]['FileNames'] = fileName
-                                    saveCompareParameters[tempObjectName]['SkipH2H'] = tempAttributes['SkipH2H'] 
-                                    saveCompareParameters[tempObjectName]['CompareType'] = tempAttributes['CompareType']
-                                    saveCompareParameters[tempObjectName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
-                                    saveCompareParameters[tempObjectName]['ComparePatterns'] = tempAttributes['ComparePatterns']
-                                    saveCompareParameters[tempObjectName]['Command'] = None
+                                    ### formulate itemName as itemName.fileNameWitoutPath
+                                    tempitemName = '{0}.{1}'.format( itemName, os.path.basename(fileName)  )
+                                    saveCompareParameters[tempitemName]['FileNames'] = fileName
+                                    saveCompareParameters[tempitemName]['SkipH2H'] = tempAttributes['SkipH2H'] 
+                                    saveCompareParameters[tempitemName]['CompareType'] = tempAttributes['CompareType']
+                                    saveCompareParameters[tempitemName]['IgnorePatterns'] = tempAttributes['IgnorePatterns']
+                                    saveCompareParameters[tempitemName]['ComparePatterns'] = tempAttributes['ComparePatterns']
+                                    saveCompareParameters[tempitemName]['Command'] = None
                                     
                     else:
-                        errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' spec missing for objectName:|{0}|, ignored this object spec".format(
-                                    objectName)
+                        errorMsg = "WARN JAReadConfigCompare() Both 'Command' and 'FileNames' spec missing for itemName:|{0}|, ignored this object spec".format(
+                                    itemName)
                         JAGlobalLib.LogLine(
                             errorMsg,
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         numberOfErrors += 1  
                 else:
-                    ### DO NOT use current objectName
-                    saveCompareParameters[objectName]['Command'] = None
-                    saveCompareParameters[objectName]['FileNames'] = None
+                    ### DO NOT use current itemName
+                    saveCompareParameters[itemName]['Command'] = None
+                    saveCompareParameters[itemName]['FileNames'] = None
 
     numberOfItems = len(saveCompareParameters)
     if numberOfErrors > 0 or numberOfWarnings > 0:
@@ -359,16 +365,16 @@ def JAReadConfigCompare(
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         if debugLevel > 1:
-            for objectName in saveCompareParameters:
+            for itemName in saveCompareParameters:
                 JAGlobalLib.LogLine(
-                    "DEBUG-2 JAReadConfigCompare() ObjectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
-                        objectName, 
-                        saveCompareParameters[objectName]['Command'],
-                        saveCompareParameters[objectName]['FileNames'],
-                        saveCompareParameters[objectName]['CompareType'],
-                        saveCompareParameters[objectName]['ComparePatterns'],
-                        saveCompareParameters[objectName]['IgnorePatterns'],
-                        saveCompareParameters[objectName]['SkipH2H']
+                    "DEBUG-2 JAReadConfigCompare() itemName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
+                        itemName, 
+                        saveCompareParameters[itemName]['Command'],
+                        saveCompareParameters[itemName]['FileNames'],
+                        saveCompareParameters[itemName]['CompareType'],
+                        saveCompareParameters[itemName]['ComparePatterns'],
+                        saveCompareParameters[itemName]['IgnorePatterns'],
+                        saveCompareParameters[itemName]['SkipH2H']
                         ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -414,19 +420,19 @@ def JAPrepareUploadFileList(
     fileList = []
     fileList.append(fileName)
 
-    for objectName in saveCompareParameters:
-        attributes = saveCompareParameters[objectName]
+    for itemName in saveCompareParameters:
+        attributes = saveCompareParameters[itemName]
         if attributes['SkipH2H'] == 'no' or attributes['SkipH2H'] == 'No' or attributes['SkipH2H'] == None:
             if attributes['CompareType'] == 'text' or attributes['CompareType'] == 'Text':
                 ### include this file for upload/download
-                fileList.append(objectName)
+                fileList.append(itemName)
             else:
                 ### include checksum file name
-                fileList.append(objectName + ".checksum")
+                fileList.append(itemName + ".checksum")
         else:
             if debugLevel > 1:
                 JAGlobalLib.LogLine(
-                    "DEBUG-2 JAPrepareUploadFileList() SkipH2H is True, skipping the object:{0}".format(objectName),
+                    "DEBUG-2 JAPrepareUploadFileList() SkipH2H is True, skipping the object:{0}".format(itemName),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     defaultParameters['UploadFileNames'] = fileList
@@ -465,9 +471,17 @@ def JAOperationCompareFiles(
         else:
             errorMsg += "ERROR JAOperationCompareFiles() Current file not present:{0}\n".format(currentFileName)
         returnStatus = False
+
     if os.path.exists( previousFileName) == False:
         errorMsg += "ERROR JAOperationCompareFiles() Reference file not present:{0}\n".format(previousFileName)
         returnStatus = False
+
+    if returnStatus == False:
+        JAGlobalLib.LogLine(
+			errorMsg, 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        return returnStatus, False, errorMsg
 
     ### return if file size is 0
     if os.path.getsize(currentFileName) == 0:
@@ -477,6 +491,7 @@ def JAOperationCompareFiles(
         else:
             errorMsg += "ERROR JAOperationCompareFiles() Current file is empty:{0}\n".format(currentFileName)
         returnStatus = False
+
     if os.path.getsize( previousFileName) == 0:
         errorMsg += "ERROR JAOperationCompareFiles() Reference file is empty:{0}\n".format(previousFileName)
         returnStatus = False
@@ -603,8 +618,15 @@ def JAOperationCompareFiles(
 
         if returnResult == False:
             returnStatus = False
-            errorMsg = "ERROR JAOperationCompareFiles() Unable to execute diff command:|{0}|, return response:{1}, error:{2}".format(
-                tempCompareCommand, returnOutput, errorMsg    )
+            if len(returnOutput) > 0 and len(errorMsg) == 0:
+                ### since there is no msg in stderr, treat this as successful execution with error code return from the command
+                errorMsg = "DIFF JAOperationCompareFiles() files differ, compare command:|{0}|, return response:{1}".format(
+                tempCompareCommand, returnOutput    )
+                returnStatus = True
+            elif len(errorMsg) > 0:
+                errorMsg = "ERROR JAOperationCompareFiles() Error comparing files, compare command:|{0}|, error:{1}".format(
+                tempCompareCommand, errorMsg    )
+
             JAGlobalLib.LogLine(
                 errorMsg, 
                 interactiveMode,
@@ -690,8 +712,8 @@ def JAOperationSaveCompare(
         Reads the environment spec file for the given subsystem
         For Command type of object, executes commands to gather environment info and saves in file name specified under saveDir
         For FileNames type of object, 
-            if checksum is to be stored, it computes the checksum and stores it in filename <objectName>.checksum
-            else, copies the contents of the file to saveDir/<objectName>
+            if checksum is to be stored, it computes the checksum and stores it in filename <itemName>.checksum
+            else, copies the contents of the file to saveDir/<itemName>
 
     For 'backup' operation, it
         Deletes any BackupYYYYMMDD directories that are older than specified retency period in param 'BackupRetencyDurationInDays'
@@ -702,9 +724,9 @@ def JAOperationSaveCompare(
         Reads the environment spec file for the given subsystem
         For Command type of object, executes commands to gather environment info and saves in temp file
         For FileNames type of object, 
-            if checksum is to be compared, it computes the checksum, reads the saved checksum from a saveDir/<objectName>.checksum 
+            if checksum is to be compared, it computes the checksum, reads the saved checksum from a saveDir/<itemName>.checksum 
                 and compares the two checksums
-            else, compares current file to the file saved in saveDir/<objectName>
+            else, compares current file to the file saved in saveDir/<itemName>
 
     """
     returnStatus = True
@@ -867,9 +889,9 @@ def JAOperationSaveCompare(
     ### write the current AppConfig spec info to saveDir. 
     # This info will be used later while comparing the current environment to saved environment
     with open(discoveredSpecFileName, "w") as file:
-        for objectName, attributes in saveCompareParameters.items():
+        for itemName, attributes in saveCompareParameters.items():
             file.write("{0}:\n\tCommand: {1}\n\tFileNames: {2}\n\tCompareType:{3}\n\tIgnorePatterns:{4}\n\tSkipH2H: {5}\n\n".format(
-                    objectName,
+                    itemName,
                     attributes['Command'],
                     attributes['FileNames'],
                     attributes['CompareType'],
@@ -909,16 +931,16 @@ def JAOperationSaveCompare(
     numberOfChangedFiles = numberOfChangedCommandOutput = numberOfChangedChecksum = numberOfItemsSkipped = 0
 
     ### save or compare information of each object
-    for objectName in saveCompareParameters:
+    for itemName in saveCompareParameters:
         numberOfItems += 1
-        objectAttributes = saveCompareParameters[objectName]
+        objectAttributes = saveCompareParameters[itemName]
 
         ### while doing host to host compare, SKIP any object that has SkipH2H set to True
         if operation == 'compare' and compareH2H == True and objectAttributes['SkipH2H'] == True:
             if debugLevel > 0:
                 JAGlobalLib.LogLine(
-                    "DEBUG-1 JAOperationSaveCompare() Skipping objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
-                    objectName,
+                    "DEBUG-1 JAOperationSaveCompare() Skipping itemName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
+                    itemName,
                     objectAttributes['Command'],
                     objectAttributes['FileNames'],
                     objectAttributes['CompareType'],
@@ -932,8 +954,8 @@ def JAOperationSaveCompare(
 
         if debugLevel > 1:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationSaveCompare() processing objectName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
-                   objectName,
+                "DEBUG-2 JAOperationSaveCompare() processing itemName:|{0}|, Command:|{1}|, FileNames:|{2}|, CompareType:|{3}|, ComparePatterns:|{4}|, IgnorePatterns:|{5}|, SkipH2H:|{6}|".format(
+                   itemName,
                    objectAttributes['Command'],
                    objectAttributes['FileNames'],
                    objectAttributes['CompareType'],
@@ -946,7 +968,7 @@ def JAOperationSaveCompare(
         ### need to save the output of command with object name in save directory
         ### 'Command' takes precedence over FileNames if present
         if objectAttributes['Command'] != None:
-            saveFileName = "{0}/{1}".format(saveDir,objectName) 
+            saveFileName = "{0}/{1}".format(saveDir,itemName) 
 
             currentFileName = '{0}.current'.format(saveFileName)
             comparePatternsFileName = ''
@@ -964,6 +986,9 @@ def JAOperationSaveCompare(
                     objectAttributes['Command'],
                     saveFileName)
                 comparePatternsFileName = saveFileName
+
+            ### expand any environment variables used in that command
+            tempCommand = os.path.expandvars(tempCommand)
 
             if debugLevel > 1:
                 JAGlobalLib.LogLine(
@@ -994,13 +1019,16 @@ def JAOperationSaveCompare(
                 continue
             else:
                 if objectAttributes['ComparePatterns'] != None:
-                    ### check whether the command output has search patterns
-                    returnStatus, errorMsg = JAGlobalLib.JAComparePatterns(
-                            objectAttributes['ComparePatterns'], comparePatternsFileName,
+                    ### check whether the command output has ComparePatterns
+                    returnStatus, patternMatched, patternNotMatched, errorMsg = JAGlobalLib.JAComparePatterns(
+                            itemName,
+                            objectAttributes['ComparePatterns'], comparePatternsFileName, None,
                             interactiveMode, debugLevel,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
                     if returnStatus == False: 
-                        numberOfComparePatternsNotMatched += 1
+                        numberOfComparePatternsNotMatched += patternNotMatched
+                    else:
+                        numberOfComparePatternsNotMatched += patternNotMatched
 
                 numberOfCommandOutputSaved += 1
                 ### if operation is compare, compare currentDataFileName content with saveFileName content
@@ -1034,7 +1062,7 @@ def JAOperationSaveCompare(
             if objectAttributes['CompareType'] == 'checksum':
 
                 ### if CompareType is checksum, save checksum with .checksum as part of file name
-                saveFileName = '{0}/{1}.checksum'.format( saveDir, objectName)
+                saveFileName = '{0}/{1}.checksum'.format( saveDir, itemName)
 
                 ### compute MD5 checksum and compare 
                 try:
@@ -1101,16 +1129,19 @@ def JAOperationSaveCompare(
                     continue
             else:
                 ### if CompareType is not checksum, save reference file contents as is
-                saveFileName = '{0}/{1}'.format( saveDir, objectName)
+                saveFileName = '{0}/{1}'.format( saveDir, itemName)
 
                 if objectAttributes['ComparePatterns'] != None:
-                    ### check whether the command output has search patterns
-                    returnStatus, errorMsg = JAGlobalLib.JAComparePatterns(
-                            objectAttributes['ComparePatterns'], saveFileName,
+                    ### check whether the command output has ComparePatterns
+                    returnStatus, patternMatched, patternNotMatched, errorMsg = JAGlobalLib.JAComparePatterns(
+                            itemName,
+                            objectAttributes['ComparePatterns'], saveFileName, None,
                             interactiveMode, debugLevel,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
                     if returnStatus == False: 
-                        numberOfComparePatternsNotMatched += 1
+                        numberOfComparePatternsNotMatched += patternNotMatched
+                    else:
+                        numberOfComparePatternsNotMatched += patternNotMatched
 
                 ### copy the file to save directory
                 if operation == 'save' or operation == 'backup':

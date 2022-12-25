@@ -13,7 +13,7 @@ import JAGlobalLib
 import JAOperationSync
 import JAOperationSaveCompare
 import JAOperationConn
-import JAOperationCert
+import JAOperationCHILT
 import JAOperationDownloadUpload
 
 def JARun( 
@@ -129,15 +129,8 @@ def JARun(
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-        elif operation == 'cert':
-            returnStatus, errorMsg = JAOperationCert.JAOperationCert(
-                baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion,   
-                outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-        elif operation == 'license':
-            returnStatus, errorMsg = JAOperationLicense.JAOperationLicense(
+        elif operation == 'cert' or operation == 'license' or operation == 'inventory' or operation == 'health':
+            returnStatus, errorMsg = JAOperationCHILT.JAOperationCHILT(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
@@ -151,7 +144,7 @@ def JARun(
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         elif operation == 'test':
-            returnStatus, errorMsg = JAOperationTest.JAOperationTest(
+            returnStatus, errorMsg = JAOperationCHILT.JAOperationCHILT(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
@@ -166,20 +159,6 @@ def JARun(
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         elif operation == 'heal':
             returnStatus, errorMsg = JAOperationHeal.JAOperationHeal(
-                baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion,   
-                outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-        elif operation == 'health':
-            returnStatus, errorMsg = JAOperationHealth.JAOperationHealth(
-                baseConfigFileName, subsystem, myPlatform, appVersion,
-                OSType, OSName, OSVersion,   
-                outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-        elif operation == 'inventory':
-            returnStatus, errorMsg = JAOperationInventory.JAOperationInventory(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,

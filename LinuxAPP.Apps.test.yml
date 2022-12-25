@@ -1,5 +1,5 @@
-# Certificate check spec 
-# Author: havembha@gmail.com,  2022-12-13
+# test spec 
+# Author: havembha@gmail.com,  2022-12-25
 # Format
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
@@ -16,6 +16,8 @@
 #   Items:
 #     <itemName>: Unique name within this section
 #               Suggest to use a name correlates to a process or application that uses this certificate
+#               Suggested format <Component>.<subsystem>.test.<uniqueNameWithinTheSection>
+#                   so that many reference files can be in the same Custom and Logs folders.
 #       Command: run command to gather current state of the process like "ps -ef|grep <processName>" in Linux or
 #             get-process -name <processName> in windows
 #             to check whether a process is running before connecting to get the cert in use and decode it
@@ -27,12 +29,8 @@
 #          Else output string is compared to the condition string.
 #                This is useful to match the result of command like true, false, pass, fail etc to determin next step
 #           Optional parameters, default None
-#       Certificate: Command to decode the cert file or command to connect to a process, get cert and decode it
-#         On Linux host, can use openssl or keytool to decode the certs
-#            openssl x509 -dates -subject -noout -alias -issuer -in <path/fileName>
-#            keytool -v -list -keystore <path/fileName> </dev/null 2>/dev/null | grep -E '^Creation Date|^Owner|^Issuer|^Valid from|^Alias name'
-#        ComparePatterns: optional parameter to check the presence of values in cert decode output
-#             Can be used to check for environment specific values in command output like DNS name, issuer, subject etc
+#        ComparePatterns: optional parameter to check the presence of values in license output
+#             Can be used to check for environment specific values in command output like license count, license end date etc
 #             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
 #             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
 #             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
@@ -40,6 +38,8 @@
 #             Value can also be variable name which can have different values for different environment.
 #             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
 #             Refer to examples to understand the usage possibilities.
+#       License: Command to gather license info, can be cat of a file or specific command to decode & display the license file
+#
 #   Specify common certs under 'All' so that it applies to hosts in all environments.
 #     Specify environment specific certs under Dev, Test, UAT, Prod... 
 #     If an item with the same name and same name is specified under 'All', 
@@ -47,15 +47,25 @@
 Dev:
   # specify hostname in regular expression 
   HostName: (LAPTOP-QOCNVF0T)
+  Variable:
+    WindowsLicense1: echo GMJN7
+    WindowsLicense2: echo CGP29
+    WindowsLicense3: echo WKP77
+    WindowsLicense4: echo JPGMC
+    WindowsLicense5: echo 9QBK4
+
   Items:
     ### these definitions override the definitions under 'All' section
-    Apache:
-      Command: get-nettcpconnection -localport 6000
-      Condition: '> 6'
-      Certificate: echo TBD
+    # Windows:
+    #  License: wmic path softwarelicensingservice get OA3xOriginalProductKey
 Test:
   # specify hostname in regular expression 
-  HostName: ((...)(t)(...)([0-9][0-9]))
+  HostName: ((...)(t)(...)([0-9][0-9]))|(havembha)
+  Variable:
+    ### override system variable values with environment specific values
+    ###   these are used later to validate the host's license 
+    JAIPAddress: ifconfig enp3s0 |grep inet |grep -v inet6|awk '{print $2}'
+    JAMACAddress: ifconfig enp3s0 |grep ether |awk '{print $2}'
 UAT:
   # specify hostname in regular expression 
   HostName: ((...)(u)(...)([0-9][0-9]))
@@ -70,7 +80,18 @@ Prod:
 # if variable is already defined under environment before, value under 'All' will be ignored.
 All:
   Items:
-    Apache:
-      Command: get-nettcpconnection -localport 6000
-      Condition: '> 6'
-      Certificate: DecodeCert.ps1 /etc/apache2/ssl/apache-certificate.crt
+    LinuxAPP.Apps.test.ComparePatternExample:
+      ### this example shows matching of license capacity to current host's MACAddress and IP address
+      Test: cat /var/www/JaaduAudit/Custom/JAAudit.ExampleLicense.Linux.txt
+      ### Use double quote around "{{ variable }}" to use variable as expected value for a group
+      ### Below example uses system variable JAMACAddress and JAIPAddress which are automatically computed by JAAudit.
+      ###  Refer JAGlobalLib.JASetSystemVariables() to see more details on how JAMACAddress and JAIPAddress are derived.
+      ### Note - DO NOT use $ at the end of patterns, it does not work on Liunx host.
+      ComparePatterns: { 
+        'Number of ports:(\s+)(\d+)': { 2: 1000 }, 
+        'MACAddress:(\s+)(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)(\s+)': { 2: "{{ JAMACAddress }}" }, 
+        'IPAddress:(\s+)(\d+.\d+.\d+.\d+)': { 2: "{{ JAIPAddress }}" }
+        }
+    LinuxAPP.Apps.test.CompareResultExample:
+      ### get default page from local web server
+      Test: curl -k https://localhost:443/

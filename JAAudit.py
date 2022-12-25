@@ -45,7 +45,7 @@ allowCommandsFileName = "JAAllowCommands"
 
 # web server URL to post the OS stats data, per environment
 SCMHostName = ''
-debugLevel = 3
+debugLevel = 0
 auditLogFileName  = 'JAAudit.log'
 
 # default parameters read from app config file name
@@ -111,7 +111,7 @@ def JAHelp():
        [-i <ignoreHostNameIPDifference>]
     
     -o <operations> - can have one or more operations in CSV format. operations supported are -
-          backup,cert,compare,conn,default,download,heal,health,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload
+          backup,cert,compare,conn,default,download,heal,health,help,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload,version
 
         If called with operation 'backup'
             Takes the environment snapshot by carrying out instructions in <baseConfigFile>.<subsystem>.compare.yml
@@ -208,6 +208,12 @@ def JAHelp():
             Typically done for host to host compare or to take backup of files from target host on SCM host
             Operations like inventory, cert, conn, stats, health, test do implicit upload to upload the data collected
                to SCM host for further processing when such operations are executed via non-interactive session.
+
+        if called with operation 'version'
+            prints JAAudit version number.
+
+        if called with operation 'help'
+            prints this help message.
 
     [-s <subsystem>] - subsystem name to be used to derive the config file name containing specifications
         to be used to run the operations like conn, cert, stats etc. 
@@ -392,7 +398,8 @@ def JAHelp():
 
         python JAAudit.py -o task <-- execute tasks
 
-
+        python JAAudit.py -o version <-- print version
+        python JAAudit.py -o help    <-- print this message
     """
     print(helpString1)
     print(helpString2)
@@ -722,6 +729,17 @@ if fatalError == True:
         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     sys.exit()
 
+defaultParameters['OSType'] = OSType
+defaultParameters['OSName'] = OSName
+defaultParameters['OSVersion'] = OSVersion
+defaultParameters['SiteName'] = thisHostName[ :defaultParameters['SitePrefixLength']]
+
+### if netstat command is used to list the LISTEN ports, wrap it with ""
+###  on Unix, bash -c netstat -an |grep LISTEN does not print the results without " around the command "
+### save LocalRepositoryCustom value in JAAudit.profile
+if re.search( r'netstat -an', defaultParameters['CommandToGetListenPorts']):
+    defaultParameters['CommandToGetListenPorts'].replace(r"netstat -an", r'"netstat -an"') 
+
 fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 
 if OSType == 'Windows':
@@ -765,6 +783,27 @@ if OSType == 'Windows':
                 	interactiveMode,
                 	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+    ### get list of files older than one day
+    filesToDelete = JAGlobalLib.JAFindModifiedFiles(
+            '{0}/JAAudit.dat.*'.format(defaultParameters['LogFilePath']), 
+            currentTime - (3600*24), ### get files modified before this time
+            debugLevel, thisHostName)
+    if len(filesToDelete) > 0:
+        for fileName in filesToDelete:
+            try:
+                os.remove(fileName)
+                if debugLevel > 3:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-4 JAAudit() Deleting the file:{0}".format(fileName),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except OSError as err:
+                JAGlobalLib.LogLine(
+			        "ERROR JAAudit() Error deleting old dat file:{0}, errorMsg:{1}".format(fileName, err), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+
 else:
     # delete log files covering logs of operations also.
     command = 'find {0} -name "JAAudit.log.*" -mtime +{1} |xargs rm'.format(
@@ -780,9 +819,9 @@ else:
             command, debugLevel, OSType)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
-            if debugLevel > 0:
+            if debugLevel > 1:
                 JAGlobalLib.LogLine(
-                    "DEBUG-1 JAAudit() No older log files to delete, {0}".format(errorMsg), 
+                    "DEBUG-2 JAAudit() No older log files to delete, {0}".format(errorMsg), 
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -800,9 +839,29 @@ else:
             command, debugLevel, OSType)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:
-            if debugLevel > 0:
+            if debugLevel > 1:
                 JAGlobalLib.LogLine(
-                    "DEBUG-1 JAAudit() No older rsync log files to delete, {0}".format(errorMsg), 
+                    "DEBUG-2 JAAudit() No older rsync log files to delete, {0}".format(errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    # delete dat files covering logs of operations also.
+    command = 'find {0} -name "JAAudit.dat.*" -mtime +1 |xargs rm'.format(
+        defaultParameters['LogFilePath'])
+    if debugLevel > 1:
+        JAGlobalLib.LogLine(
+            "DEBUG-2 JAAudit() purging files with command:{0}".format(command),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
+    if returnResult == False:
+        if re.match(r'File not found', errorMsg) != True:
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAAudit() No older dat files to delete, {0}".format(errorMsg), 
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -952,26 +1011,118 @@ if (re.search(r"sync", operations) and re.search(r"nosync", operations) == None)
 
 
 ### if save is opted, run it
-if re.search("perfStatsOS", operations) != None :
-    JAExecuteOperations.JARun( 
-        "perfStatsOS", defaultParameters['MaxWaitTime'],
-        baseConfigFileName, subsystem, myPlatform, appVersion,
-        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
-        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
-        interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime, allowedCommands
-    )
 
-### if save is opted, run it
-if re.search("perfStatsApp", operations) != None:
-    JAExecuteOperations.JARun( 
-        "perfStatsApp", defaultParameters['MaxWaitTime'],
-        baseConfigFileName, subsystem, myPlatform, appVersion,
-        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
-        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
-        interactiveMode, operations, thisHostName, yamlModulePresent,
-        defaultParameters, debugLevel, currentTime, allowedCommands
-    )
+if re.search("perfStatsOS", operations) != None :
+    skipOperation = False
+    currentWorkingDir = os.getcwd()
+    if 'JaaduVisionPath' in defaultParameters:
+        if os.path.exists( defaultParameters['JaaduVisionPath'] ) == False:
+            JAGlobalLib.LogLine(
+                    "ERROR JAAudit() Can't change directory to |{0}|, skipping the 'perfStatsOS' operation".format(
+                        defaultParameters['JaaduVisionPath'] ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            skipOperation = True
+        else:
+            os.chdir( defaultParameters['JaaduVisionPath'])
+    if skipOperation == False:
+        if 'JaaduVisionPath' not in defaultParameters:
+            ### check whether the client directory is present at current location
+            if not os.path.exists("client"):
+                ### print error, skip the start operation
+                JAGlobalLib.LogLine(
+                        "ERROR JAAudit() 'JaaduVisionPath' not defined in environment yml file, and 'client' folder not present at current directory. Need JaaduVisionPath to start the perfStatsOS operation, skipping this operation",
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                skipOperation = True
+            else:
+                os.chdir('client')
+    if skipOperation == False:
+        if 'PerfStatsOSConfig' not in defaultParameters:
+            JAGlobalLib.LogLine(
+                    "ERROR JAAudit() 'PerfStatsOSConfig' not defined in environment yml file, skipping the 'perfStatsOS' operation",
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            skipOperation = True
+    if skipOperation == False:    
+        command = "python3 JAGatherOSStats.py -c {0} -C {1} -S {2} -P {3}".format(
+            defaultParameters['PerfStatsOSConfig'], defaultParameters['Component'], defaultParameters['SiteName'], defaultParameters['Platform'] )
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
+        if returnResult == True:
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                    "DEBUG-1 JAAudit() started 'perfStatsOS' successfully at {0} using the command:|{1}|".format(
+                        JAGlobalLib.UTCDateTime(), command  ), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            ### operation completed, update the history file to track the last time when it is completed
+            JAGlobalLib.JAUpdateHistoryFileName(subsystem, "perfStatsOS", defaultParameters)
+        else:
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    ### go back to original directory
+    os.chdir(currentWorkingDir)
+
+if re.search("perfStatsApp", operations) != None :
+    skipOperation = False
+    currentWorkingDir = os.getcwd()
+    if 'JaaduVisionPath' in defaultParameters:
+        if os.path.exists( defaultParameters['JaaduVisionPath'] ) == False:
+            JAGlobalLib.LogLine(
+                    "ERROR JAAudit() Can't change directory to |{0}|, skipping the 'perfStatsApp' operation".format(
+                        defaultParameters['JaaduVisionPath'] ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            skipOperation = True
+        else:
+            os.chdir( defaultParameters['JaaduVisionPath'])
+    if skipOperation == False:
+        if 'JaaduVisionPath' not in defaultParameters:
+            ### check whether the client directory is present at current location
+            if not os.path.exists("client"):
+                ### print error, skip the start operation
+                JAGlobalLib.LogLine(
+                        "ERROR JAAudit() 'JaaduVisionPath' not defined in environment yml file, and 'client' folder not present at current directory. Need JaaduVisionPath to start the perfStatsApp operation, skipping this operation",
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                skipOperation = True
+            else:
+                os.chdir('client')
+    if skipOperation == False:
+        if 'PerfStatsAppsConfig' not in defaultParameters:
+            JAGlobalLib.LogLine(
+                    "ERROR JAAudit() 'PerfStatsAppsConfig' not defined in environment yml file, skipping the 'perfStatsApps' operation",
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            skipOperation = True
+        
+    if skipOperation == False:
+        command = "python3 JAGatherLogStats.py -c {0} -C {1} -S {2} -P {3}".format(
+            defaultParameters['PerfStatsAppsConfig'], defaultParameters['Component'], defaultParameters['SiteName'], defaultParameters['Platform'] )
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
+        if returnResult == True:
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                    "DEBUG-1 JAAudit() started 'perfStatsApps' successfully at {0} using the command:|{1}|".format(
+                        JAGlobalLib.UTCDateTime(), command  ), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            ### operation completed, update the history file to track the last time when it is completed
+            JAGlobalLib.JAUpdateHistoryFileName(subsystem, "perfStatsApp", defaultParameters)
+
+        else:
+            JAGlobalLib.LogLine(
+                errorMsg, 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    ### go back to original directory
+    os.chdir(currentWorkingDir)
 
 ### sleep for random time so that file fetch load on SCM is staggered acorss many hosts running this audit tool
 if randomizationWindow > 0:
@@ -1028,7 +1179,7 @@ if re.search("conn", operations) != None :
     )
 
 ### if heal is opted, run it
-if re.search("heal", operations) != None :
+if re.search("heal", operations) != None and not re.search("health", operations):
     JAExecuteOperations.JARun( 
         "heal", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
