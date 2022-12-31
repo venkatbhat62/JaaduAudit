@@ -50,6 +50,97 @@ def JAConvertStringTimeToTimeInMicrosec( dateTimeString, format:str):
     except:
         return 0
 
+def JAParseDateTime( dateTimeString:str ):
+    """
+    It uses dateutil parser to parse the date time string to time in seconds.
+    If parser does not parse due to incomplete parts (like year not present, date not present etc), 
+        it will try to parse it locally using additional logic.
+
+        Dec 26 08:42:01 - year is not present, pads current year and tries to parse it.
+
+    """
+    from dateutil import parser
+
+    returnStatus = False
+    errorMsg  =''
+    timeInSeconds = 0
+    try:
+        tempDate = parser.parse(dateTimeString)
+        timeInSeconds = tempDate.timestamp()
+        returnStatus = True
+    except:
+        returnStatus = False
+    
+    if returnStatus == False:
+        currentDate = datetime.datetime.utcnow()
+        ### try to parse the string and generate standard format string in the form %Y-%d-%mT%H:%M:%S
+        ###  %Y - position 1, %d - position 2, %m - position 3, %H:%M:%S - position 4
+        ###  0 - put current host's date/time value in that position
+        ### search pattern - to identify the date element parts
+        ### replace definition - elements that will go to desired format position
+        supportedPatterns = {
+            # Dec 26 08:42:01 - prefix with current yyyy
+            r'(\w\w\w)(\s+)(\d+)( )(\d\d:\d\d:\d\d)': [ 0, 3, 1, 4],
+            #   1      2     3  4   5
+            # 08:42:01 - prefix with current yyyy-mm-dd
+            r'(\d\d:\d\d:\d\d)': [ 0, 0, 0, 1 ],
+            #   1
+        }
+        
+        for pattern in supportedPatterns:
+            try:
+                myResults = re.findall( pattern, dateTimeString)
+                if myResults != None:
+                    numberOfGroups = len(myResults)
+                    if len(numberOfGroups) > 0:
+                        replacementSpec = supportedPatterns[pattern]
+                        if replacementSpec[0] == 0:
+                            ### prefix with default year
+                            newDateTimeString = currentDate.strftime("%Y") + "-"
+                        elif replacementSpec[0] <= numberOfGroups:
+                            newDateTimeString = myResults[ replacementSpec[0] - 1]
+                        else:
+                            ### current pattern is not the correct one, continue the search
+                            continue
+                        
+                        if replacementSpec[1] == 0:
+                            ### prefix with default month number
+                            newDateTimeString += currentDate.strftime("%m") + "-"
+                        elif replacementSpec[1] <= numberOfGroups:
+                            newDateTimeString += myResults[ replacementSpec[1] - 1]
+                        else:
+                            ### current pattern is not the correct one, continue the search
+                            continue
+
+                        if replacementSpec[2] == 0:
+                            ### prefix with default month number
+                            newDateTimeString += currentDate.strftime("%d") + "-"
+                        elif replacementSpec[2] <= numberOfGroups:
+                            newDateTimeString += myResults[ replacementSpec[2] - 1]
+                        else:
+                            ### current pattern is not the correct one, continue the search
+                            continue
+
+                        if replacementSpec[3] <= numberOfGroups:
+                            newDateTimeString += "T" + myResults[ replacementSpec[3] - 1]
+                        else:
+                            ### current pattern is not the correct one, continue the search
+                            continue
+                        ### found the match, get out
+                        returnStatus = True
+                        break
+            except:
+                errorMsg += "ERROR JAParseDateTime() searching for pattern:|{0}|, ".format( pattern )
+                returnStatus = False
+        if returnStatus == False:
+            errorMsg += "ERROR JAParseDateTime() converting the date time string:{0}".format( dateTimeString)
+        else:
+            ### convert the time to seconds
+            tempDate = parser.parse(newDateTimeString)
+            timeInSeconds = tempDate.timestamp()
+
+    return returnStatus, timeInSeconds, errorMsg
+
 def JAParseArgs(argsPassed):
     """
     JAGlobalLib.JAParseArgs(argsPassed)
@@ -845,7 +936,7 @@ def JASetProfile(fileName:str, paramName:str, paramValue:str):
     returnStatus = True
     fileContents = ''
     lineFound = False
-    replaceLine = "{0}:{1}\n".format(paramName,paramValue)
+    replaceLine = "{0}: {1}\n".format(paramName,paramValue)
     if os.path.exists(fileName) :
         with open(fileName, "r") as file:
             while True:
@@ -953,7 +1044,10 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
     
     if subsystem passed is empty, 'Apps' subsystem is used by default
     if version is not empty, it is added to the filename
-    
+
+    if operation is 'stats', and if file name does not exist with subsystem name, operation, 
+      and file does exist with baseConfigFileName, that base name is returned.
+
     """
 
     returnStatus = False
@@ -994,11 +1088,29 @@ def JADeriveConfigFileName( pathName1:str, pathName2:str, baseConfigFileName:str
             tempConfigFileName = '{0}/{1}.{2}.{3}.{4}'.format(
                 pathName2, baseConfigFileNameWithoutFileType, subsystem, operation, fileType)
             if os.path.exists( tempConfigFileName ) == False:
-                ### file does exist, return error
-                errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present in path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
-                    tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
-                returnStatus = False
-                tempConfigFileName = ''
+                ### if operation is 'stats' or 'logs', look for base file name itself
+                if operation == 'stats' or operation == 'logs':
+                    tempConfigFileName = '{0}/{1}'.format( 
+                            pathName1, baseConfigFileName)
+                    if os.path.exists( tempConfigFileName ) == False:
+                        tempConfigFileName = '{0}/{1}'.format( 
+                                pathName2, baseConfigFileName)
+                        if os.path.exists( tempConfigFileName ) == False:
+                            ### file does exist, return error
+                            errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present in path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
+                                tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
+                            returnStatus = False
+                            tempConfigFileName = ''
+                        else:
+                            returnStatus = True
+                    else:
+                        returnStatus = True
+                else:        
+                    ### file does exist, return error
+                    errorMsg = "ERROR JADeriveConfigFileName() config file:|{0}| not present in path1:|{1}|, path2:|{2}|, AppConfig:|{3}|, subsystem:|{4}|, operation:|{5}|, version:|{6}|".format(
+                        tempConfigFileName, pathName1, pathName2,  baseConfigFileName, subsystem, operation, version)
+                    returnStatus = False
+                    tempConfigFileName = ''
             else:
                 returnStatus = True
         else:
@@ -1277,8 +1389,8 @@ def JAEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
         ### now execute the command to get result 
         ###   command was checked for allowed command while reading the config spec
         if OSType == "Windows":
-            tempCommandToEvaluateCondition = '{0} {1}'.format(
-                defaultParameters['CommandShell'], tempCommand) 
+            #tempCommandToEvaluateCondition = '{0} {1}'.format( defaultParameters['CommandShell'], tempCommand) 
+            tempCommandToEvaluateCondition = tempCommand 
         else:
             tempCommandToEvaluateCondition =  tempCommand
         tempCommandToEvaluateCondition = os.path.expandvars( tempCommandToEvaluateCondition ) 

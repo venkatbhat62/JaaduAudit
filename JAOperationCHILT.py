@@ -29,18 +29,15 @@ Execution Flow
 """
 
 import os
-import sys
+#import sys
 import re
-import datetime
+#import datetime
 import time
-import subprocess
-import signal
+#import subprocess
+#import signal
 from collections import defaultdict
 import JAGlobalLib
 import JAOperationSaveCompare
-
-import hashlib
-import shutil
 
 def JAReadConfigCHILT(
         operation, 
@@ -102,7 +99,7 @@ def JAReadConfigCHILT(
 
         return returnStatus, numberOfItems
 
-    ### derive the save compare spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
+    ### derive the spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
     returnStatus, CHILTSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCustom']),
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCommon']),
@@ -353,12 +350,6 @@ def JAOperationCHILT(
         ### fatal error, can't proceed.
         return returnStatus, numberOfItems
 
-    ### this file is used as temporary storage for output of commands
-    ### this temp file is deleted at the end of compare operation
-    currentDataFileName ="{0}/JAAudit.dat.{1}".format(
-        defaultParameters['LogFilePath'],
-         os.getpid() )
-
     ### initialize counters to track summary
     ### numberOfErrors - when connectivity fails to all hosts
     ### numberOfFailures - when at least one connection fails to HostNames, 
@@ -383,7 +374,6 @@ Items:\n\
 
         currentTime = time.time()
 
-        ### save or compare information of each object
         for CHILTName in CHILTParameters:
             numberOfItems += 1
             CHILTAttributes = CHILTParameters[CHILTName]
@@ -573,7 +563,7 @@ Items:\n\
                                     currentResponseFileName, referenceFileName, 
                                     defaultParameters['BinaryFileTypes'],
                                     'text', # compareType
-                                    defaultParameters['CompareCommand'],
+                                    defaultParameters['CommandCompare'],
                                     False, ### not H2H compare scenario
                                     CHILTAttributes['IgnorePatterns'],  
                                     "{0}".format(CHILTAttributes['Test']), ### logAdditionalInfo - command used to run test

@@ -1,12 +1,12 @@
 
 import os
 import sys
-import re
-import datetime
+#import re
+#import datetime
 import time
-import subprocess
-import signal
-import platform
+#import subprocess
+#import signal
+#import platform
 from collections import defaultdict
 import JAGlobalLib
 
@@ -15,6 +15,8 @@ import JAOperationSaveCompare
 import JAOperationConn
 import JAOperationCHILT
 import JAOperationDownloadUpload
+import JAOperationLogsStats
+import JAOperationHealTask
 
 def JARun( 
     operation, maxWaitTime,
@@ -136,8 +138,8 @@ def JARun(
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-        elif operation == 'stats':
-            returnStatus, errorMsg = JAOperationStats.JAOperationStats(
+        elif operation == 'stats' or operation == 'logs' :
+            returnStatus, errorMsg = JAOperationLogsStats.JAOperationLogsStats(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
@@ -151,14 +153,14 @@ def JARun(
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         elif operation == 'task':
-            returnStatus, errorMsg = JAOperationTask.JAOperationTask(
+            returnStatus, errorMsg = JAOperationHealTask.JAOperationHealTask(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
                 defaultParameters, debugLevel, currentTime, allowedCommands, operation )
         elif operation == 'heal':
-            returnStatus, errorMsg = JAOperationHeal.JAOperationHeal(
+            returnStatus, errorMsg = JAOperationHealTask.JAOperationHealTask(
                 baseConfigFileName, subsystem, myPlatform, appVersion,
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,

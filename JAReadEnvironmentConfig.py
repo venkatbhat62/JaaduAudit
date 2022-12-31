@@ -5,10 +5,10 @@ This module reads yml config file and assigns the values to passed defaultParame
 import os
 import sys
 import re
-import datetime
-import time
-import subprocess
-import signal
+#import datetime
+#import time
+#import subprocess
+#import signal
 from collections import defaultdict
 import JAGlobalLib
 
@@ -51,16 +51,15 @@ def JAReadEnvironmentConfig(
     #  in defaultParameters{}
     integerParameters = [
         'BackupRetencyDurationInDays',
-        'DebugLevel','DeltaTimeForStatsInMin','DueInDaysForCert', 'FileRetencyDurationInDays','FileExecPermission', 
-        'DueInDaysForLicence', 'HealIntervalInSec', 'HealAfterTimeInSec', 
-        'RandomizationWindowForHealthInSec', 'RandomizationWindowForOtherInSec',
+        'DebugLevel','DueInDaysForCert', 'FileRetencyDurationInDays','FileExecPermission', 
+        'DueInDaysForLicence', 'RandomizationWindowForHealthInSec', 'RandomizationWindowForOtherInSec',
         'RandomizationWindowForTaskInSec', 'SitePrefixLength',
         ]
     # this list contains the parameter names in JAEnvornment.yml file that needs to be converted to float and store
     #  in defaultParameters{}
     floatParameters = [
-        'OperationCert', 'OperationConn', 'OperationConnOS',
-        'OperationCompare', 'OperationHeal', 'OperationHealth', 'OperationInventory', 'OperationLicense', 
+        'OperationCert', 'OperationConn',
+        'OperationCompare', 'OperationHeal', 'OperationHealth', 'OperationInventory', 'OperationLicense', 'OperationLogs',
         'OperationPerfStatsApp', 'OperationPerfStatsOS', 'OperationSave', 'OperationStats', 'OperationSync', 
         'OperationTask', 'OperationTest', 'OperationUpload'
         ]
@@ -244,12 +243,12 @@ def JAReadEnvironmentConfig(
                 defaultParameters['CommandShell'] ="TBD"
 
     ### setup default compare commands based on OSType
-    if 'CompareCommand' not in defaultParameters:
+    if 'CommandCompare' not in defaultParameters:
         if OSType == "Windows":
-            defaultParameters['CompareCommand'] = defaultParameters['CommandShell'] + " compare-object -SyncWindow 10"
+            defaultParameters['CommandCompare'] = defaultParameters['CommandShell'] + " compare-object -SyncWindow 10"
         elif OSType == 'Linux':
             ### ignore blank lines
-            defaultParameters['CompareCommand'] = 'diff -B'
+            defaultParameters['CommandCompare'] = 'diff -B'
  
     ### exand any environment variables used in path definitions
     if 'LocalRepositoryHome' in defaultParameters:

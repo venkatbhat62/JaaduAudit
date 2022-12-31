@@ -1,0 +1,154 @@
+# heal spec 
+# Author: havembha@gmail.com,  2022-12-29
+# Format
+# <environment>: like Dev, Test, UAT, Prod... or All -  free form text
+#   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
+#            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#     Note - predefined system variable names available for use are:
+#             JASiteName - this will be defined automatically if 'SitePrefixLength' is defined in environment spec file
+#             JAHostName  - this will be defined automatically all the time.
+#   Items:
+#     <itemName>: Unique name within this section
+#               Suggest to use a name correlates to a process or application that uses this certificate
+#       Alert: email address to send alert about the heal action taken or when max attempts is reached.
+#               Alert values can have variable names like {{ EmailAddress }} with that variable defined under different environments
+#                 using different email addresses. 
+#       AppStatusFile: file containing application status like Running, Stopped
+#          If present, this applies to all heal items as default value. 
+#       Command: run command to gather current state of the process like "ps -ef|grep <processName>" in Linux or
+#             get-process -name <processName> in windows
+#             to check whether a process is running before connecting to get the cert in use and decode it
+#           Optional parameters, default None
+#       Condition: '(>|<|=|!=|>=|<=)(space)(<number> or <string>)' 
+#          If the output of above command results in multiple lines, count of lines is compared to the condition number.
+#          If the output is single line and it is integer,
+#              the output is converted to integer and compared with integer number specified in condition
+#          Else output string is compared to the condition string.
+#                This is useful to match the result of command like true, false, pass, fail etc to determin next step
+#           Optional parameters, default None
+#        ComparePatterns: optional parameter to check the presence of values in HealAction response.
+#             Can be used to confirm that the HealAction was successful by checking the response string.
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Refer to examples to understand the usage possibilities.
+#        Enabled: Yes|yes, No|no, DryRun|dryrun (default)
+#             Enable this heal rule, disable it or leave it in dryrun mode. dryrun to observe the rule action without actually taking action
+#               so that the rule can be refined. Once satisfied, enable it.
+#        HealAction: command to correct the anomaly or bring the application to normal state. Command can be to start a process, kill a process, 
+#             re-route the traffic, whatever the command can do.
+#           If AppStatusFile contains the status as Stopped, heal action will not be taken
+#        HealAfterInSec: After detecting the condition, wait until this time in seconds elapses before taking the heal action.
+#           This is to allow maintenance operation performed by operations or users to continue as is without heal action interfering with that.
+#           This comes in to play when the status in AppStatusFile is Running or the file does not exist.
+#        MaxAttempts: Limit the heal action execution to this number and send notification, if opted, indicating the max limit reached.
+#        HealIntervalInSec: Take heal action within this interval with max attempts count not exeeding the set limit.
+#           For example, if HealInterval is 1800 seconds, and MaxAttempts is 5, HealAction will be performed 5 times within 1800 seconds or 30 min 
+#             if the heal condition is met within that time.
+#   Specify common certs under 'All' so that it applies to hosts in all environments.
+#     Specify environment specific certs under Dev, Test, UAT, Prod... 
+#     If an item with the same name and same name is specified under 'All', 
+#       one specified under other environment takes precedence.
+#  Note - heal operation keeps the dynamic data in Logs/JAAudit.heal.dat containing info like
+#    HealItem1: [ 'ConditionMetAt': <timeInSec>, 'Attempts': <countOfHealAttempts>],
+#    HealItem2: [ 'ConditionMetAt': <timeInSec>, 'Attempts': <countOfHealAttempts>]       
+#    
+Dev:
+  # email address to send alert about the heal action taken or when max attempts is reached.
+  Alert: havembha@gmail.com
+  ### application status file containing status like Running, Stopped to indicate current state of application
+  ### This file name is used by heal operation, it can be redefined per heal action in heal definition file
+  AppStatusFile: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository/AppStatus.txt'
+  # specify hostname in regular expression 
+  HostName: (LAPTOP-QOCNVF0T)
+  ### default values apply to items under this environment and under 'All' section
+  HealAfterInSec: 900
+  HealIntervalInSec: 900
+  MaxAttempts: 2
+  Variable:
+    EmailAddress: echo 'havembha@gmail.com'
+Test:
+  ### application status file containing status like Running, Stopped to indicate current state of application
+  ### This file name is used by heal operation, it can be redefined per heal action in heal definition file
+  ### change this to the file name used by the applicatoin
+  AppStatusFile: /var/www/JaaduAudit/AppStatus.txt
+  # specify hostname in regular expression 
+  HostName: ((...)(t)(...)([0-9][0-9]))
+  Variable:
+    EmailAddress: echo 'havembha@gmail.com'
+UAT:
+  # specify hostname in regular expression 
+  HostName: ((...)(u)(...)([0-9][0-9]))
+Prod:
+  # specify hostname in regular expression 
+  HostName: ((...)(p)(...)([0-9][0-9]))
+  Variable:
+    EmailAddress: echo 'havembha@gmail.com'
+
+#
+# Keep definition for 'All' environment at the end.
+# this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+# assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+# and that variable is defined under 'All', value under 'All' will be picked up
+# if variable is already defined under environment before, value under 'All' will be ignored.
+All:
+  # email address to send alert about the heal action taken or when max attempts is reached.
+  Alert: havembha@gmail.com
+  ### application status file containing status like Running, Stopped to indicate current state of application
+  ### This file name is used by heal operation, it can be redefined per heal action in heal definition file
+  AppStatusFile: AppStatus.txt
+  Enabled: dryrun
+  ### default values apply to items under 'All' section
+  HealAfterInSec: 1800
+  HealIntervalInSec: 1800
+  MaxAttempts: 5
+  Items:
+    ServiceHTTP:
+      ### below definition from Environment yml file will be used as default for this case.
+      # Alert: {{ EmailAddress }}
+      # AppStatusFile - not specifying here, use the one defined in Environment yml file
+      # start http service if number of service instance seen is less than 2. (expect to see 10 instances on windows pc)
+      Command: get-service -requiredservices | out-string -stream | select-string http | select-string running | measure-object -line | select-object -expandproperty lines
+      Condition: '< 2'
+      Enabled: No
+      HealAction: Start-Service http
+    ServiceWindowsUpdate:
+      ### use the variable value defined per environment to send notification
+      Alert: '{{ EmailAddress }}'
+      # AppStatusFile - not specifying here, use the one defined at environment level or at All level
+      # start windows update service if not running
+      Command: get-service wuauserv |out-string -stream |select-string running |measure-object -line | select-object -expandproperty lines
+      Condition: '= 0'
+      Enabled: dryrun
+      HealAction: Start-Service wuauserv; get-service wuauserv 
+      # if the action is successful, expect to get below output from 'get-service wuauserv' command
+      # Running  wuauserv           Windows Update
+      #  1      2  3 <-- compare patterns group number
+      ComparePatterns: { '^(Running)(\s+)(wuauserv)': { 3: 'wuauserv'} }
+      HealAfterInSec: 300
+      HealIntervalInSec: 900
+    ServiceWebClient:
+      ### use the variable value defined per environment to send notification
+      Alert: '{{ EmailAddress }}'
+      # AppStatusFile - not specifying here, use the one defined at environment level or at All level
+      # start windows update service if not running
+      Command: get-service webclient |out-string -stream |select-string running |measure-object -line | select-object -expandproperty lines
+      Condition: '= 0'
+      Enabled: Yes
+      HealAction: Start-Service webclient; get-service webclient 
+      # if the action is successful, expect to get below output from 'get-service wuauserv' command
+      # Running  WebClient           Windows Update
+      #  1      2  3 <-- compare patterns group number
+      ComparePatterns: { '^(Running)(\s+)(\w+)': { 3: 'WebClient'} }
+      HealAfterInSec: 1800
+      HealIntervalInSec: 1800
+      MaxAttempts: 5

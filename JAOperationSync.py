@@ -12,12 +12,12 @@ Execution Flow
 """
 
 import os
-import sys
+#import sys
 import re
-import datetime
-import time
-import subprocess
-import signal
+#import datetime
+#import time
+#import subprocess
+#import signal
 from collections import defaultdict
 import JAGlobalLib
 import JAOperationSaveCompare
@@ -471,7 +471,7 @@ def JAOperationSync(
                             currentFileName, previousFileName,
                             defaultParameters['BinaryFileTypes'],
                             '', # compare type, find out compare type for binary files automatically
-                            defaultParameters['CompareCommand'],
+                            defaultParameters['CommandCompare'],
                             False,"","", # not a host to host compare scenario
                             "", # no additional info to log
                             interactiveMode, debugLevel,
@@ -563,7 +563,7 @@ def JAOperationSync(
                             currentFileName, previousFileName, 
                             False,  # prevHasCheckSum = False
                             defaultParameters['BinaryFileTypes'],
-                            defaultParameters['CompareCommand'],
+                            defaultParameters['CommandCompare'],
                             False,"","", # not a host to host compare scenario
                             "", # no additional info to log
                             interactiveMode, debugLevel,

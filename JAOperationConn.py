@@ -7,24 +7,22 @@ Execution Flow
     Extract connectivity check specific parametrs from yml buffer
     Run connectivity check
     If interactive mode, display results
-    Else, store the results to a JAAudit.conn.log.YYYYMMDD file
+    Else, store the results to a Reports/JAAudit.conn.YYYYMMDD file
     If upload is enabled, add report file to upload file list
     Write history file
 
 """
 
-import os
-import sys
+#import os
+#import sys
 import re
-import datetime
-import time
-import subprocess
-import signal
+#import datetime
+#import time
+#import subprocess
+#import signal
 from collections import defaultdict
 import JAGlobalLib
 
-import hashlib
-import shutil
 
 def JAReadConfigConn( 
         baseConfigFileName, 
@@ -77,7 +75,7 @@ def JAReadConfigConn(
 
         return returnStatus, numberOfItems
 
-    ### derive the save compare spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
+    ### derive the  spec file, first check under LocalRepositoryCustom, next under LocalRepositoryCommon
     returnStatus, connSpecFileName, errorMsg = JAGlobalLib.JADeriveConfigFileName( 
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCustom']),
           '{0}/{1}'.format(defaultParameters['LocalRepositoryHome'], defaultParameters['LocalRepositoryCommon']),
@@ -280,12 +278,6 @@ def JAOperationConn(
     if returnStatus == False:
         ### fatal error, can't proceed.
         return returnStatus, numberOfItems
-
-    ### this file is used as temporary storage for output of commands
-    ### this temp file is deleted at the end of compare operation
-    currentDataFileName ="{0}/JAAudit.dat.{1}".format(
-        defaultParameters['LogFilePath'],
-         os.getpid() )
 
     ### initialize counters to track summary
     ### numberOfErrors - when connectivity fails to all hosts

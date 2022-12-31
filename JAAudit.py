@@ -22,7 +22,7 @@ Execution flow
 import os
 import sys
 import re
-import datetime
+#import datetime
 import time
 import subprocess
 import signal
@@ -107,11 +107,11 @@ def JAHelp():
     helpString1 = """
     python JAAudit.py -o <operations> [-s <subsystem>] [-p <platform>] [-k <SCMHostName>] [-H <downloadHostName>] 
        [-d <saveDirectory>] [-D <debugLevel>] [-f <baseConfigFile>] [-l <logFileName>]  [-F <reportFormat>]
-       [-fT <fromTime in YYYY-MM-DD hh:mm:ss>] [-tT <toTime in YYYY-MM-DD hh:mm:ss>] [-dT <deltaTimeInMin>] 
-       [-i <ignoreHostNameIPDifference>]
+       [-fT <fromTime in YYYY-MM-DD hh:mm:ss>] [-tT <toTime in YYYY-MM-DD hh:mm:ss>] [-dT <deltaTimeInMin>]
+       [-P <logEventPriority like 1,2,3>] [-M <maxLogLines> ]
     
     -o <operations> - can have one or more operations in CSV format. operations supported are -
-          backup,cert,compare,conn,default,download,heal,health,help,inventory,license,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload,version
+          backup,cert,compare,conn,default,download,heal,health,help,inventory,license,logs,perfStatsOS,perfStatsApp,save,stats,sync,task,test,upload,version
 
         If called with operation 'backup'
             Takes the environment snapshot by carrying out instructions in <baseConfigFile>.<subsystem>.compare.yml
@@ -122,10 +122,11 @@ def JAHelp():
             Checks the start and end dates, DNS alias of certificates specified in <baseConfigFile>.<subsystem>.cert.yml file.
             The spec can include commands to connect to a running process, get the cert being used by that process
                 and display desired attributes.
+            It compares the current response values to expected values based on 'ComparePatterns' rules.
 
         If called with operation 'compare'
-            Takes the environment snapshot by carrying out instructions in save<baseConfigFile>.<subsystem>.compare.yml,
-              compares the snapshot with the snapshot saved before at JAAudit/<saveDir>
+            Takes the environment snapshot by carrying out instructions in <baseConfigFile>.<subsystem>.compare.yml,
+              compares the snapshot with the snapshot saved before at 'LocalRepositoryHome'/<saveDir>
             Typically used after applying change to the environment like OS update, application code/config update
                 to audit the changes to the environment.
 
@@ -144,29 +145,36 @@ def JAHelp():
                 change apply to all hosts in one or more environments.
 
         If called with operation 'download'
-            If rsync is enabled for that host, it will sync files from SCM host to local host from specified path.
-            If not, uses wget to get latest files from SCM host to local host from specified path.
+            It uses wget to get latest files from SCM host to local host from specified path. 
+            It makes a download file list using the compare spec itself and uses wget to get all those with single wget session.
             Typically used during host to host compare, or to restore the files backed up before on SCM host. 
 
         If called with operation 'heal'
-            Executes heal instructions in health<baseConfigFile>.<subsystem>.heal.yml to automatically correct anomalies in system health.
+            Executes heal instructions in <baseConfigFile>.<subsystem>.heal.yml to automatically correct anomalies in system health.
             Actions are recorded in History.heal.log.<YYYYMMDD>
             If heal action count exceeds the threshold, sends email alert.
 
         If called with operation 'health'
             Collects current health of a host covering OS, DB, application, services, connections etc by acting on 
                 specification in <baseConfigFile><subsystem>.health.yml.
+            It compares the current response values to expected values based on 'ComparePatterns' rules.
 
         If called with operation 'help,
             display help message and exit
 
         If called with operation 'inventory'
-            Collects the S/W version information by carrying out instructions in inventory<baseConfigFile>.<subsystem>.inventory.yml
+            Collects the S/W version information by carrying out instructions in <baseConfigFile>.<subsystem>.inventory.yml
             Typically used after applying change to the environment like OS update, application code/config update
                 to collect latest version information.
 
         If called with operation 'license'
-            Executes license display commands specified in license<baseConfigFile>.<subsystem>.license.yml and displays the results
+            Executes license display commands specified in <baseConfigFile>.<subsystem>.license.yml and displays the results
+            It compares the current response values to expected values based on 'ComparePatterns' rules.
+
+        If called with operation 'logs'
+            Will extract log lines of desired priority fro log files specified in <baseConfigFile>.<subsystem>.stats.yml 
+            and displays those log lines. If 'PerfStatsAppsConfig' is specified in environment yml file, it will be used
+            for stats specification.
 
         If called with operation 'perfStatsOS'
             Invokes JAGatherOSStats.py along with host specific parameters.
@@ -175,12 +183,13 @@ def JAHelp():
             Invokes JAGatherLogStats.py along with host specific parameters.
 
         If called with operation 'save'
-            Takes the environment snapshot by carrying out instructions in save<baseConfigFile>.<subsystem>.compare.yml,
+            Takes the environment snapshot by carrying out instructions in <baseConfigFile>.<subsystem>.compare.yml,
               Saves the collected snapshot in JAAudit/<saveDir>
             Typically done before applying change to the environment like OS update, application code/config update
 
         If called with operation 'stats'
-            Parse log file(s) specified in stats<baseConfigFile>.<subsystem>.stats.yml and print stats in CSV format
+            Parse log file(s) specified in <baseConfigFile>.<subsystem>.stats.yml and print stats in tabular format
+            If 'PerfStatsAppsConfig' is specified in environment yml file, it will be used for stats specification.
 
         If called with operation 'sync'
             Syncs the code & config (all spec files) from SCM to local host. rsync will be used if specified
@@ -189,15 +198,16 @@ def JAHelp():
                 achieve continuous deployment of audit tool to all desired environments automatically.
 
         If called with operation 'task'
-            Runs the tasks specified in task<baseConfigFile>.<subsystem>.task.yml
+            Runs the tasks specified in <baseConfigFile>.<subsystem>.task.yml
             Typically used to manage tasks to be run on many hosts of one or more environments by using
                 single definition source on SCM or git type of repository. This task approach eliminates the
                 need to manage the crontab on each individual host.
 
         If called with operation 'test'
-            Runs the tests specified in test<baseConfigFile>.<subsystem>.test.yml, compare current result to the <ExpectedResult>
-                If <ExpectedResult>.sedCmd file is present, first translate the contents of <ExpectedResult> and 
-                   current result by applying those sed commands before comparing to ignore dynamic contents.
+            Runs the tests specified in <baseConfigFile>.<subsystem>.test.yml, compare current result to the contents of 
+            file <ItemName>. If the test spec includes 'IgnorePatterns', those will be applied to mask data before the comparison.
+            If the test spec includes 'ComparePatterns', contents of the current response will be compared to specific
+              patterns seen expected contents file.
             Typically used before a change is made to the environment to record behavior of the application before a change
                and after the change is completed to ensure behavior is no worse than previous behavior.
 
@@ -278,7 +288,15 @@ def JAHelp():
     [-dT <deltaTimeInMin>] - applicable for 'stats' operation.
         Compute fromTime by subtracting these number of minutes from current time.
         Use current time as toTime.
-    
+
+    [-P <logEventPriority like 1,2,3>] - applicable to 'logs' operation
+        display log lines with priority less than or equal to this priority
+        default based on spec in stats yml file
+
+    [-M <maxLogLines>] - applicable to 'logs' operation
+        limit the number of log lines per log event to this number. 
+        default based on spec in stats yml file
+
     [-i <ignoreHostNameIPDifference>] - If 'yes', ignore hostname and host's IP while doing host to host compare.
         Defaults to 'no'
 
@@ -367,6 +385,10 @@ def JAHelp():
                 
         python JAAudit.py -o stats -fT "2022-11-05 00:00:00" -tT "2022-11-05 13:00:00" <-- parse log lines with timestamp
                 given in fromTime and toTome.
+
+        python JAAudit.py -o logs -dT 10 <-- display log lines for last 10 minutes for all log event priorities
+        python JAAudit.py -o logs -dT 30 -P 2 -M 5 <-- display 5 lines max per log event; 
+            of priority 2 or lower, seen in last 30 minutes
 
         python JAAudit.py -o conn <-- run connectivity test from current host to other host(s)
             Default <subsystem> of 'Apps' is used (see <subsystem> for more details)
@@ -576,8 +598,18 @@ else:
     
 if '-dT' in argsPassed:
     deltaTimeInMin = int(argsPassed['-dT'])
-    defaultParameters['FromTime'] = JAGlobalLib.JAGetDateTime(deltaTimeInMin*60)
-    defaultParameters['ToTime'] = JAGlobalLib.UTCDateTime()
+    defaultParameters['FromTime'] = str(JAGlobalLib.JAGetDateTime(deltaTimeInMin*60))
+    defaultParameters['ToTime'] = str(JAGlobalLib.UTCDateTime())
+
+if '-P' in argsPassed:
+    defaultParameters['LogEventPriority'] = int(argsPassed['-P'])
+else:
+    defaultParameters['LogEventPriority'] = None
+
+if '-M' in argsPassed:
+    defaultParameters['MaxLogLines'] = int(argsPassed['-M'])
+else:
+    defaultParameters['MaxLogLines'] = None
 
 returnResult = "_JAAudit_PASS_" # change this to other errors when error is encountered
 
@@ -695,13 +727,13 @@ customizableCommands = [
     'CommandToGetDBVersion',
     'CommandToGetListenPorts',
     'CommandCurl',
-    'CompareCommand',
+    'CommandCompare',
     'CommandConnCheck',
     'CommandToGetOSType',
     'CommandToGetOSVersion',
     'CommandChmod',
     'CommandWget',
-    'CompareCommandH2H',
+    'CommandCompareH2H',
     'CommandRsync',
     'CommandToDecodeCert',
 ]
@@ -1216,6 +1248,17 @@ if re.search("inventory", operations) != None :
 if re.search("license", operations) != None :
     JAExecuteOperations.JARun( 
         "license", defaultParameters['MaxWaitTime'],
+        baseConfigFileName, subsystem, myPlatform, appVersion,
+        OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
+        outputFileHandle, colorIndex, HTMLBRTag, myColors, 
+        interactiveMode, operations, thisHostName, yamlModulePresent,
+        defaultParameters, debugLevel, currentTime, allowedCommands
+    )
+
+### if logs is opted, run it
+if re.search("logs", operations) != None :
+    JAExecuteOperations.JARun( 
+        "logs", defaultParameters['MaxWaitTime'],
         baseConfigFileName, subsystem, myPlatform, appVersion,
         OSType, OSName, OSVersion, defaultParameters['LogFilePath'],  
         outputFileHandle, colorIndex, HTMLBRTag, myColors, 

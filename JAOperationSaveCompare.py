@@ -440,7 +440,7 @@ def JAPrepareUploadFileList(
  
 def JAOperationCompareFiles(
     currentFileName:str, previousFileName:str, 
-    binFileTypes:str, compareType:str, compareCommand:str,
+    binFileTypes:str, compareType:str, CommandCompare:str,
     compareH2H:bool, ignorePatterns,
     logAdditionalInfo:str,
     interactiveMode:bool, debugLevel:int,
@@ -568,7 +568,7 @@ def JAOperationCompareFiles(
                 # binary file, no further compare needed, return status
                 return returnStatus, fileDiffer, errorMsg
 
-        tempCompareCommand = ''
+        tempCommandCompare = ''
         ### for host to host compare, use H2H compare specific command and sed command
         if compareH2H == True and ignorePatterns != None:
             ### prepare temporary files containing lines masked with ignore patterns.
@@ -591,41 +591,41 @@ def JAOperationCompareFiles(
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             if returnStatus == True:
                 if OSType == "Windows":
-                    tempCompareCommand = "{0} (cat {1}) (cat {2})".format(compareCommand, currentFileNameDataMasked, previousFileNameDataMasked )
+                    tempCommandCompare = "{0} (cat {1}) (cat {2})".format(CommandCompare, currentFileNameDataMasked, previousFileNameDataMasked )
                 else:
                     # host to host compare scenario
-                    tempCompareCommand = "{0} {1} {2}".format( compareCommand, currentFileNameDataMasked, previousFileNameDataMasked  )
+                    tempCommandCompare = "{0} {1} {2}".format( CommandCompare, currentFileNameDataMasked, previousFileNameDataMasked  )
         else:
             # regular compare scenario
             if OSType == "Windows":
-                tempCompareCommand = "{0} (cat {1}) (cat {2})".format(compareCommand, currentFileName, previousFileName )
+                tempCommandCompare = "{0} (cat {1}) (cat {2})".format(CommandCompare, currentFileName, previousFileName )
             else:
                 ### Unix/Linux
-                tempCompareCommand = "{0} {1} {2}".format(compareCommand, currentFileName, previousFileName )
+                tempCommandCompare = "{0} {1} {2}".format(CommandCompare, currentFileName, previousFileName )
 
         if debugLevel > 1:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationCompareFiles() comparing files with command:|{0}|".format(tempCompareCommand), 
+                "DEBUG-2 JAOperationCompareFiles() comparing files with command:|{0}|".format(tempCommandCompare), 
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-        if tempCompareCommand == '':
+        if tempCommandCompare == '':
             return returnStatus, True, errorMsg
             
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
                 shell,
-                tempCompareCommand, debugLevel, OSType)
+                tempCommandCompare, debugLevel, OSType)
 
         if returnResult == False:
             returnStatus = False
             if len(returnOutput) > 0 and len(errorMsg) == 0:
                 ### since there is no msg in stderr, treat this as successful execution with error code return from the command
                 errorMsg = "DIFF JAOperationCompareFiles() files differ, compare command:|{0}|, return response:{1}".format(
-                tempCompareCommand, returnOutput    )
+                tempCommandCompare, returnOutput    )
                 returnStatus = True
             elif len(errorMsg) > 0:
                 errorMsg = "ERROR JAOperationCompareFiles() Error comparing files, compare command:|{0}|, error:{1}".format(
-                tempCompareCommand, errorMsg    )
+                tempCommandCompare, errorMsg    )
 
             JAGlobalLib.LogLine(
                 errorMsg, 
@@ -646,7 +646,7 @@ def JAOperationCompareFiles(
 
             if fileDiffer != False:
                 JAGlobalLib.LogLine(
-                    tempCompareCommand, 
+                    tempCommandCompare, 
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 JAGlobalLib.LogLine(
@@ -907,7 +907,7 @@ def JAOperationSaveCompare(
             discoveredSpecFileName, discoveredSpecSaveFileName, 
             defaultParameters['BinaryFileTypes'],
             'text', # compareType
-            defaultParameters['CompareCommand'],
+            defaultParameters['CommandCompare'],
             False, ### not H2H compare scenario
             None,  ### no ignore pattern
             '', ### file comparison, no additional info to print
@@ -1037,7 +1037,7 @@ def JAOperationSaveCompare(
                         currentFileName, saveFileName, 
                         defaultParameters['BinaryFileTypes'],
                         objectAttributes['CompareType'],
-                        defaultParameters['CompareCommand'],
+                        defaultParameters['CommandCompare'],
                         compareH2H, objectAttributes['IgnorePatterns'],
                         "{0}".format(objectAttributes['Command']), ### logAdditionalInfo - command used to get environment details
                         interactiveMode, debugLevel,
@@ -1164,7 +1164,7 @@ def JAOperationSaveCompare(
                         referenceFileName, saveFileName, 
                         defaultParameters['BinaryFileTypes'],
                         objectAttributes['CompareType'],
-                        defaultParameters['CompareCommand'],
+                        defaultParameters['CommandCompare'],
                         compareH2H, objectAttributes['IgnorePatterns'],
                         '', ### file comparison, no additional info to print
                         interactiveMode, debugLevel,

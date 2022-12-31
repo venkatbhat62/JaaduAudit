@@ -26,12 +26,15 @@ OS:
     CommandCurl: /usr/bin/curl
     ### Compare command to be used to find diff between two text files
     ### compare all white space and blank lines
-    CompareCommand: diff -E
+    CommandCompare: diff -E
     CommandConnCheck: ../exe/telnet
     ### command to get listen port
     CommandToGetListenPorts: netstat -an |grep LISTEN | grep -E 'UDP|TCP' | awk -F' ' '{print $1" "$2}'
     CommandToGetOSType: uname
     CommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
+    ### command or script to be used to send mail, set this up so that mail can be sent using below syntax
+    ### echo "mail body text" | <MailCommand> -s <subject> <ToAddress>
+    CommandMail: mailx
     ### ksh command used to run programs, used in subprocess.run(args=['ksh', '-c', command])
     CommandShell: ksh -c
     ### wget command to get file from SCM
@@ -43,14 +46,19 @@ OS:
     LocalRepositoryHome: '/var/www/JaaduAudit'
     LogFilePath: '/var/www/JaaduAudit/Logs'
     ReportsPath: '/var/www/JaaduAudit/Reports'
-    JaaduVisionPath: '/var/www/JaaduAudit/client'
+    ### if JaaduVision is not installed, set below to None
+    ###   so that stats operation will look for spec yml file under 'LocalRepositoryCustom' path 
+    JaaduVisionPath: 'C:\Users\${username}\documents\github\JaaduVision\client'
     
   Linux:
     ### provide proper options so that nc will terminate itself after timeout, below example terminate in 5 seconds
     CommandConnCheck: nc -v -i 1 -w 5
     ### Compare command to be used to find diff between two text files
     ### compare all white space and blank lines
-    CompareCommand: diff -w -B
+    CommandCompare: diff -w -B
+    ### command or script to be used to send mail, set this up so that mail can be sent using below syntax
+    ### echo "mail body text" | <MailCommand> -s <subject> <ToAddress>
+    CommandMail: mailx
     ### bash command used to run programs, used in subprocess.run(args=['bash', '-c', command])
     CommandShell: bash -c
     ### wget command to get file from SCM
@@ -63,15 +71,21 @@ OS:
     LocalRepositoryHome: '/var/www/JaaduAudit'
     LogFilePath: '/var/www/JaaduAudit/Logs'
     ReportsPath: '/var/www/JaaduAudit/Reports'
+    ### if JaaduVision is not installed, set below to None
+    ###   so that stats operation will look for spec yml file under 'LocalRepositoryCustom' path 
     JaaduVisionPath: '/var/www/JaaduAudit/client'
+
   Windows:
     ### Compare command to be used to find diff between two text files
-    CompareCommand: 'compare-object -SyncWindow 10'
+    CommandCompare: 'compare-object -SyncWindow 10'
     ### powershell command to check connectivity 
     ### C:\Program Files\PowerShell\7\pwsh -command Test-NetConnection
     CommandConnCheck: 'Test-NetConnection'
     ### command to post data to SCM web server
     CommandCurl: iwr
+    ### command or script to be used to send mail, set this up so that mail can be sent using below syntax
+    ### echo "mail body text" | <MailCommand> -s <subject> <ToAddress>
+    CommandMail: SendMail.ps1
     ### powershell command used to gather environment details 
     ###   commands specified in <subsystem><platform><component>.yml are executed using this powershell command
     ###  this will be used to execute other commands specified for Windows environment
@@ -87,6 +101,8 @@ OS:
     LocalRepositoryHome: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository'
     LogFilePath: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository\Logs'
     ReportsPath: 'C:\Users\${username}\documents\github\JaaduAuditLocalRepository\Reports'
+    ### if JaaduVision is not installed, set below to None
+    ###   so that stats operation will look for spec yml file under 'LocalRepositoryCustom' path 
     JaaduVisionPath: 'C:\Users\${username}\documents\github\JaaduVision\client'
 
   All:
@@ -155,9 +171,17 @@ Component:
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: WindowsAPP.yml
-    ### config file used to gather perfStatsOS and perfStatsApp
-    PerfStatsAppsConfig: WindowsAPP.perfStatsApp.yml
-    PerfStatsOSConfig: WindowsAPP.perfStatsOS.yml
+    ### config file used to gather perfStatsApp and by stats operation
+    ### For 'perfStatsApp' operation, this file is expected to be at the path indicated by 'JaaduVisionPath'
+    ### For 'stats' operation, 
+    ###   if 'JaaduVisionPath' is not None, spec file will be searched there.
+    ###   else, the spec file is expected to be at path pointed by 'LocalRepositoryCustom'
+    PerfStatsAppsConfig: JAGatherLogStats.yml
+    ### config file used to gather perfStatsOS
+    ###  this file is expected to be at the path indicated by 'JaaduVisionPath'
+    PerfStatsOSConfig: JAGatherOSStatsWindows.yml
+    # PerfStatsAppsConfig: WindowsAPP.perfStatsApps.yml
+    # PerfStatsOSConfig: WindowsAPP.perfStatsOS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: 'echo TBD'
     CommandToGetDBVersion: 'echo TBD'
@@ -185,9 +209,17 @@ Component:
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: LinuxAPP.yml
-    ### config file used to gather perfStatsOS and perfStatsApp
-    PerfStatsAppsConfig: LinuxAPP.perfStatsApp.yml
-    PerfStatsOSConfig: LinuxAPP.perfStatsOS.yml
+    ### config file used to gather perfStatsApp and by stats operation
+    ### For 'perfStatsApp' operation, this file is expected to be at the path indicated by 'JaaduVisionPath'
+    ### For 'stats' operation, 
+    ###   if 'JaaduVisionPath' is not None, spec file will be searched there.
+    ###   else, the spec file is expected to be at path pointed by 'LocalRepositoryCustom'
+    PerfStatsAppsConfig: JAGatherLogStats.yml
+    ### config file used to gather perfStatsOS
+    ###  this file is expected to be at the path indicated by 'JaaduVisionPath'
+    PerfStatsOSConfig: JAGatherOSStats.yml
+    # PerfStatsAppsConfig: LinuxAPP.perfStatsApps.yml
+    # PerfStatsOSConfig: LinuxAPP.perfStatsOS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: echo TBD
     ### command to get listen port
@@ -212,9 +244,6 @@ Component:
     ###  when the file is sent via email or placed in some doc respository without any platform/application association
     ### Do not suffix subsystem name here, it will be suffixed run time based on subsystem for which operation is being performed
     AppConfig: LinuxCS.yml
-    ### config file used to gather perfStatsOS and perfStatsApp
-    PerfStatsAppsConfig: LinuxCS.perfStatsApp.yml
-    PerfStatsOSConfig: LinuxCS.perfStatsOS.yml
     ### command to get application version, this will be appended to form AppConfig file name if returned value is not TBD
     CommandToGetAppVersion: cat ../conf/CS.version | sort | tail -1 | sed 's/\(.*\)\(CS\)-\(.*\)/\2/'
     ### if the current hostname match to below spec, it is considered of component type APP
@@ -335,6 +364,8 @@ Environment:
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
    Test:
+     # email address to send alert about the heal action taken or when max attempts is reached.
+     Alert: havembha@gmail.com
      ### keep automatic backup for 60 days
      BackupRetencyDurationInDays: 60
      ### keep  logs and result files for 7 days 
@@ -342,15 +373,20 @@ Environment:
      ### ubuntu host to test the flows on Linux
      HostName: (...)(t)(...)([0-9][0-9])|(havembha)
      OperationSync: 0.5
+     OperationBackup: 24
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
      SCMUploadPath: Linux/
    UAT:
+     # email address to send alert about the heal action taken or when max attempts is reached.
+     Alert: havembha@gmail.com
      HostName: (...)(u)(...)([0-9][0-9])
      ### will use the OperationSync value under ALL, thus, not specifying a value for UAT environment separately
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
    Prod1:
+     # email address to send alert about the heal action taken or when max attempts is reached.
+     Alert: havembha@gmail.com
      ### keep  logs and result files for 14 days 
      FileRetencyDurationInDays: 14
      HostName: (...)(p1)(...)([0-9][0-9])
@@ -358,6 +394,8 @@ Environment:
      SCMHostName1: 192.168.1.169
      SCMHostName2: 192.168.1.169
    Prod2:
+     # email address to send alert about the heal action taken or when max attempts is reached.
+     Alert: havembha@gmail.com
      ### keep  logs and result files for 14 days 
      FileRetencyDurationInDays: 14
      HostName: (...)(p2)(...)([0-9][0-9])
@@ -372,12 +410,13 @@ Environment:
    ##  if variable is already defined under environment before, value under 'All' will be ignored.
    ## HostName definition not needed in 'All' section, it will not be used for any selection criteria.
    All:
+     ### email address to send alert about the heal action taken or when max attempts is reached.
+     ### EmailAddress variable itself can be defined in heal spec file per environment 
+     Alert: '{{ EmailAddress }}'
      ### binary file type to check the diff by using MD5 checksum only
      BinaryFileTypes: (\.jar)|(\.war)|(\.)tar|(\.).gz|(\.)zip|(\.)gzip|logfilter(.*)
      ### debug level 0, no debug, 1 to 4, 4 being max details
      DebugLevel: 3
-     ### delta time for stats operation in min, process log lines with timestamp within below min from current time
-     DeltaTimeForStatsInMin: 10
 
      ### diff options while comparing text files, if application is sensitive about space, DO NOT ignore space
      ###  -a - do text difference
@@ -402,24 +441,6 @@ Environment:
      ###  <DocumentRoot>/UploadLocal/<platform>/<hostname>/<files>
      DownloadBasePath: UploadLocal
 
-     ### heal operation related definitions
-     ### healInterval in seconds
-     ###    take heal action within this interval with max action count not exceeding the HealCount specified for that command
-     ###    for example, if healInterval is 7200 or 2 hours, HealCount = 3, process will be restarted 3 times
-     ###    within 2 hours. 
-     HealIntervalInSec: 7200
-     ### HealAfterTime in seconds
-     ###    heal action will be performed after this time is elapsed from detecting the condition first
-     ###    this is to ensure normal stop/install/start operations does not trigger heal action
-     ###    if a process is down for long time and HealStatusFileName is not defined/ not present, 
-     ###      heal action will kick in
-     HealAfterTimeInSec: 14400
-     ### HealStatusFileName
-     ###    If this file is present, heal action depends on value within this file.
-     ###    Stopped - no action taken, system is under maintenance
-     ###    Running - heal enabled, HealAfterTime is not used
-     HealStatusFileName: ../bin/AppStatus.txt
-
      ### local folders on target host where common and custom respositories from SCM are synced to.
      ###  these are sub-directories under JAAudit install path.
      ### If all code is kept on a single folder on SCM, put '' for below definitions so that
@@ -441,6 +462,7 @@ Environment:
      ### 0.5 hours - use this value to run the operation every hour when the JaaduAudit is set to run every hour from crontab
      ###     specifying less than one hour so that any deviation in actual crontab execution will not impact.
      ### run certificate check
+     OperationBackup: 0
      OperationCert: 168
      ### run connectivity check
      OperationConn: 168
@@ -454,6 +476,7 @@ Environment:
      OperationInventory: 168
      ### collect license info
      OperationLicense: 168
+     OperationLogs: 0
      ### collect Application performance stats
      OperationPerfStatsApp: 0.5
      ### collect OS performance stats
