@@ -216,6 +216,16 @@ def JAReadConfigCHILT(
                             ### spec may be present under individual environment and later in All section
                             continue
 
+                if 'Command' in CHILTParams:
+                    if JAGlobalLib.JAIsSupportedCommand( CHILTParams['Command'], allowedCommands, OSType ) == False:
+                        numberOfWarnings += 1
+                        JAGlobalLib.LogLine(
+                            "WARN JAReadConfigCHILT() Unsupported command:|{0}| in parameter:|{1}| and itemName:|{2}|, Skipping this object definition".format(
+                                CHILTParams['Command'], 'Condition', CHILTName),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        continue
+
                 ### If any of Command or Condion is present, other one needs to be present.
                 if 'Command' in CHILTParams and 'Condition' not in CHILTParams:
                     JAGlobalLib.LogLine(
@@ -361,15 +371,15 @@ def JAOperationCHILT(
 
     reportFileNameWithoutPath = "JAAudit.{0}.{1}".format( operation, JAGlobalLib.UTCDateForFileName() )
     reportFileName = "{0}/{1}".format( defaultParameters['ReportsPath'], reportFileNameWithoutPath )
-    with open( reportFileName, "w") as reportFile:
+    with open( reportFileName, "a") as reportFile:
 
         ### write report header
-        reportFile.write(
-"TimeStamp: {0}\n\
-Platform: {1}\n\
-HostName: {2}\n\
-Environment: {3}\n\
-Items:\n\
+        reportFile.write("\
+TimeStamp: {0}\n\
+    Platform: {1}\n\
+    HostName: {2}\n\
+    Environment: {3}\n\
+    Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
 
         currentTime = time.time()
@@ -382,21 +392,21 @@ Items:\n\
             summaryResults[CHILTName]['Status'] = 'Unknown'
             summaryResults[CHILTName]['Details'] = 'Unknown'
             
-            reportFile.write(
-"   {0}:\n\
-        Command: {1}\n\
-        Condition: {2}\n\
-        {3}: {4}\n\
-        ComparePatterns: {5}\n\
-        Results:\n".format(
-            CHILTName,
-            CHILTAttributes['Command'],
-            CHILTAttributes['Condition'],
-            CHILTHeadings[operation],
-            CHILTAttributes[ CHILTHeadings[operation] ],
-            CHILTAttributes['ComparePatterns'],
-            CHILTAttributes['IgnorePatterns']
-        ))
+            reportFile.write("\
+            {0}:\n\
+            Command: {1}\n\
+            Condition: {2}\n\
+            {3}: {4}\n\
+            ComparePatterns: {5}\n\
+            Results:\n".format(
+                CHILTName,
+                CHILTAttributes['Command'],
+                CHILTAttributes['Condition'],
+                CHILTHeadings[operation],
+                CHILTAttributes[ CHILTHeadings[operation] ],
+                CHILTAttributes['ComparePatterns'],
+                CHILTAttributes['IgnorePatterns']
+            ))
 
             if debugLevel > 2:
                 JAGlobalLib.LogLine(
@@ -423,7 +433,7 @@ Items:\n\
                     ### align strat of text to follow yaml file space format
                     ###  leading space before printing the message below is intentional
                     reportFile.write("\
-            Skipped, condition not met\n")
+                Skipped, condition not met\n")
 
                     summaryResults[CHILTName]['Condition'] = 'Not Met'
                     summaryResults[CHILTName]['Status'] = 'INFO'
@@ -613,7 +623,7 @@ Items:\n\
                         ### align strat of text to follow yaml file space format
                         ###  leading space before printing the message below is intentional                                    
                         reportFile.write("\
-            {0}\n".format(line))
+                {0}\n".format(line))
 
 
                 ### common processing for cert, license, inventory, and health operations
@@ -640,7 +650,7 @@ Items:\n\
                             ### align strat of text to follow yaml file space format
                             ###  leading space before printing the message below is intentional
                             reportFile.write("\
-        {0}\n".format(errorMsg))
+                {0}\n".format(errorMsg))
 
                         ### even under partial match, these variables will be set.
                         numberOfComparePatternMatched += patternsMatched 
@@ -669,16 +679,16 @@ all passed:{3}, failed:{4}, ComparePatterns matched:{5}, ComparePatterns NOT mat
 
         ### write the summary and close the report file
         reportFile.write("\
-Summary:\n\
-    Total: {0}\n\
-    ConditionsMet: {1}\n\
-    ConditionsNotMet: {2}\n\
-    Pass: {3}\n\
-    Fail: {4}\n\
-    ComparePatternsMatched: {5}\n\
-    ComparePatternsNotMatched: {6}\n\
-    Error: {7}\n\
-    Details:\n\
+    Summary:\n\
+        Total: {0}\n\
+        ConditionsMet: {1}\n\
+        ConditionsNotMet: {2}\n\
+        Pass: {3}\n\
+        Fail: {4}\n\
+        ComparePatternsMatched: {5}\n\
+        ComparePatternsNotMatched: {6}\n\
+        Error: {7}\n\
+        Details:\n\
 ".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, 
             numberOfComparePatternMatched, numberOfComparePatternNotMatched, numberOfErrors ) )
 
@@ -690,7 +700,7 @@ Summary:\n\
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         reportFile.write("\
-        {0:6s} {1:48s} {2:12s} {3}\n".format(
+            {0:6s} {1:48s} {2:12s} {3}\n".format(
             "Status", "Item", "Condition", "Details" ) )
 
         ### Now, write concise report line per item
@@ -705,7 +715,7 @@ Summary:\n\
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
             reportFile.write("\
-        {0:6s} {1:48s} {2:12s} {3}\n".format(
+            {0:6s} {1:48s} {2:12s} {3}\n".format(
                 summaryResults[CHILTName]['Status'], 
                 CHILTName, 
                 summaryResults[CHILTName]['Condition'], 

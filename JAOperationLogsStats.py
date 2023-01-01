@@ -644,7 +644,7 @@ def JAOperationLogsStats(
     reportFileName = "{0}/{1}".format( defaultParameters['ReportsPath'], reportFileNameWithoutPath )
     if operation == 'stats':
         try:
-            reportFile = open( reportFileName, "w")
+            reportFile = open( reportFileName, "a")
 
         except OSError as err:
             JAGlobalLib.LogLine(
@@ -666,12 +666,12 @@ def JAOperationLogsStats(
 
     if reportFile != None:
         ### write report header
-        reportFile.write(
-"TimeStamp: {0}\n\
-Platform: {1}\n\
-HostName: {2}\n\
-Environment: {3}\n\
-Items:\n\
+        reportFile.write("\
+TimeStamp: {0}\n\
+    Platform: {1}\n\
+    HostName: {2}\n\
+    Environment: {3}\n\
+    Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
 
 

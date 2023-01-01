@@ -1,5 +1,5 @@
 # heal spec 
-# Author: havembha@gmail.com,  2022-12-29
+# Author: havembha@gmail.com,  2022-12-31
 # Format
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   Alert: email address to send alert about the heal action taken or when max attempts is reached.
@@ -78,13 +78,16 @@
 #       one specified under other environment takes precedence.
 #  Note - heal operation keeps the dynamic data in 'ReportsPath'/JAAudit.heal.profile containing info like
 #     <itemName><attribute>: <value>
-#     ServiceWindowsUpdateFirstDetectedTime: 1672585776
-#     ServiceWindowsUpdateFirstHealActionTime: 1672586076.0
-#     ServiceWindowsUpdateHealAttempts: 3
-#     ServiceWebClientFirstDetectedTime: 1672584466
-#     ServiceWebClientFirstHealActionTime: 0
-#     ServiceWebClientHealAttempts: 0
-#    
+#     JATestFirstDetectedTime: 1672587860
+#     JATestFirstHealActionTime: 0
+#     JATestHealAttempts: 0
+#     JASaveWSFirstDetectedTime: 1672587860
+#     JASaveWSFirstHealActionTime: 1672588449
+#     JASaveWSHealAttempts: 5
+#     JAGatherOSStatsFirstDetectedTime: 1672588050
+#     JAGatherOSStatsFirstHealActionTime: 0
+#     JAGatherOSStatsHealAttempts: 0
+#
 Dev:
   # email address to send alert about the heal action taken or when max attempts is reached.
   Alert: havembha@gmail.com
@@ -105,7 +108,7 @@ Test:
   ### change this to the file name used by the applicatoin
   AppStatusFile: /var/www/JaaduAudit/AppStatus.txt
   # specify hostname in regular expression 
-  HostName: ((...)(t)(...)([0-9][0-9]))
+  HostName: ((...)(t)(...)([0-9][0-9]))|(havembha)
   Variable:
     EmailAddress: echo 'havembha@gmail.com'
 UAT:
@@ -135,43 +138,34 @@ All:
   HealIntervalInSec: 1800
   MaxAttempts: 5
   Items:
-    ServiceHTTP:
+    JATest:
       ### below definition from Environment yml file will be used as default for this case.
       # Alert: {{ EmailAddress }}
       # AppStatusFile - not specifying here, use the one defined in Environment yml file
-      # start http service if number of service instance seen is less than 2. (expect to see 10 instances on windows pc)
-      Command: get-service -requiredservices | out-string -stream | select-string http | select-string running | measure-object -line | select-object -expandproperty lines
+      # start JATest.py if number of instances seen is less than 2. 
+      Command: ps -ef |grep 'python3 /var/www/JaaduAudit/client/JATest.py' |grep -v grep | wc -l
       Condition: '< 2'
       Enabled: No
-      HealAction: Start-Service http
-    ServiceWindowsUpdate:
+      HealAction: cd /var/www/JaaduAudit/client;nohup python3 /var/www/JaaduAudit/client/JATest.py -d 600 &
+    JASaveWS:
       ### use the variable value defined per environment to send notification
       Alert: '{{ EmailAddress }}'
       # AppStatusFile - not specifying here, use the one defined at environment level or at All level
-      # start windows update service if not running
-      Command: get-service wuauserv |out-string -stream |select-string running |measure-object -line | select-object -expandproperty lines
-      Condition: '= 0'
+      # start JASaveWS service if not running
+      Command: ps -ef |grep 'JASave' |grep -v grep | wc -l
+      Condition: '< 2'
       Enabled: dryrun
-      HealAction: Start-Service wuauserv; get-service wuauserv 
-      # if the action is successful, expect to get below output from 'get-service wuauserv' command
-      # Running  wuauserv           Windows Update
-      #  1      2  3 <-- compare patterns group number
-      ComparePatterns: { '^(Running)(\s+)(wuauserv)': { 3: 'wuauserv'} }
+      HealAction: cd /var/www/JaaduAudit/cgi-bin;nohup python3 JASaveWS.py &
       HealAfterInSec: 300
       HealIntervalInSec: 900
-    ServiceWebClient:
+    JAGatherOSStats:
       ### use the variable value defined per environment to send notification
       Alert: '{{ EmailAddress }}'
       # AppStatusFile - not specifying here, use the one defined at environment level or at All level
-      # start windows update service if not running
-      Command: get-service webclient |out-string -stream |select-string running |measure-object -line | select-object -expandproperty lines
+      Command: ps -ef |grep 'JAGatherOSStats.py' |grep -v grep | wc -l
       Condition: '= 0'
       Enabled: Yes
-      HealAction: Start-Service webclient; get-service webclient 
-      # if the action is successful, expect to get below output from 'get-service wuauserv' command
-      # Running  WebClient           Windows Update
-      #  1      2  3 <-- compare patterns group number
-      ComparePatterns: { '^(Running)(\s+)(\w+)': { 3: 'WebClient'} }
+      HealAction: cd /var/www/JaaduAudit/client;nohup python3 /var/www/JaaduAudit/client/JAGatherOSStats.py -C WS -P test -S TX &
       HealAfterInSec: 1800
       HealIntervalInSec: 1800
       MaxAttempts: 5

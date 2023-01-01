@@ -200,6 +200,17 @@ def JAReadConfigHealTask(
                             ### spec may be present under individual environment and later in All section
                             continue
                 
+                ### check for valid param values
+                if 'Command' in itemParams:
+                    if JAGlobalLib.JAIsSupportedCommand( itemParams['Command'], allowedCommands, OSType ) == False:
+                        numberOfWarnings += 1
+                        JAGlobalLib.LogLine(
+                            "WARN JAReadConfigHealTask() Unsupported command:|{0}| in parameter:|{1}| and itemName:|{2}|, Skipping this object definition".format(
+                                itemParams['Command'], 'Command', itemName),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        continue
+
                 if operation == 'heal':
                     ### command and condition both are mandatory for heal operation
                     if 'Command' not in itemParams or 'Condition' not in itemParams:
@@ -295,7 +306,7 @@ def JAOperationHeal(
     OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
-    defaultParameters, debugLevel, currentTime, allowedCommands, operation,
+    defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation,
     healProfileFileName ):
     """
     This function carries out heal operation. This is called after confirming that the condition is met.
@@ -315,42 +326,68 @@ def JAOperationHeal(
     """
     returnStatus = True
     actionTaken = False
-    currentTime = time.time()
-
+    resultText = ''
+    currentTimeInSec = int(int(time.time() * 1000000)/1000000)
+    
     if 'AppStatusFile' in serviceAttributes:
-        try:
-            with open( serviceAttributes['AppStatusFile'], 'r') as file:
-                appStatus = file.readline()
-                file.close()
-                if debugLevel > 1:
-                    JAGlobalLib.LogLine(
-                        "DEBUG-2 JAOperationHealTask() item:|{0}|, item attributes:|{1}|, appStatus:{2}".format(
-                        itemName, serviceAttributes, appStatus),
-                        interactiveMode,
-                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                if appStatus == 'Stopped':
-                    JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', 0 )
-                    return returnStatus, actionTaken
-        except OSError as err:
-            errorMsg = "ERROR JAReadConfigHealTask() item: {0}, Can not open appStatusFile:|{1}|, OS error:|{2}|\n".format(
-                itemName, serviceAttributes['AppStatusFile'], err)
-            JAGlobalLib.LogLine(
-                errorMsg,
-                interactiveMode,
-                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        if serviceAttributes['AppStatusFile'] != None and serviceAttributes['AppStatusFile'] != '':
+            try:
+                with open( serviceAttributes['AppStatusFile'], 'r') as file:
+                    appStatus = file.readline()
+                    file.close()
+                    if debugLevel > 1:
+                        JAGlobalLib.LogLine(
+                            "DEBUG-2 JAOperationHealTask() item:|{0}|, item attributes:|{1}|, appStatus:{2}".format(
+                            itemName, serviceAttributes, appStatus),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    if appStatus == 'Stopped':
+                        JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', 0 )
+                        resultText = "AppStatus: Stopped, heal action not taken"
+                        returnStatus = True
+                        if debugLevel > 0:
+                            JAGlobalLib.LogLine(
+                            "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+                                itemName, resultText), 
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+                        return returnStatus, actionTaken, resultText
+                    elif appStatus == 'Running':
+                        resultText = "AppStatus: Running, "
+            except OSError as err:
+                errorMsg = "ERROR JAReadConfigHealTask() item: {0}, Can not open appStatusFile:|{1}|, OS error:|{2}|, if not used, set 'AppStatusFile' to None\n".format(
+                    itemName, serviceAttributes['AppStatusFile'], err)
+                JAGlobalLib.LogLine(
+                    errorMsg,
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                resultText = "AppStatus: Unknown, "
+    else:
+        resultText = "AppStatus: Unknown, "
 
     returnStatus, firstDetectedTime = JAGlobalLib.JAGetProfile( healProfileFileName, itemName + 'FirstDetectedTime')
     if returnStatus == False:
         firstDetectedTime = 0
     else:
-        firstDetectedTime = float(firstDetectedTime)
+        firstDetectedTime = int(firstDetectedTime)
     if  firstDetectedTime == 0:
         ### no previous condition detected time, set current time as first detected time
-        JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', currentTime )
+        JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', currentTimeInSec )
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstHealActionTime', 0 )
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'HealAttempts', 0 )
+        resultText += "heal action not taken, detected condition first time at {0}".format(time.ctime())
+        returnStatus = True
+        if debugLevel > 0:
+            JAGlobalLib.LogLine(
+            "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+                itemName, resultText), 
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+        return returnStatus, actionTaken, resultText
     else:
-        elapsedTimeSinceFirstDetection = currentTime - firstDetectedTime
+        elapsedTimeSinceFirstDetection = currentTimeInSec - firstDetectedTime
         if debugLevel > 1:
             JAGlobalLib.LogLine(
                 "DEBUG-2 JAOperationHealTask() item:|{0}|, item attributes:|{1}|, HealAfterInSec:{2}, elapsedTimeSinceFirstDetection:{3}".format(
@@ -359,7 +396,18 @@ def JAOperationHeal(
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
         
         if elapsedTimeSinceFirstDetection < serviceAttributes['HealAfterInSec']:
-            return returnStatus, actionTaken
+            resultText += "heal action not taken, elapsed time since first detection of condition:{0} is less than HealAfterInSec:{1}".format(
+                elapsedTimeSinceFirstDetection, serviceAttributes['HealAfterInSec'])
+            returnStatus = True
+
+            if debugLevel > 0:
+                JAGlobalLib.LogLine(
+                "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+                    itemName, resultText), 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            return returnStatus, actionTaken, resultText
 
     ### condition was detected before, and elapsed time is greater than or equal to HealAfterInSec
     returnStatus, numberOfHealAttempts = JAGlobalLib.JAGetProfile( healProfileFileName, itemName + 'HealAttempts')
@@ -377,24 +425,28 @@ def JAOperationHeal(
     ###  check whether heal interval passed already
     returnStatus, firstHealActionTime = JAGlobalLib.JAGetProfile( healProfileFileName, itemName + 'FirstHealActionTime')
     if returnStatus == False:
-        firstHealActionTime = currentTime
+        firstHealActionTime = currentTimeInSec
         takeAction = True
     else:
-        firstHealActionTime = float(firstHealActionTime)
+        firstHealActionTime = int(firstHealActionTime)
         if firstHealActionTime == 0:
-            firstHealActionTime = currentTime
+            firstHealActionTime = currentTimeInSec
             takeAction = True   
     
-    if ( currentTime - firstHealActionTime) > serviceAttributes['HealIntervalInSec']:
+    if ( currentTimeInSec - firstHealActionTime) > serviceAttributes['HealIntervalInSec']:
         if numberOfHealAttempts >= serviceAttributes['MaxAttempts']:
             errorMsg = "{0} JAAudit - {1} - heal condition still exists after {2} attempts within heal interval:{3} sec".format(
                     alertHeading, itemName, numberOfHealAttempts, serviceAttributes['HealIntervalInSec']  )
+            resultText += "heal action not taken as number of attempts reached MaxAttempts:{0}, within heal interval:{1} sec".format(
+                     numberOfHealAttempts, serviceAttributes['HealIntervalInSec']  )
             sendAlert = True
         else:
             takeAction = True    
     elif numberOfHealAttempts >= serviceAttributes['MaxAttempts']:
         errorMsg = "{0} JAAudit - {1} - heal condition still exists after {2} attempts within heal interval:{3} sec".format(
-                alertHeading, itemName, numberOfHealAttempts, (currentTime - firstHealActionTime)  )
+                alertHeading, itemName, numberOfHealAttempts, (currentTimeInSec - firstHealActionTime)  )
+        resultText += "heal action not taken number of attempts reached MaxAttempts:{0}, within heal interval:{1} sec".format(
+                     numberOfHealAttempts, (currentTimeInSec - firstHealActionTime)  )
         sendAlert = True
     else:
         takeAction = True 
@@ -420,6 +472,8 @@ def JAOperationHeal(
                                 itemName, operation, errorMsg), 
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    returnStatus = False
+                    resultText += ", ERROR executing alert command {0}, command not found".format(mailCommand)
                 else:
                     if debugLevel > 1:
                         JAGlobalLib.LogLine(
@@ -432,6 +486,7 @@ def JAOperationHeal(
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+        ### heal did not work, threshold exceeded, alert sent, reset the trcking items.
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', 0 )
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstHealActionTime', 0 )
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'HealAttempts', 0 )
@@ -442,10 +497,13 @@ def JAOperationHeal(
             JAGlobalLib.LogLine(
                 "INFO JAOperationHealTask() heal {0} dryrun healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
                     itemName, defaultParameters['CommandShell'], serviceAttributes['HealAction'],
-                    numberOfHealAttempts,  (currentTime - firstHealActionTime) ),
+                    numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             actionTaken = True
+            resultText += "heal action dryrun healAction:|{0} {1}|, attempts:{2}, healIntervalElapsed:{3} sec".format( 
+                    defaultParameters['CommandShell'], serviceAttributes['HealAction'],
+                    numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ) 
         else:
             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
                 defaultParameters['CommandShell'], serviceAttributes['HealAction'], debugLevel, OSType)
@@ -457,27 +515,32 @@ def JAOperationHeal(
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 returnStatus = False
+                resultText += "ERROR executing healAction:|{0} {1}|, attempts:{2}, healIntervalElapsed:{3} sec, errorMsg:|{4}".format( 
+                    defaultParameters['CommandShell'], serviceAttributes['HealAction'],
+                    numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime), errorMsg )
             else:
                 if debugLevel > 1:
                     JAGlobalLib.LogLine(
                         "DEBUG-2 JAOperationHealTask() heal {0} executed healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
                             itemName, defaultParameters['CommandShell'], serviceAttributes['HealAction'],
-                            numberOfHealAttempts,  (currentTime - firstHealActionTime) ),
+                            numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            
+                resultText += "Executed healAction:|{0} {1}|, attempts:{2}, healIntervalElapsed:{3} sec".format( 
+                    defaultParameters['CommandShell'], serviceAttributes['HealAction'],
+                    numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) )
                 actionTaken = True
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstHealActionTime', firstHealActionTime )
         JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'HealAttempts', numberOfHealAttempts )
 
-    return returnStatus, actionTaken
+    return returnStatus, actionTaken, resultText
 
 def JAOperationTask(
     serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
     OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
-    defaultParameters, debugLevel, currentTime, allowedCommands, operation ):
+    defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation ):
 
     returnStatus = True
     actionTaken = False
@@ -489,7 +552,7 @@ def JAOperationHealTask(
                 OSType, OSName, OSVersion,   
                 outputFileHandle, colorIndex, HTMLBRTag, myColors,
                 interactiveMode, operations, thisHostName, yamlModulePresent,
-                defaultParameters, debugLevel, currentTime, allowedCommands, operation ):
+                defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation ):
 
     """"
     This function handles operations - heal and task
@@ -502,12 +565,12 @@ def JAOperationHealTask(
     returnStatus = True
     errorMsg = ''
 
-    ### derive connectivity spec file using subsystem and application version info
+    ### derive spec file using subsystem and application version info
         
     if debugLevel > 0:
         JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationHealTask() Connectivity spec:{0}, subsystem:{1}, appVersion:{2}, interactiveMode:{3}".format(
-            baseConfigFileName, subsystem, appVersion, interactiveMode),
+            "DEBUG-1 JAOperationHealTask() {0} spec:{1}, subsystem:{2}, appVersion:{3}, interactiveMode:{4}".format(
+            operation, baseConfigFileName, subsystem, appVersion, interactiveMode),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     
@@ -536,20 +599,21 @@ def JAOperationHealTask(
     ### numberOfConditionsMet - connectivity test performed after conditions met
     ### numberOfConditionsNotMet - connectivity test NOT performed since condition was not met
     numberOfItems = numberOfErrors = numberOfFailures  = numberOfConditionsMet = numberOfConditionsNotMet = numberOfPasses = 0
-    
+    numberOfNoActionTaken = 0
+
     healProfileFileName = "{0}/JAAudit.heal.profile".format( defaultParameters['ReportsPath'] )
 
     reportFileNameWithoutPath = "JAAudit.{0}.{1}".format( operation, JAGlobalLib.UTCDateForFileName() )
     reportFileName = "{0}/{1}".format( defaultParameters['ReportsPath'], reportFileNameWithoutPath )
-    with open( reportFileName, "w") as reportFile:
+    with open( reportFileName, "a") as reportFile:
 
         ### write report header
         reportFile.write("\
 TimeStamp: {0}\n\
-Platform: {1}\n\
-HostName: {2}\n\
-Environment: {3}\n\
-Items:\n\
+    Platform: {1}\n\
+    HostName: {2}\n\
+    Environment: {3}\n\
+    Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
 
         ### save or compare information of each object
@@ -564,118 +628,124 @@ Items:\n\
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+            resultText = ''
             conditionPresent, conditionMet = JAGlobalLib.JAEvaluateCondition(
                                 itemName, serviceAttributes, defaultParameters, debugLevel,
                                 interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType)
 
             if conditionPresent == True:
                 if conditionMet == False:
-                    if debugLevel > 1:
+                    if debugLevel > 0:
                         JAGlobalLib.LogLine(
-                            "DEBUG-2 JAOperationHealTask() condition not met for item:|{0}|, item attributes:|{1}|, skipping this item".format(
+                            "DEBUG-1 JAOperationHealTask() condition not met for item:|{0}|, item attributes:|{1}|, skipping this item".format(
                             itemName, serviceAttributes),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
                     numberOfConditionsNotMet += 1
-                    if operation == 'heal':
-                        ### log result, align the spaces so that yaml layout format is satisfied.
-                        ### leading space in write content is intentional, to align the data per yml format.
-                        reportFile.write("\
-    {0}:\n\
-        Alert: {1}\n\
-        AppStatusFile: {2}\n\
-        Command: {3}\n\
-        ComparePatterns: {4}\n\
-        Condition: {5}\n\
-        Enabled: {6}\n\
-        HealAction: {7}\n\
-        HealAfterInSec: {8}\n\
-        HealIntervalInSec: {9}\n\
-        MaxAttempts: {10}\n\
-        Results:\n\
-            Skipped, condition not met\n".format(
-            itemName,
-            serviceAttributes['Alert'],
-            serviceAttributes['AppStatusFile'],
-            serviceAttributes['Command'],
-            serviceAttributes['Condition'],
-            serviceAttributes['ComparePatterns'],
-            serviceAttributes['Enabled'],
-            serviceAttributes['HealAction'],
-            serviceAttributes['HealAfterInSec'],
-            serviceAttributes['HealIntervalInSec'],
-            serviceAttributes['MaxAttempts'],
-        ))
-                    else:
-                        reportFile.write("\
-    {0}:\n\
-        Alert: {1}\n\
-        Command: {2}\n\
-        Condition: {3}\n\
-        Task: {4}\n\
-        Periodicity: {5}\n\
-        Results:\n\
-            Skipped, condition not met\n".format(
-            itemName,
-            serviceAttributes['Alert'],
-            serviceAttributes['Command'],
-            serviceAttributes['Condition'],
-            serviceAttributes['Task'],
-            serviceAttributes['Periodicity'] ))
+                    resultText = 'Skipped, condition not met'
 
+                else:
+                    numberOfConditionsMet += 1
                     if operation == 'heal':
-                            ### if the condition was met before, remove the first detected time in heal tracking data file
-                        returnStatus = JAGlobalLib.JASetProfile( healProfileFileName, itemName + 'FirstDetectedTime', 0 )
-                        numberOfConditionsMet += 1
-                        if debugLevel > 1:
+                        
+                        if debugLevel > 0:
                             JAGlobalLib.LogLine(
-                                "DEBUG-2 JAOperationHealTask() condition not met for item:|{0}|, item attributes:|{1}|, skipping this item".format(
+                                "DEBUG-1 JAOperationHealTask() condition met for item:|{0}|, item attributes:|{1}|, proceeding with heal processing".format(
                                 itemName, serviceAttributes),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    continue
+
+                        returnStatus, actionTaken, resultText = JAOperationHeal(
+                            itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
+                            OSType, OSName, OSVersion,   
+                            outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                            interactiveMode, operations, thisHostName, yamlModulePresent,
+                            defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation,
+                            healProfileFileName )
+
+                    else:
+                        returnStatus, actionTaken, resultText = JAOperationTask(
+                            itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
+                            OSType, OSName, OSVersion,   
+                            outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                            interactiveMode, operations, thisHostName, yamlModulePresent,
+                            defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation )
+
+                    if returnStatus == True:
+                        if actionTaken == True:
+                            numberOfPasses += 1
+                        else:
+                            numberOfNoActionTaken += 1
+                    else:
+                        numberOfFailures += 1
 
             if operation == 'heal':
-                returnStatus, actionTaken = JAOperationHeal(
-                    itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
-                    OSType, OSName, OSVersion,   
-                    outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                    interactiveMode, operations, thisHostName, yamlModulePresent,
-                    defaultParameters, debugLevel, currentTime, allowedCommands, operation,
-                    healProfileFileName )
-
+                        ### log result, align the spaces so that yaml layout format is satisfied.
+                        ### leading space in write content is intentional, to align the data per yml format.
+                reportFile.write("\
+        {0}:\n\
+            Alert: {1}\n\
+            AppStatusFile: {2}\n\
+            Command: {3}\n\
+            ComparePatterns: {4}\n\
+            Condition: {5}\n\
+            Enabled: {6}\n\
+            HealAction: {7}\n\
+            HealAfterInSec: {8}\n\
+            HealIntervalInSec: {9}\n\
+            MaxAttempts: {10}\n\
+            Results:\n\
+                {11}\n".format(
+                    itemName,
+                    serviceAttributes['Alert'],
+                    serviceAttributes['AppStatusFile'],
+                    serviceAttributes['Command'],
+                    serviceAttributes['ComparePatterns'],
+                    serviceAttributes['Condition'],
+                    serviceAttributes['Enabled'],
+                    serviceAttributes['HealAction'],
+                    serviceAttributes['HealAfterInSec'],
+                    serviceAttributes['HealIntervalInSec'],
+                    serviceAttributes['MaxAttempts'],
+                    resultText ))
             else:
-                returnStatus, actionTaken = JAOperationTask(
-                    itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
-                    OSType, OSName, OSVersion,   
-                    outputFileHandle, colorIndex, HTMLBRTag, myColors,
-                    interactiveMode, operations, thisHostName, yamlModulePresent,
-                    defaultParameters, debugLevel, currentTime, allowedCommands, operation )
-
-            if returnStatus == True:
-                if actionTaken == True:
-                    numberOfPasses += 1
-            else:
-                numberOfFailures += 1
+                    reportFile.write("\
+        {0}:\n\
+            Alert: {1}\n\
+            Command: {2}\n\
+            Condition: {3}\n\
+            Task: {4}\n\
+            Periodicity: {5}\n\
+            Results:\n\
+                {6}\n".format(
+                        itemName,
+                        serviceAttributes['Alert'],
+                        serviceAttributes['Command'],
+                        serviceAttributes['Condition'],
+                        serviceAttributes['Task'],
+                        serviceAttributes['Periodicity'],
+                        resultText ))
 
         JAGlobalLib.LogLine(
             "INFO JAOperationHealTask() Total items:{0}, conditions met:{1}, conditions NOT met:{2}, \
-    all passed:{3}, failed:{4}, errors:{5}".format(
-            numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, numberOfErrors ),
+    all passed:{3}, failed:{4}, no action taken: {5}, errors:{6}".format(
+            numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, 
+                numberOfNoActionTaken, numberOfErrors ),
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         ### write the summary and close the report file
         reportFile.write("\
-Summary:\n\
-    Total: {0}\n\
-    ConditionsMet: {1}\n\
-    ConditionsNotMet: {2}\n\
-    Pass: {3}\n\
-    Fail: {4}\n\
-    Error: {5}\n\
-".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, numberOfErrors ) )
+    Summary:\n\
+        Total: {0}\n\
+        ConditionsMet: {1}\n\
+        ConditionsNotMet: {2}\n\
+        Pass: {3}\n\
+        Fail: {4}\n\
+        NoActionTaken: {5}\n\
+        Error: {6}\n".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, 
+            numberOfFailures, numberOfNoActionTaken, numberOfErrors ) )
 
 
 

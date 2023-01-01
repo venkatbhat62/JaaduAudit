@@ -323,15 +323,15 @@ def JAOperationConn(
 
     reportFileNameWithoutPath = "JAAudit.conn.{0}".format( JAGlobalLib.UTCDateForFileName() )
     reportFileName = "{0}/{1}".format( defaultParameters['ReportsPath'], reportFileNameWithoutPath )
-    with open( reportFileName, "w") as reportFile:
+    with open( reportFileName, "a") as reportFile:
 
         ### write report header
         reportFile.write("\
 TimeStamp: {0}\n\
-Platform: {1}\n\
-HostName: {2}\n\
-Environment: {3}\n\
-Items:\n\
+    Platform: {1}\n\
+    HostName: {2}\n\
+    Environment: {3}\n\
+    Items:\n\
 ".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
 
         ### save or compare information of each object
@@ -371,21 +371,21 @@ Items:\n\
                     ### log result, align the spaces so that yaml layout format is satisfied.
                     ### leading space in write content is intentional, to align the data per yml format.
                     reportFile.write("\
-    {0}:\n\
-        Command: {1}\n\
-        Condition: {2}\n\
-        HostNames: {3}\n\
-        Ports: {4}\n\
-        Protocol: {5}\n\
-        Results:\n\
-            Skipped, condition not met\n".format(
-            serviceName,
-            serviceAttributes['Command'],
-            serviceAttributes['Condition'],
-            serviceAttributes['HostNames'],
-            serviceAttributes['Ports'],
-            serviceAttributes['Protocol']
-        ))
+        {0}:\n\
+            Command: {1}\n\
+            Condition: {2}\n\
+            HostNames: {3}\n\
+            Ports: {4}\n\
+            Protocol: {5}\n\
+            Results:\n\
+                Skipped, condition not met\n".format(
+                serviceName,
+                serviceAttributes['Command'],
+                serviceAttributes['Condition'],
+                serviceAttributes['HostNames'],
+                serviceAttributes['Ports'],
+                serviceAttributes['Protocol']
+            ))
                     continue
                 else:
                     numberOfConditionsMet += 1
@@ -428,20 +428,20 @@ Items:\n\
             
             ### leading space in write content is intentional, to align the data per yml format.
             reportFile.write("\
-    {0}:\n\
-        Command: {1}\n\
-        Condition: {2}\n\
-        HostNames: {3}\n\
-        Ports: {4}\n\
-        Protocol: {5}\n\
-        Results:\n".format(
-            serviceName,
-            serviceAttributes['Command'],
-            serviceAttributes['Condition'],
-            serviceAttributes['HostNames'],
-            serviceAttributes['Ports'],
-            serviceAttributes['Protocol']
-        ))
+        {0}:\n\
+            Command: {1}\n\
+            Condition: {2}\n\
+            HostNames: {3}\n\
+            Ports: {4}\n\
+            Protocol: {5}\n\
+            Results:\n".format(
+                serviceName,
+                serviceAttributes['Command'],
+                serviceAttributes['Condition'],
+                serviceAttributes['HostNames'],
+                serviceAttributes['Ports'],
+                serviceAttributes['Protocol']
+            ))
 
             ### now check the conectivity for each destination host and each port
             for tempHostName in tempHostNames:
@@ -484,10 +484,10 @@ Items:\n\
                     
                     ### leading space in write content is intentional, to align the data per yml format.
                     reportFile.write("\
-            - Name: {0}\n\
-              Port: {1}\n\
-              Result: {2}\n\
-              Details: {3}\n".format(tempHostName, tempPort, tempResult, returnOutput) )
+                - Name: {0}\n\
+                Port: {1}\n\
+                Result: {2}\n\
+                Details: {3}\n".format(tempHostName, tempPort, tempResult, returnOutput) )
 
             tempResult = 'TBD'
             if numberOfConnectivityTestsPerService > 1:
@@ -512,10 +512,10 @@ Items:\n\
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 ### leading space in write content is intentional, to align the data per yml format.
                 reportFile.write("\
-            - Name: {0}\n\
-              Port: {1}\n\
-              Result: {2}\n\
-              Details: {3}\n".format(serviceAttributes['HostNames'], serviceAttributes['Ports'], tempResult, returnOutput) )
+                - Name: {0}\n\
+                Port: {1}\n\
+                Result: {2}\n\
+                Details: {3}\n".format(serviceAttributes['HostNames'], serviceAttributes['Ports'], tempResult, returnOutput) )
             else:
                 ### use single test results as final results
                 if passCount > 0:
@@ -532,13 +532,13 @@ Items:\n\
 
         ### write the summary and close the report file
         reportFile.write("\
-Summary:\n\
-    Total: {0}\n\
-    ConditionsMet: {1}\n\
-    ConditionsNotMet: {2}\n\
-    Pass: {3}\n\
-    Fail: {4}\n\
-    Error: {5}\n\
+    Summary:\n\
+        Total: {0}\n\
+        ConditionsMet: {1}\n\
+        ConditionsNotMet: {2}\n\
+        Pass: {3}\n\
+        Fail: {4}\n\
+        Error: {5}\n\
 ".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, numberOfFailures, numberOfErrors ) )
 
 
@@ -561,7 +561,7 @@ Summary:\n\
                     reportFile.write("ListenPorts:\n")
                     for line in returnOutput:
                         reportFile.write("\
-    {0}\n".format(line))
+        {0}\n".format(line))
             else:
                 JAGlobalLib.LogLine(
                     errorMsg, 
