@@ -68,6 +68,7 @@
 #        HealAfterInSec: After detecting the condition, wait until this time in seconds elapses before taking the heal action.
 #           This is to allow maintenance operation performed by operations or users to continue as is without heal action interfering with that.
 #           This comes in to play when the status in AppStatusFile is Running or the file does not exist.
+#           Set this to 0, if immediate action is desired.
 #        MaxAttempts: Limit the heal action execution to this number and send notification, if opted, indicating the max limit reached.
 #        HealIntervalInSec: Take heal action within this interval with max attempts count not exeeding the set limit.
 #           For example, if HealInterval is 1800 seconds, and MaxAttempts is 5, HealAction will be performed 5 times within 1800 seconds or 30 min 

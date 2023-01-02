@@ -786,7 +786,7 @@ def JAGetUptime(OSType:str):
          uptime_seconds = 0
     return uptime_seconds
 
-def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", timeoutPassed=30):
+def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", timeoutPassed=30, nowait=False):
     """
     JAGlobalLib.JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", timeoutPassed=30)
 
@@ -801,77 +801,105 @@ def JAExecuteCommand(shell:str, command:str, debugLevel:int, OSType="Linux", tim
 
     """
     import subprocess
+    
     returnResult = False
     returnOutput = ''
 
     if debugLevel > 2:
         print("DEBUG-3 JAExecuteCommand() shell:{0}, command:|{1}|".format(shell, command))
 
-    try:
+    if nowait == True:
+        errorMsg = ''
+        DETACHED_PROCESS = 0x00000008
+        ### just run the command, DO NOT wait for it to complete
         if OSType == 'Windows':
-            result = subprocess.run( shell + " " + command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+            result = subprocess.Popen( shell + " " + command, 
+                shell=False, stdin=None, stdout=None, stderr=None,
+                close_fds=True, creationflags=DETACHED_PROCESS )
 
         else:
             ### separate words of given shell command to list
             shell = re.split(' ', shell)
             shell.append( command )
-            result = subprocess.run( args=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
+            result = subprocess.Popen( args=shell,  
+                shell=False, stdin=None, stdout=None, stderr=None,
+                close_fds=True)
 
         if result.returncode == 0:
-            if OSType == 'Windows':
-                ### replace \r\n with \n
-                returnOutput = result.stdout.decode('utf-8')
-                returnOutput = re.sub(r'\r\n', '\n', returnOutput)
-                returnOutput = re.sub(r'\r', '\n', returnOutput)
-                ### if only \r is present, replace it with \n
-                returnOutput = returnOutput.rstrip("\n")
-                returnOutput = returnOutput.split('\n')
-            else:
-                returnOutput = result.stdout.decode('utf-8').rstrip("\n")
-                returnOutput = returnOutput.split('\n')
-            errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0} {1}|, result:\n{2}'.format(shell, command,returnOutput)
-            returnResult = True
+            returnResult = False
         else:
-            ### execution failed
+            returnResult = True
+    else:
+        try:
             if OSType == 'Windows':
-                errorMsg = result.stderr.decode('utf-8')
-                errorMsg = re.sub(r'\r', '\n', errorMsg)
-                ### if only \r is present, replace it with \n
-                errorMsg = errorMsg.rstrip("\n")
-                errorMsg = errorMsg.split('\n')
-            else:
-                errorMsg = result.stderr.decode('utf-8').split('\n')
+                result = subprocess.run( shell + " " + command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
 
-            if OSType == 'Windows':
-                returnOutput = result.stdout.decode('utf-8')
-                returnOutput = re.sub(r'\r', '\n', returnOutput)
-                ### if only \r is present, replace it with \n
-                returnOutput = returnOutput.rstrip("\n")
-                returnOutput = returnOutput.split('\n')
             else:
-                returnOutput = result.stdout.decode('utf-8').split('\n')
+                ### separate words of given shell command to list
+                shell = re.split(' ', shell)
+                shell.append( command )
+                result = subprocess.run( args=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE,timeout=timeoutPassed)
 
-            lenErrorMsg = len(errorMsg)
-            if lenErrorMsg == 1:
-                lenErrorMsg = len(errorMsg[0])
-            if lenErrorMsg > 0:
-                errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, errorMsg:|{2}|'.format(shell, command, errorMsg)
-                returnResult = False
-            else:
-                ### this is a case where command itself was executed, returned result from that command is not 0 (not success)
-                ### since there was no error response, use stdout to process the result further.
-                ### when two files are different, diff command returns status code 1 with stderr empty, diff lines in stdout
-                errorMsg = ''
+            if result.returncode == 0:
+                if OSType == 'Windows':
+                    ### replace \r\n with \n
+                    returnOutput = result.stdout.decode('utf-8')
+                    returnOutput = re.sub(r'\r\n', '\n', returnOutput)
+                    returnOutput = re.sub(r'\r', '\n', returnOutput)
+                    ### if only \r is present, replace it with \n
+                    returnOutput = returnOutput.rstrip("\n")
+                    returnOutput = returnOutput.split('\n')
+                else:
+                    returnOutput = result.stdout.decode('utf-8').rstrip("\n")
+                    returnOutput = returnOutput.split('\n')
+                errorMsg = 'INFO JAExecuteCommand() result of executing the command:|{0} {1}|, result:\n{2}'.format(shell, command,returnOutput)
                 returnResult = True
+            else:
+                ### execution failed
+                if OSType == 'Windows':
+                    errorMsg = result.stderr.decode('utf-8')
+                    errorMsg = re.sub(r'\r', '\n', errorMsg)
+                    ### if only \r is present, replace it with \n
+                    errorMsg = errorMsg.rstrip("\n")
+                    errorMsg = errorMsg.split('\n')
+                else:
+                    errorMsg = result.stderr.decode('utf-8').split('\n')
 
-    except (subprocess.CalledProcessError) as err :
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, called process error:|{2}|".format(shell, command, err)
-      
-    except ( FileNotFoundError ) as err:
-        errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:|{0} {1}|, error:|{2}|".format(shell, command, err)
-        
-    except Exception as err:
-        errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, exception:|{2}|".format(shell, command, err)
+                if OSType == 'Windows':
+                    returnOutput = result.stdout.decode('utf-8')
+                    returnOutput = re.sub(r'\r', '\n', returnOutput)
+                    ### if only \r is present, replace it with \n
+                    returnOutput = returnOutput.rstrip("\n")
+                    returnOutput = returnOutput.split('\n')
+                else:
+                    returnOutput = result.stdout.decode('utf-8').split('\n')
+
+                lenErrorMsg = len(errorMsg)
+                if lenErrorMsg == 1:
+                    lenErrorMsg = len(errorMsg[0])
+                if lenErrorMsg > 0:
+                    errorMsg = 'ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, errorMsg:|{2}|'.format(shell, command, errorMsg)
+                    returnResult = False
+                else:
+                    ### this is a case where command itself was executed, returned result from that command is not 0 (not success)
+                    ### since there was no error response, use stdout to process the result further.
+                    ### when two files are different, diff command returns status code 1 with stderr empty, diff lines in stdout
+                    errorMsg = ''
+                    returnResult = True
+
+        except (subprocess.CalledProcessError) as err :
+            errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, called process error:|{2}|".format(shell, command, err)
+
+        except subprocess.TimeoutExpired as err:
+            errorMsg = "WARN JAExecuteCommand() timeout while executing the command:|{0} {1}|, called process error:|{2}|".format(shell, command, err)
+            returnOutput = ''
+
+        except ( FileNotFoundError ) as err:
+            errorMsg = "INFO JAExecuteCommand() File not found, while executing the command:|{0} {1}|, error:|{2}|".format(shell, command, err)
+            
+        except Exception as err:
+            errorMsg = "ERROR JAExecuteCommand() failed to execute command:|{0} {1}|, exception:|{2}|".format(shell, command, err)
+
 
     if debugLevel > 2 :
         print("DEBUG-3 JAExecuteCommand() command output:|{0}|, message:|{1}|".format(returnOutput, errorMsg))

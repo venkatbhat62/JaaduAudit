@@ -1,0 +1,96 @@
+# task spec
+# Author: havembha@gmail.com,  2023-01-01
+# Format
+# <environment>: like Dev, Test, UAT, Prod... or All -  free form text
+#   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
+#            override the spec in 'All' environment section
+#   Variable: typically used to derive local site partial name to formulate local site hostnames for local components
+#            can also be used to define hostnames per environment under each environment section and have
+#             service definition under 'All' to optimize the definitions
+#     <variableName>:  command to be executed and output to be assigned this variable. Output can result in string or number
+#               this names needs to be unique within a section. If the same name is present in 'All' also, 
+#                values specified under environment section takes precedence
+#     Note - predefined system variable names available for use are:
+#             JASiteName - this will be defined automatically if 'SitePrefixLength' is defined in environment spec file
+#             JAHostName  - this will be defined automatically all the time.
+#   Items:
+#     <itemName>: Unique name within this section
+#               Suggest to use a name correlates to a process or application that uses this certificate
+#               Suggested format <Component>.<subsystem>.test.<uniqueNameWithinTheSection>
+#                   so that many reference files can be in the same Custom and Logs folders.
+#       Command: run command to gather current state of the process like "ps -ef|grep <processName>" in Linux or
+#             get-process -name <processName> in windows
+#             to check whether a process is running before connecting to get the cert in use and decode it
+#           Optional parameters, default None
+#       Condition: '(>|<|=|!=|>=|<=)(space)(<number> or <string>)' 
+#          If the output of above command results in multiple lines, count of lines is compared to the condition number.
+#          If the output is single line and it is integer,
+#              the output is converted to integer and compared with integer number specified in condition
+#          Else output string is compared to the condition string.
+#                This is useful to match the result of command like true, false, pass, fail etc to determin next step
+#           Optional parameters, default None
+#        ComparePatterns: optional parameter to check the presence of values in license output
+#             Can be used to check for environment specific values in command output like license count, license end date etc
+#             { 'regex pattern1': { groupX: valueX, groupY: valueY,...}, 'regex pattern2': { groupM: valueM, groupN: valueN,...} }
+#             Group number is integer value starting with 1. Group 1 for first group matched, aligns with group numbers shown in regex101.com
+#             Value can be number (integer, float) or string. Put string values within single quote ('') or double quote ("")
+#             Recommand to use https://regex101.com/ to test the regex patterns, group numbers, values to ensure the spec is accurate
+#             Value can also be variable name which can have different values for different environment.
+#             variable needs to have single quote or doublequote before {{ and after }} so that YAML spec format is followed
+#             Refer to examples to understand the usage possibilities.
+#       Periodicity: periodicity spec like in crontab except min field is not supported.
+#              fields are separated by a space (like crontab spec)
+#               * is to indicate each instance of hour, day of month, month, day of the week
+#              [0-23] [1-31] [1-12] [0-6]
+#                 ^      ^     ^      ^<------ day of the week
+#                 ^      ^     ^<-------------- month number
+#                 ^      ^ <------------------- day of month
+#                 ^ <-------------------------- hour of a day
+#             Refer https://www.adminschoice.com/crontab-quick-reference for possible ways to use this.
+#
+#       Task: Command to run, can be any command / script that performs the desired task. 
+#             Need to make sure all those test commands are in allowed list (JAAllowCommands.Windows.conf)
+#
+#   Specify common certs under 'All' so that it applies to hosts in all environments.
+#     Specify environment specific certs under Dev, Test, UAT, Prod... 
+#     If an item with the same name and same name is specified under 'All', 
+#       one specified under other environment takes precedence.
+Dev:
+  # specify hostname in regular expression 
+  HostName: (LAPTOP-QOCNVF0T)
+  #Variable:
+  Items:
+    ### these definitions override the definitions under 'All' section
+    # Windows:
+    #  License: wmic path softwarelicensingservice get OA3xOriginalProductKey
+Test:
+  # specify hostname in regular expression 
+  HostName: ((...)(t)(...)([0-9][0-9]))
+UAT:
+  # specify hostname in regular expression 
+  HostName: ((...)(u)(...)([0-9][0-9]))
+Prod:
+  # specify hostname in regular expression 
+  HostName: ((...)(p)(...)([0-9][0-9]))
+#
+# Keep definition for 'All' environment at the end.
+# this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+# assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+# and that variable is defined under 'All', value under 'All' will be picked up
+# if variable is already defined under environment before, value under 'All' will be ignored.
+All:
+  Enabled: Yes
+  Items:
+    TaskEvery2Hours:
+      Task: echo "dummy task running alternate hour"
+      ### run alternate hour
+      Periodicity: '*/2 * * *'
+    TaskEveryDayAt1:
+      Task: echo "dummy task running at 1 am each day"
+      Periodicity: '1 * * *'
+    Task1stDayOfWeek:
+      Task: echo "dummy task running 1st day of a week"
+      Periodicity: '1 * * 0'
+    Task1stDayOfMonth:
+      Task: echo "dummy task running 1st day of a month at 1 and 13 hours"
+      Periodicity: '1,13 1 * *'

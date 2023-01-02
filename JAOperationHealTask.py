@@ -131,7 +131,7 @@ def JAReadConfigHealTask(
     if operation == 'heal':
         environmentLevelParams = [ 'Alert', 'AppStatusFile', 'Enabled', 'HealAfterInSec', 'HealIntervalInSec', 'MaxAttempts' ]
     elif operation == 'task':
-        environmentLevelParams = [ 'Alert', 'Enabled']
+        environmentLevelParams = [ 'Enabled']
 
     for key, value in operationSpec.items():
              
@@ -189,6 +189,7 @@ def JAReadConfigHealTask(
                         'HealAfterInSec'
                         'HealIntervalInSec'
                         'MaxAttempts'
+                        'Periodicity'
                         'Task'
                         ]
                 """
@@ -210,6 +211,8 @@ def JAReadConfigHealTask(
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         continue
+                else:
+                    itemParams['Command'] = None
 
                 if operation == 'heal':
                     ### command and condition both are mandatory for heal operation
@@ -224,11 +227,20 @@ def JAReadConfigHealTask(
 
                     if 'HealAction' not in itemParams:
                         JAGlobalLib.LogLine(
-                            "WARN JAReadConfigHealTask() {0} item:{1}, 'HealAction', Skipped this definition".format(
+                            "WARN JAReadConfigHealTask() {0} item:{1}, does not have mandatory parameter 'HealAction', Skipped this definition".format(
                                 operation, itemName ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         numberOfWarnings += 1
+                        continue
+
+                    if JAGlobalLib.JAIsSupportedCommand( itemParams['HealAction'], allowedCommands, OSType ) == False:
+                        numberOfWarnings += 1
+                        JAGlobalLib.LogLine(
+                            "WARN JAReadConfigHealTask() Unsupported command:|{0}| in parameter:|{1}| and itemName:|{2}|, Skipping this object definition".format(
+                                itemParams['HealAction'], 'HealAction', itemName),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         continue
 
                     if 'Enabled' in itemParams:
@@ -241,6 +253,29 @@ def JAReadConfigHealTask(
                                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                             numberOfSkipped += 1
                             continue
+                elif operation == 'task':
+                    ### check for valid param values
+                    if 'Task' in itemParams:
+                        if JAGlobalLib.JAIsSupportedCommand( itemParams['Task'], allowedCommands, OSType ) == False:
+                            numberOfWarnings += 1
+                            JAGlobalLib.LogLine(
+                                "WARN JAReadConfigHealTask() Unsupported command:|{0}| in parameter:|{1}| and itemName:|{2}|, Skipping this object definition".format(
+                                    itemParams['Task'], 'Task', itemName),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                            continue
+
+                    if 'Periodicity' not in itemParams:
+                        JAGlobalLib.LogLine(
+                            "WARN JAReadConfigHealTask() {0} item:{1} does not have mandatory parameter 'Periodicity', Skipped this definition".format(
+                                operation, itemName ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        numberOfWarnings += 1
+                        continue
+
+                    if 'Condition' not in itemParams:
+                        itemParams['Condition'] = None
 
                 ### use default values if current item does not have that param defined
                 skipThisItem = False
@@ -250,8 +285,8 @@ def JAReadConfigHealTask(
                             itemParams[environmentParams] = defaultParameters[environmentParams] 
                         else:
                             JAGlobalLib.LogLine(
-                                "WARN JAReadConfigHealTask() {0} item:|{1}|, {2} is not defined in heal spec as well as in Environment yml file, skipped this item".format(
-                                    operation, itemName ),
+                                "WARN JAReadConfigHealTask() {0} item:|{1}|, {2} is not defined in {3} spec as well as in Environment yml file, skipped this item".format(
+                                    operation, itemName,  environmentParams, operation),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                             skipThisItem = True
@@ -337,7 +372,7 @@ def JAOperationHeal(
                     file.close()
                     if debugLevel > 1:
                         JAGlobalLib.LogLine(
-                            "DEBUG-2 JAOperationHealTask() item:|{0}|, item attributes:|{1}|, appStatus:{2}".format(
+                            "DEBUG-2 JAOperationHeal() item:|{0}|, item attributes:|{1}|, appStatus:{2}".format(
                             itemName, serviceAttributes, appStatus),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -347,7 +382,7 @@ def JAOperationHeal(
                         returnStatus = True
                         if debugLevel > 0:
                             JAGlobalLib.LogLine(
-                            "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+                            "DEBUG-1 JAOperationHeal() item:{0}, {1}".format(
                                 itemName, resultText), 
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -380,7 +415,7 @@ def JAOperationHeal(
         returnStatus = True
         if debugLevel > 0:
             JAGlobalLib.LogLine(
-            "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+            "DEBUG-1 JAOperationHeal() item:{0}, {1}".format(
                 itemName, resultText), 
             interactiveMode,
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -390,7 +425,7 @@ def JAOperationHeal(
         elapsedTimeSinceFirstDetection = currentTimeInSec - firstDetectedTime
         if debugLevel > 1:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationHealTask() item:|{0}|, item attributes:|{1}|, HealAfterInSec:{2}, elapsedTimeSinceFirstDetection:{3}".format(
+                "DEBUG-2 JAOperationHeal() item:|{0}|, item attributes:|{1}|, HealAfterInSec:{2}, elapsedTimeSinceFirstDetection:{3}".format(
                 itemName, serviceAttributes, serviceAttributes['HealAfterInSec'], elapsedTimeSinceFirstDetection ),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -402,7 +437,7 @@ def JAOperationHeal(
 
             if debugLevel > 0:
                 JAGlobalLib.LogLine(
-                "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
+                "DEBUG-1 JAOperationHeal() item:{0}, {1}".format(
                     itemName, resultText), 
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -468,21 +503,21 @@ def JAOperationHeal(
                 if returnResult == False:
                     if re.match(r'File not found', errorMsg) != True:
                         JAGlobalLib.LogLine(
-                            "ERROR JAOperationHealTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
+                            "ERROR JAOperationHeal() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
                                 itemName, operation, errorMsg), 
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     returnStatus = False
-                    resultText += ", ERROR executing alert command {0}, command not found".format(mailCommand)
+                    resultText += ", ERROR executing alert command |{0}|, command not found".format(mailCommand)
                 else:
                     if debugLevel > 1:
                         JAGlobalLib.LogLine(
-                            "DEBUG-2 JAOperationHealTask() Sent mail using the command:|{0}|".format(mailCommand),
+                            "DEBUG-2 JAOperationHeal() Sent mail using the command:|{0}|".format(mailCommand),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             else:
                 JAGlobalLib.LogLine(
-                    "ERROR JAOperationHealTask() Can't send email, 'CommandMail' is not set in environment yml file",
+                    "ERROR JAOperationHeal() Can't send email, 'CommandMail' is not set in environment yml file",
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
@@ -495,7 +530,7 @@ def JAOperationHeal(
         numberOfHealAttempts += 1
         if serviceAttributes['Enabled'] == 'dryrun':
             JAGlobalLib.LogLine(
-                "INFO JAOperationHealTask() heal {0} dryrun healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
+                "INFO JAOperationHeal() heal {0} dryrun healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
                     itemName, defaultParameters['CommandShell'], serviceAttributes['HealAction'],
                     numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ),
                 interactiveMode,
@@ -506,11 +541,12 @@ def JAOperationHeal(
                     numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ) 
         else:
             returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
-                defaultParameters['CommandShell'], serviceAttributes['HealAction'], debugLevel, OSType)
+                defaultParameters['CommandShell'], serviceAttributes['HealAction'], debugLevel, OSType,
+                None, True ) ### DO NOT wait for command execution to complete
             if returnResult == False:
                 if re.match(r'File not found', errorMsg) != True:
                     JAGlobalLib.LogLine(
-                        "ERROR JAOperationHealTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
+                        "ERROR JAOperationHeal() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
                             itemName, operation, errorMsg), 
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -521,7 +557,7 @@ def JAOperationHeal(
             else:
                 if debugLevel > 1:
                     JAGlobalLib.LogLine(
-                        "DEBUG-2 JAOperationHealTask() heal {0} executed healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
+                        "DEBUG-2 JAOperationHeal() heal {0} executed healAction:|{1} {2}|, attempts:{3}, healIntervalElapsed:{4} sec".format( 
                             itemName, defaultParameters['CommandShell'], serviceAttributes['HealAction'],
                             numberOfHealAttempts,  (currentTimeInSec - firstHealActionTime) ),
                         interactiveMode,
@@ -536,16 +572,145 @@ def JAOperationHeal(
     return returnStatus, actionTaken, resultText
 
 def JAOperationTask(
-    serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
+    itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
     OSType, OSName, OSVersion,   
     outputFileHandle, colorIndex, HTMLBRTag, myColors,
     interactiveMode, operations, thisHostName, yamlModulePresent,
     defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation ):
 
+    """
+    This function executes the task if periodicity spec match to current hour.
+#       Periodicity: periodicity spec like in crontab except min field is not supported.
+#              fields are separated by a space (like crontab spec)
+#               * is to indicate each instance of hour, day of month, month, day of the week
+#              [0-23] [1-31] [1-12] [0-6]
+#                 ^      ^     ^      ^<------ day of the week
+#                 ^      ^     ^<-------------- month number
+#                 ^      ^ <------------------- day of month
+#                 ^ <-------------------------- hour of a day
+#       
+    """
+
     returnStatus = True
     actionTaken = False
+    resultText = ''
+    errorMsg = ''
 
-    return returnStatus, actionTaken
+    import datetime
+    executeTask = True
+    currentTime = datetime.datetime.now()
+
+    periodicity = serviceAttributes['Periodicity']
+    periodicityParts = periodicity.split()
+    periodicityPartsSpec = {'HourOfDay': 0, 'DayOfMonth':1, 'MonthOfYear':2, 'DayOfWeek':3}
+
+    if debugLevel > 1:
+        JAGlobalLib.LogLine(
+            "DEBUG-2 JAOperationTask() item:{0}, periodicity:{1}, periodicityParts:{2}".format( 
+                itemName, periodicity, periodicityParts ),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+
+    for periodicityPart, index in periodicityPartsSpec.items():
+        if periodicityPart == 'HourOfDay':
+            currentValue = currentTime.hour
+        elif periodicityPart == 'DayOfMonth':
+            currentValue = currentTime.day
+        elif periodicityPart == 'MonthOfYear':
+            currentValue = currentTime.month
+        elif periodicityPart == 'DayOfWeek':
+            currentValue = currentTime.weekday()
+
+        periodicityPartValue = periodicityParts[index]
+        if periodicityPartValue != '*':
+            divisionSpec = periodicityPartValue.split('/')
+            if divisionSpec != None:
+                ### spec has division indicator
+                divisionSpecLength = len(divisionSpec)
+                if divisionSpecLength > 1:
+
+                    if int(divisionSpec[1]) > 0:
+                        frequency = ( float(currentValue) / float(divisionSpec[1]))
+                        if int(frequency) != float(frequency):
+                            ### division did not result in whole number, do not execute the task
+                            executeTask = False
+                            break
+                    else:
+                        errorMsg = 'Invalid periodicity spec:|{0}|, division by zero'.format( periodicityPartValue )
+                        JAGlobalLib.LogLine(
+                            "ERROR JAOperationTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
+                                itemName, operation, errorMsg), 
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                        resultText += errorMsg
+                        executeTask = False
+                        break
+
+                    if debugLevel > 2:
+                        JAGlobalLib.LogLine(
+                            "DEBUG-3 JAOperationTask()           periodicityPart:{0}, periodicityPartValue:{1}, executeTask:{2}, currentValue:{3}, frequency:{4}".format( 
+                                periodicityPart, periodicityPartValue, executeTask,  currentValue, frequency ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            else:
+                ### check for CSV format spec
+                ### separate the events, if current value match to any of the events, then, execute task
+                multipleEvents = periodicityPartValue.split(',')
+                tempExecuteTask = False
+                for event in multipleEvents:
+                    if int(event) == int(currentValue):
+                        tempExecuteTask = True
+                        break
+
+                if tempExecuteTask == False:
+                    ### did not match to none of the event spec for that period, do not execute the task
+                    executeTask = False
+                if debugLevel > 2:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-3 JAOperationTask()           periodicityPart:{0}, periodicityPartValue:{1}, executeTask:{2}, currentValue:{3}, multipleEvents:{4}".format( 
+                            periodicityPart, periodicityPartValue, executeTask, currentValue, multipleEvents ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    if executeTask == True:
+        returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
+            defaultParameters['CommandShell'], serviceAttributes['Task'], debugLevel, OSType,
+            None, True ) ### DO NOT wait for command execution to complete
+        if returnResult == False:
+            if re.match(r'File not found', errorMsg) != True:
+                JAGlobalLib.LogLine(
+                    "ERROR JAOperationTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
+                        itemName, operation, errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            returnStatus = False
+            resultText += "ERROR executing task:|{0} {1}|, errorMsg:|{2}|".format( 
+                defaultParameters['CommandShell'], serviceAttributes['Task'], errorMsg )
+        else:
+            if debugLevel > 1:
+                JAGlobalLib.LogLine(
+                    "DEBUG-2 JAOperationTask() item:|{0}|, executed task:|{1} {2}|".format( 
+                        itemName, defaultParameters['CommandShell'], serviceAttributes['Task'] ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            resultText += "Executed task:|{0} {1}|".format( 
+                defaultParameters['CommandShell'], serviceAttributes['Task'] )
+
+    else:
+        errorMsg = 'current time:|{0}| is not matching to the desired periodicity:|{1}|, skipping current item'.format( 
+            JAGlobalLib.UTCDateTime(),
+            periodicity )
+        if debugLevel > 1:
+            JAGlobalLib.LogLine(
+                "DEBUG-2 JAOperationHealTask() item:{0}, {1}".format(
+                    itemName, errorMsg), 
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        resultText += errorMsg
+
+    return returnStatus, actionTaken, resultText
 
 def JAOperationHealTask(
         baseConfigFileName, subsystem, myPlatform, appVersion,
@@ -664,7 +829,13 @@ TimeStamp: {0}\n\
                             defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation,
                             healProfileFileName )
 
-                    else:
+                    elif operation == 'task':
+                        if debugLevel > 0:
+                            JAGlobalLib.LogLine(
+                                "DEBUG-1 JAOperationHealTask() condition met for item:|{0}|, item attributes:|{1}|, proceeding with task processing".format(
+                                itemName, serviceAttributes),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         returnStatus, actionTaken, resultText = JAOperationTask(
                             itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
                             OSType, OSName, OSVersion,   
@@ -679,6 +850,28 @@ TimeStamp: {0}\n\
                             numberOfNoActionTaken += 1
                     else:
                         numberOfFailures += 1
+
+            elif operation == 'task':
+                if debugLevel > 0:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-1 JAOperationHealTask() condition not present for item:|{0}|, item attributes:|{1}|, proceeding with task processing".format(
+                        itemName, serviceAttributes),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                returnStatus, actionTaken, resultText = JAOperationTask(
+                    itemName, serviceAttributes, baseConfigFileName, subsystem, myPlatform, appVersion,
+                    OSType, OSName, OSVersion,   
+                    outputFileHandle, colorIndex, HTMLBRTag, myColors,
+                    interactiveMode, operations, thisHostName, yamlModulePresent,
+                    defaultParameters, debugLevel, currentTimeInSec, allowedCommands, operation )
+
+                if returnStatus == True:
+                    if actionTaken == True:
+                        numberOfPasses += 1
+                    else:
+                        numberOfNoActionTaken += 1
+                else:
+                    numberOfFailures += 1
 
             if operation == 'heal':
                         ### log result, align the spaces so that yaml layout format is satisfied.
@@ -709,18 +902,16 @@ TimeStamp: {0}\n\
                     serviceAttributes['HealIntervalInSec'],
                     serviceAttributes['MaxAttempts'],
                     resultText ))
-            else:
+            elif operation == 'task':
                     reportFile.write("\
         {0}:\n\
-            Alert: {1}\n\
-            Command: {2}\n\
-            Condition: {3}\n\
-            Task: {4}\n\
-            Periodicity: {5}\n\
+            Command: {1}\n\
+            Condition: {2}\n\
+            Task: {3}\n\
+            Periodicity: {4}\n\
             Results:\n\
-                {6}\n".format(
+                {5}\n".format(
                         itemName,
-                        serviceAttributes['Alert'],
                         serviceAttributes['Command'],
                         serviceAttributes['Condition'],
                         serviceAttributes['Task'],
