@@ -1,5 +1,5 @@
 # task spec
-# Author: havembha@gmail.com,  2023-01-01
+# Author: havembha@gmail.com,  2023-01-02
 # Format
 # <environment>: like Dev, Test, UAT, Prod... or All -  free form text
 #   HostName: hostname in regular expression format. when current hostname match to this name, specification in section
@@ -101,4 +101,3 @@ All:
     TaskJan2nd:
       Task: echo "dummy task running 2nd day of Jan month at 15 hours"
       Periodicity: '15 2 1 *'
-      Enabled: No

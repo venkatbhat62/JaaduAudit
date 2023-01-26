@@ -669,10 +669,13 @@ def JAOperationLogsStats(
         reportFile.write("\
 TimeStamp: {0}\n\
     Platform: {1}\n\
-    HostName: {2}\n\
-    Environment: {3}\n\
+    Component: {2}\n\
+    HostName: {3}\n\
+    Environment: {4}\n\
     Items:\n\
-".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
+".format(
+    JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], defaultParameters['Component'], 
+    thisHostName, defaultParameters['Environment']) )
 
 
     returnStatus, fromTimeInSec, errorMsg = JAGlobalLib.JAParseDateTime(defaultParameters['FromTime'])

@@ -244,7 +244,7 @@ def JAReadConfigHealTask(
                         continue
 
                     if 'Enabled' in itemParams:
-                        if itemParams['Enabled'] == 'No' or itemParams['Enabled'] == 'no':
+                        if itemParams['Enabled'] == 'No' or itemParams['Enabled'] == 'no' or itemParams['Enabled'] == False:
                             if debugLevel > 1:
                                 JAGlobalLib.LogLine(
                                     "DEBUG-2 JAReadConfigHealTask() {0} item:{1}, not enabled, Skipped this definition".format(
@@ -273,6 +273,17 @@ def JAReadConfigHealTask(
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                         numberOfWarnings += 1
                         continue
+
+                    if 'Enabled' in itemParams:
+                        if itemParams['Enabled'] == 'No' or itemParams['Enabled'] == 'no' or itemParams['Enabled'] == False:
+                            if debugLevel > 1:
+                                JAGlobalLib.LogLine(
+                                    "DEBUG-2 JAReadConfigHealTask() {0} item:{1}, not enabled, Skipped this definition".format(
+                                        operation, itemName ),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                            numberOfSkipped += 1
+                            continue
 
                     if 'Condition' not in itemParams:
                         itemParams['Condition'] = None
@@ -624,37 +635,39 @@ def JAOperationTask(
 
         periodicityPartValue = periodicityParts[index]
         if periodicityPartValue != '*':
-            divisionSpec = periodicityPartValue.split('/')
-            if divisionSpec != None:
-                ### spec has division indicator
-                divisionSpecLength = len(divisionSpec)
-                if divisionSpecLength > 1:
+            if periodicityPartValue.find('/') != -1:
+                ### field has division spec to match to multiple time points
+                divisionSpec = periodicityPartValue.split('/')
+                if divisionSpec != None:
+                    ### spec has division indicator
+                    divisionSpecLength = len(divisionSpec)
+                    if divisionSpecLength > 1:
 
-                    if int(divisionSpec[1]) > 0:
-                        frequency = ( float(currentValue) / float(divisionSpec[1]))
-                        if int(frequency) != float(frequency):
-                            ### division did not result in whole number, do not execute the task
+                        if int(divisionSpec[1]) > 0:
+                            frequency = ( float(currentValue) / float(divisionSpec[1]))
+                            if int(frequency) != float(frequency):
+                                ### division did not result in whole number, do not execute the task
+                                executeTask = False
+                                
+                            if debugLevel > 2:
+                                JAGlobalLib.LogLine(
+                                    "DEBUG-3 JAOperationTask()           periodicityPart:{0}, periodicityPartValue:{1}, executeTask:{2}, currentValue:{3}, frequency:{4}".format( 
+                                        periodicityPart, periodicityPartValue, executeTask,  currentValue, frequency ),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+                        else:
+                            errorMsg = 'Invalid periodicity spec:|{0}|, division by zero'.format( periodicityPartValue )
+                            JAGlobalLib.LogLine(
+                                "ERROR JAOperationTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
+                                    itemName, operation, errorMsg), 
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                            resultText += errorMsg
                             executeTask = False
                             break
-                    else:
-                        errorMsg = 'Invalid periodicity spec:|{0}|, division by zero'.format( periodicityPartValue )
-                        JAGlobalLib.LogLine(
-                            "ERROR JAOperationTask() item:{0}, error performing operation:{1}, errorMsg:|{2}|".format(
-                                itemName, operation, errorMsg), 
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                        resultText += errorMsg
-                        executeTask = False
-                        break
 
-                    if debugLevel > 2:
-                        JAGlobalLib.LogLine(
-                            "DEBUG-3 JAOperationTask()           periodicityPart:{0}, periodicityPartValue:{1}, executeTask:{2}, currentValue:{3}, frequency:{4}".format( 
-                                periodicityPart, periodicityPartValue, executeTask,  currentValue, frequency ),
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-
-            else:
+            elif periodicityPartValue.find(',') != -1:
                 ### check for CSV format spec
                 ### separate the events, if current value match to any of the events, then, execute task
                 multipleEvents = periodicityPartValue.split(',')
@@ -673,8 +686,21 @@ def JAOperationTask(
                             periodicityPart, periodicityPartValue, executeTask, currentValue, multipleEvents ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            else:
+                ### has a vlaue, compare that value to current value as is.
+                if int(periodicityPartValue) != int(currentValue):
+                    executeTask = False
+                if debugLevel > 2:
+                    JAGlobalLib.LogLine(
+                        "DEBUG-3 JAOperationTask()           periodicityPart:{0}, periodicityPartValue:{1}, executeTask:{2}, currentValue:{3}, single event".format( 
+                            periodicityPart, periodicityPartValue, executeTask, currentValue ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        if executeTask == False:
+            break
 
     if executeTask == True:
+        actionTaken = True
         returnResult, returnOutput, errorMsg = JAGlobalLib.JAExecuteCommand(
             defaultParameters['CommandShell'], serviceAttributes['Task'], debugLevel, OSType,
             None, True ) ### DO NOT wait for command execution to complete
@@ -689,9 +715,9 @@ def JAOperationTask(
             resultText += "ERROR executing task:|{0} {1}|, errorMsg:|{2}|".format( 
                 defaultParameters['CommandShell'], serviceAttributes['Task'], errorMsg )
         else:
-            if debugLevel > 1:
+            if debugLevel > 0:
                 JAGlobalLib.LogLine(
-                    "DEBUG-2 JAOperationTask() item:|{0}|, executed task:|{1} {2}|".format( 
+                    "DEBUG-1 JAOperationTask() item:|{0}|, executed task:|{1} {2}|".format( 
                         itemName, defaultParameters['CommandShell'], serviceAttributes['Task'] ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -702,9 +728,9 @@ def JAOperationTask(
         errorMsg = 'current time:|{0}| is not matching to the desired periodicity:|{1}|, skipping current item'.format( 
             JAGlobalLib.UTCDateTime(),
             periodicity )
-        if debugLevel > 1:
+        if debugLevel > 0:
             JAGlobalLib.LogLine(
-                "DEBUG-2 JAOperationHealTask() item:{0}, {1}".format(
+                "DEBUG-1 JAOperationHealTask() item:{0}, {1}".format(
                     itemName, errorMsg), 
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
@@ -776,10 +802,13 @@ def JAOperationHealTask(
         reportFile.write("\
 TimeStamp: {0}\n\
     Platform: {1}\n\
-    HostName: {2}\n\
-    Environment: {3}\n\
+    Component: {2}\n\
+    HostName: {3}\n\
+    Environment: {4}\n\
     Items:\n\
-".format(JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], thisHostName, defaultParameters['Environment']) )
+".format(
+    JAGlobalLib.UTCDateTime(), defaultParameters['Platform'], defaultParameters['Component'], 
+    thisHostName, defaultParameters['Environment']) )
 
         ### save or compare information of each object
         for itemName in operationParameters:
@@ -903,7 +932,10 @@ TimeStamp: {0}\n\
                     serviceAttributes['MaxAttempts'],
                     resultText ))
             elif operation == 'task':
-                    reportFile.write("\
+                    if returnStatus == True:
+                        if actionTaken == True:
+                            ### record the event/results if action was taken.
+                            reportFile.write("\
         {0}:\n\
             Command: {1}\n\
             Condition: {2}\n\
@@ -938,9 +970,11 @@ TimeStamp: {0}\n\
         Error: {6}\n".format( numberOfItems, numberOfConditionsMet, numberOfConditionsNotMet, numberOfPasses, 
             numberOfFailures, numberOfNoActionTaken, numberOfErrors ) )
 
-
-
         reportFile.close()
+
+        ### if interactive session, display the report file
+        if interactiveMode == True:
+            JAGlobalLib.JAPrintFile( reportFileName, '^TimeStamp:')
 
         ### add current report file to upload list if upload is opted
         if re.search(r'upload', defaultParameters['Operations']):

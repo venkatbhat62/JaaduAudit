@@ -2072,15 +2072,24 @@ def JAEvaluateComparePatternGroupValues(
                     
     return returnStatus
 
-def JAPrintFile( fileName ):
+def JAPrintFile( fileName:str, pattern:str ):
     """
-    This function prints the given file
+    This function prints enitre file if pattern is not passed
+    If pattern is passed, searches for the last occurrence of that pattern and displays lines after that till end of the file
 
     Returns True on success, False on failure along with errorMsg
 
     """
     returnStatus = True
     errorMsg = ''
+    buffer = []
+    patternFound = False
+    if pattern == None or pattern == '':
+        searchForPattern = False
+    else:
+        searchForPattern = True
+        searchPattern = r"{0}".format(pattern)
+        
     try:
         with open( fileName, "r") as reportFile:
             print("\nFileName: {0}\n".format(fileName))
@@ -2089,9 +2098,20 @@ def JAPrintFile( fileName ):
                 if not line:
                     break
                 line = line.rstrip()
-                print( "{0}".format(line))
+                if searchForPattern == True:
+                    if re.search(searchPattern, line):
+                        buffer = []  
+                        buffer.append(line)  
+                        patternFound = True
+                    elif patternFound == True:
+                        buffer.append(line) 
+                else:
+                    print( "{0}".format(line))
             reportFile.close()
 
+            if patternFound == True:
+                for line in buffer:
+                    print( "{0}".format(line))    
     except OSError as err:
         errorMsg = "ERROR could not open the file:{0}, errorMsg:{1}".format( fileName, err)
         returnStatus = False
